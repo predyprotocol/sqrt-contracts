@@ -1,0 +1,9 @@
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['lib']
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+gas_reports = ["*"]
+fs_permissions = [{ access = "read", path = "./"}]

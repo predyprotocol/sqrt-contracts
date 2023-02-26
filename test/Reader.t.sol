@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+import "./controller/Setup.t.sol";
+import "../src/Reader.sol";
+
+contract TestReader is TestController {
+    Reader reader;
+
+    uint256 vaultId1;
+    uint256 vaultId2;
+
+    address internal user1 = vm.addr(uint256(1));
+    address internal user2 = vm.addr(uint256(2));
+
+    function setUp() public override {
+        TestController.setUp();
+
+        usdc.mint(user1, type(uint128).max);
+        weth.mint(user1, type(uint128).max);
+        usdc.mint(user2, type(uint128).max);
+
+        vm.startPrank(user1);
+        usdc.approve(address(controller), type(uint256).max);
+        weth.approve(address(controller), type(uint256).max);
+        controller.supplyToken(1, 1e10);
+        controller.supplyToken(2, 1e10);
+        vaultId1 = controller.updateMargin(0, 1e10);
+        vm.stopPrank();
+
+        // create vault
+        vm.startPrank(user2);
+        usdc.approve(address(controller), type(uint256).max);
+        vaultId2 = controller.updateMargin(0, 1e10);
+        vm.stopPrank();
+
+        reader = new Reader(controller);
+    }
+
+    function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
+        internal
+        view
+        returns (TradeLogic.TradeParams memory)
+    {
+        return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
+    }
+
+    function testGetMinDeposit() public {
+        vm.startPrank(user1);
+        controller.tradePerp(vaultId1, WETH_ASSET_ID, getTradeParams(-1000 * 1e6, 1000 * 1e6));
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(800 * 1e6, -800 * 1e6));
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 11 weeks);
+
+        vm.startPrank(user2);
+        DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId2);
+        vm.stopPrank();
+
+        assertEq(vaultStatus.vaultValue, 9930806374);
+        assertEq(vaultStatus.minDeposit, 32000001);
+    }
+
+    function testGetDelta() public {
+        vm.startPrank(user2);
+        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(100, 0));
+        vm.stopPrank();
+
+        assertEq(reader.getDelta(WETH_ASSET_ID, vaultId2), 100);
+    }
+}

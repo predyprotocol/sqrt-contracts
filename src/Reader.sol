@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.15;
+
+import "./interfaces/IController.sol";
+import "./libraries/DataType.sol";
+import "./libraries/logic/ReaderLogic.sol";
+
+/**
+ * @title Reader contract
+ * @notice Reader contract with an controller
+ */
+contract Reader {
+    IController public controller;
+
+    /**
+     * @notice Reader constructor
+     * @param _controller controller address
+     */
+    constructor(IController _controller) {
+        controller = _controller;
+    }
+
+    /**
+     * @notice Gets vault delta.
+     */
+    function getDelta(uint256 _tokenId, uint256 _vaultId) external view returns (int256 _delta) {
+        DataType.AssetStatus memory asset = controller.getAsset(_tokenId);
+
+        return ReaderLogic.getDelta(
+            asset.id,
+            asset.sqrtAssetStatus,
+            asset.isMarginZero,
+            controller.getVault(_vaultId),
+            controller.getSqrtPrice(_tokenId)
+        );
+    }
+}

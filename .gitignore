@@ -1,0 +1,21 @@
+# Compiler files
+cache/
+out/
+
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*
+/broadcast/*/31337/
+
+#Hardhat files
+cache
+cache_hardhat
+artifacts
+.chainid

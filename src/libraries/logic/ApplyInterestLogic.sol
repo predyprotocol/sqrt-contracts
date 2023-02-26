@@ -1,0 +1,101 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+import "../AssetGroupLib.sol";
+import "../Perp.sol";
+import "../ScaledAsset.sol";
+
+library ApplyInterestLogic {
+    using ScaledAsset for ScaledAsset.TokenStatus;
+
+    event InterestGrowthUpdated(
+        uint256 assetId,
+        uint256 assetGrowth,
+        uint256 debtGrowth,
+        uint256 supplyPremiumGrowth,
+        uint256 borrowPremiumGrowth,
+        uint256 fee0Growth,
+        uint256 fee1Growth,
+        uint256 accumulatedProtocolRevenue
+    );
+
+    function applyInterestForAssetGroup(
+        DataType.AssetGroup storage _assetGroup,
+        mapping(uint256 => DataType.AssetStatus) storage _assets
+    ) external {
+        applyInterestForToken(_assets, Constants.STABLE_ASSET_ID);
+
+        for (uint256 i = 0; i < _assetGroup.assetIds.length; i++) {
+            applyInterestForToken(_assets, _assetGroup.assetIds[i]);
+        }
+    }
+
+    function applyInterestForToken(
+        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        uint256 _tokenId
+    ) public {
+        DataType.AssetStatus storage assetStatus = _assets[_tokenId];
+
+        if (block.timestamp <= assetStatus.lastUpdateTimestamp) {
+            return;
+        }
+
+        if (_tokenId != Constants.STABLE_ASSET_ID) {
+            _assets[Constants.STABLE_ASSET_ID].accumulatedProtocolRevenue += Perp.updateFeeAndPremiumGrowth(
+                assetStatus.sqrtAssetStatus,
+                assetStatus.premiumParams,
+                assetStatus.isMarginZero,
+                assetStatus.lastUpdateTimestamp
+            );
+        }
+
+        // Gets utilization ratio
+        uint256 utilizationRatio = assetStatus.tokenStatus.getUtilizationRatio();
+
+        if (utilizationRatio == 0) {
+            // Update last update timestamp
+            assetStatus.lastUpdateTimestamp = block.timestamp;
+
+            return;
+        }
+
+        // Calculates interest rate
+        uint256 interestRate = InterestRateModel.calculateInterestRate(assetStatus.irmParams, utilizationRatio)
+            * (block.timestamp - assetStatus.lastUpdateTimestamp) / 365 days;
+
+        // Update scaler
+        assetStatus.accumulatedProtocolRevenue += assetStatus.tokenStatus.updateScaler(interestRate);
+
+        // Update last update timestamp
+        assetStatus.lastUpdateTimestamp = block.timestamp;
+
+        emitInterestGrowthEvent(assetStatus);
+    }
+
+    function emitInterestGrowthEvent(DataType.AssetStatus memory _assetStatus) internal {
+        emit InterestGrowthUpdated(
+            _assetStatus.id,
+            _assetStatus.tokenStatus.assetGrowth,
+            _assetStatus.tokenStatus.debtGrowth,
+            _assetStatus.sqrtAssetStatus.supplyPremiumGrowth,
+            _assetStatus.sqrtAssetStatus.borrowPremiumGrowth,
+            _assetStatus.sqrtAssetStatus.fee0Growth,
+            _assetStatus.sqrtAssetStatus.fee1Growth,
+            _assetStatus.accumulatedProtocolRevenue
+            );
+    }
+
+    function reallocate(
+        DataType.AssetGroup memory _assetGroup,
+        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        uint256 _assetId
+    ) external returns (bool) {
+        DataType.AssetStatus storage underlyingAsset = _assets[_assetId];
+        DataType.AssetStatus storage stableAsset = _assets[Constants.STABLE_ASSET_ID];
+
+        applyInterestForToken(_assets, _assetId);
+        applyInterestForToken(_assets, _assetGroup.stableAssetId);
+
+        return Perp.reallocate(underlyingAsset, stableAsset.tokenStatus, underlyingAsset.sqrtAssetStatus);
+    }
+}
