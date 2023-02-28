@@ -24,7 +24,7 @@ contract TestPerpReallocate is TestPerp {
 
         uniswapPool.swap(address(this), false, 10000, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        Perp.reallocate(underlyingAssetStatus, stableAssetStatus, underlyingAssetStatus.sqrtAssetStatus);
+        Perp.reallocate(underlyingAssetStatus, stableAssetStatus, underlyingAssetStatus.sqrtAssetStatus, false);
 
         assertEq(underlyingAssetStatus.sqrtAssetStatus.tickLower, -910);
         assertEq(underlyingAssetStatus.sqrtAssetStatus.tickUpper, 1090);

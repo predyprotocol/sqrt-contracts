@@ -87,7 +87,7 @@ library Perp {
         int256 rebalanceEntryFeeStable;
     }
 
-    event Rebalanced(uint256 assetId, int24 tickLower, int24 tickUpper);
+    event Rebalanced(uint256 assetId, int24 tickLower, int24 tickUpper, int256 profit);
 
     function createAssetStatus(address uniswapPool, int24 tickLower, int24 tickUpper)
         internal
@@ -170,8 +170,9 @@ library Perp {
     function reallocate(
         DataType.AssetStatus storage _assetStatusUnderlying,
         ScaledAsset.TokenStatus storage _assetStatusStable,
-        SqrtPerpAssetStatus storage _sqrtAssetStatus
-    ) internal returns (bool) {
+        SqrtPerpAssetStatus storage _sqrtAssetStatus,
+        bool _enableRevert
+    ) internal returns (bool, int256 profit) {
         updateRebalanceFeeGrowth(_assetStatusUnderlying, _assetStatusStable, _sqrtAssetStatus);
 
         (uint160 currentSqrtPrice, int24 currentTick,,,,,) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).slot0();
@@ -180,7 +181,7 @@ library Perp {
             _sqrtAssetStatus.tickLower + _assetStatusUnderlying.riskParams.rebalanceThreshold < currentTick
                 && currentTick < _sqrtAssetStatus.tickUpper - _assetStatusUnderlying.riskParams.rebalanceThreshold
         ) {
-            return false;
+            return (false, 0);
         }
 
         int24 tick;
@@ -198,7 +199,7 @@ library Perp {
 
         if (totalLiquidityAmount == 0) {
             (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) = getNewRange(_assetStatusUnderlying, currentTick);
-            return false;
+            return (false, 0);
         }
 
         (uint256 receivedAmount0, uint256 receivedAmount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).burn(
@@ -227,8 +228,7 @@ library Perp {
         );
 
         if (tick != 0) {
-            swapForOutOfRange(
-                _sqrtAssetStatus.uniswapPool,
+            profit = swapForOutOfRange(
                 _assetStatusUnderlying,
                 _assetStatusStable,
                 _sqrtAssetStatus,
@@ -236,11 +236,17 @@ library Perp {
                 tick,
                 totalLiquidityAmount
             );
+
+            require(!_enableRevert || profit >= 0, "CANTREBAL");
+
+            if (profit > 0) {
+                _sqrtAssetStatus.fee1Growth += uint256(profit) * Constants.ONE / _sqrtAssetStatus.totalAmount;
+            }
         }
 
-        emit Rebalanced(_assetStatusUnderlying.id, _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper);
+        emit Rebalanced(_assetStatusUnderlying.id, _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, profit);
 
-        return true;
+        return (true, profit);
     }
 
     function getNewRange(DataType.AssetStatus storage _assetStatusUnderlying, int24 _currentTick)
@@ -267,14 +273,13 @@ library Perp {
      *       sqrt(x) - sqrt(a1)
      */
     function swapForOutOfRange(
-        address _uniswapPool,
         DataType.AssetStatus storage _assetStatusUnderlying,
         ScaledAsset.TokenStatus storage _assetStatusStable,
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         uint160 _currentSqrtPrice,
         int24 _tick,
         uint128 _totalLiquidityAmount
-    ) internal {
+    ) internal returns (int256 profit) {
         uint160 tickSqrtPrice = TickMath.getSqrtRatioAtTick(_tick);
 
         // 1/tickSqrtPrice - 1/_currentSqrtPrice
@@ -286,7 +291,7 @@ library Perp {
         int256 deltaPosition1 =
             LPMath.calculateAmount1ForLiquidity(tickSqrtPrice, _currentSqrtPrice, _totalLiquidityAmount, false);
 
-        (, int256 amount1) = IUniswapV3Pool(_uniswapPool).swap(
+        (, int256 amount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).swap(
             address(this),
             deltaPosition0 > deltaPosition1,
             // + means exactIn, - means exactOut
@@ -295,18 +300,11 @@ library Perp {
             ""
         );
 
-        // TODO: amount1 - deltaPosition
-        uint256 profit;
-
         if (deltaPosition0 > 0) {
-            require(amount1 <= deltaPosition1, "CANTREBAL");
-            profit = uint256(deltaPosition1 - amount1);
+            profit = (deltaPosition1 - amount1);
         } else {
-            require(amount1 >= deltaPosition1, "CANTREBAL");
-            profit = uint256(amount1 - deltaPosition1);
+            profit = (amount1 - deltaPosition1);
         }
-
-        _sqrtAssetStatus.fee1Growth += profit * Constants.ONE / _sqrtAssetStatus.totalAmount;
 
         updateRebalancePosition(_assetStatusUnderlying, _assetStatusStable, -deltaPosition0, -deltaPosition1);
     }
@@ -705,29 +703,37 @@ library Perp {
         UserStatus memory _userStatus,
         bool _isMarginZero,
         uint160 _sqrtPrice
-    ) internal pure returns (int256 amount0, int256 amount1) {
-        (uint256 amount0InUniswap, uint256 amount1InUniswap) = LiquidityAmounts.getAmountsForLiquidity(
-            _sqrtPrice,
-            TickMath.getSqrtRatioAtTick(_assetStatus.tickLower),
-            TickMath.getSqrtRatioAtTick(_assetStatus.tickUpper),
-            _userStatus.sqrtPerp.amount.abs().safeCastTo128()
-        );
+    ) internal pure returns (int256 amountUnderlying, int256 amountStable) {
+        int256 positionAmount0InUniswap;
+        int256 positionAmount1InUniswap;
 
-        if (_userStatus.sqrtPerp.amount > 0) {
-            amount0 += int256(amount0InUniswap);
-            amount1 += int256(amount1InUniswap);
-        } else {
-            amount0 -= int256(amount0InUniswap);
-            amount1 -= int256(amount1InUniswap);
+        {
+            (uint256 amount0InUniswap, uint256 amount1InUniswap) = LiquidityAmounts.getAmountsForLiquidity(
+                _sqrtPrice,
+                TickMath.getSqrtRatioAtTick(_assetStatus.tickLower),
+                TickMath.getSqrtRatioAtTick(_assetStatus.tickUpper),
+                _userStatus.sqrtPerp.amount.abs().safeCastTo128()
+            );
+
+            if (_userStatus.sqrtPerp.amount > 0) {
+                positionAmount0InUniswap = int256(amount0InUniswap);
+                positionAmount1InUniswap = int256(amount1InUniswap);
+            } else {
+                positionAmount0InUniswap = -int256(amount0InUniswap);
+                positionAmount1InUniswap = -int256(amount1InUniswap);
+            }
         }
 
         if (_isMarginZero) {
-            amount0 += _userStatus.stable.positionAmount;
-            amount1 += _userStatus.underlying.positionAmount;
+            amountStable += positionAmount0InUniswap;
+            amountUnderlying += positionAmount1InUniswap;
         } else {
-            amount0 += _userStatus.underlying.positionAmount;
-            amount1 += _userStatus.stable.positionAmount;
+            amountStable += positionAmount1InUniswap;
+            amountUnderlying += positionAmount0InUniswap;
         }
+
+        amountStable += _userStatus.stable.positionAmount;
+        amountUnderlying += _userStatus.underlying.positionAmount;
     }
 
     /**

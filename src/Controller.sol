@@ -220,7 +220,7 @@ contract Controller is
         emit IRMParamsUpdated(_assetId, _irmParams, _premiumParams);
     }
 
-    function reallocate(uint256 _assetId) external returns (bool) {
+    function reallocate(uint256 _assetId) external returns (bool, int256) {
         applyInterest();
 
         return ApplyInterestLogic.reallocate(assetGroup, assets, _assetId);

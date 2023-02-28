@@ -48,8 +48,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         lpVaultId = controller.updateMargin(0, 1e10);
 
-        // Min / VaultValue must be greater than 10%
-        assertGt(getMinPerVaultValue(), 1e17);
+        // Min / VaultValue must be greater than 1%
+        assertGt(getMinPerVaultValue(), 1e16);
     }
 
     function getStrategyTradeParams() internal view returns (IStrategyVault.StrategyTradeParams memory) {
@@ -219,7 +219,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         GammaShortStrategy.StrategyTradeParams memory tradeParams = getStrategyTradeParams();
 
         vm.expectRevert(bytes("GSS4"));
-        strategy.updateGamma(1e10, tradeParams);
+        strategy.updateGamma(10 * 1e10, tradeParams);
     }
 
     function testUpdateGamma() public {
@@ -227,7 +227,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         uniswapPool.swap(address(this), false, -2 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        strategy.updateGamma(2 * 1e8, getStrategyTradeParams());
+        strategy.updateGamma(1e10, getStrategyTradeParams());
 
         uniswapPool.swap(address(this), true, 2 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 
@@ -236,6 +236,6 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawMarginAmount, 9999440000);
+        assertEq(withdrawMarginAmount, 9974850000);
     }
 }

@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@solmate/utils/FixedPointMathLib.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {LiquidityAmounts} from "@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol";
 import "./UniHelper.sol";
 import "./DataType.sol";
 import "./Constants.sol";
@@ -23,13 +22,13 @@ library PositionCalculator {
         int256 amountUnderlying;
     }
 
-    function isDanger(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
-        DataType.Vault memory _vault
-    ) internal view {
-        (int256 minDeposit, int256 vaultValue, uint256 debtValue) = calculateMinDeposit(_assets, _vault, true);
+    function isDanger(mapping(uint256 => DataType.AssetStatus) storage _assets, DataType.Vault memory _vault)
+        internal
+        view
+    {
+        (int256 minDeposit, int256 vaultValue, bool hasPosition) = calculateMinDeposit(_assets, _vault, true);
 
-        if (debtValue == 0) {
+        if (!hasPosition) {
             revert("ND");
         }
 
@@ -42,12 +41,12 @@ library PositionCalculator {
         returns (int256 minDeposit)
     {
         int256 vaultValue;
-        uint256 debtValue;
+        bool hasPosition;
 
         // isSafe does not count unrealized fee
-        (minDeposit, vaultValue, debtValue) = calculateMinDeposit(_assets, _vault, false);
+        (minDeposit, vaultValue, hasPosition) = calculateMinDeposit(_assets, _vault, false);
 
-        if (debtValue == 0) {
+        if (!hasPosition) {
             return 0;
         }
 
@@ -58,10 +57,12 @@ library PositionCalculator {
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault memory _vault,
         bool _enableUnrealizedFeeCalculation
-    ) internal view returns (int256 minDeposit, int256 vaultValue, uint256 debtValue) {
+    ) internal view returns (int256 minDeposit, int256 vaultValue, bool hasPosition) {
         int256 minValue;
+        uint256 debtValue;
 
-        (minValue, vaultValue, debtValue) = calculateMinValue(_assets, _vault, _enableUnrealizedFeeCalculation);
+        (minValue, vaultValue, debtValue, hasPosition) =
+            calculateMinValue(_assets, _vault, _enableUnrealizedFeeCalculation);
 
         int256 minMinValue = SafeCast.toInt256(calculateRequiredCollateralWithDebt(debtValue) * debtValue / 1e6);
 
@@ -85,7 +86,7 @@ library PositionCalculator {
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault memory _vault,
         bool _enableUnrealizedFeeCalculation
-    ) internal view returns (int256 minValue, int256 vaultValue, uint256 debtValue) {
+    ) internal view returns (int256 minValue, int256 vaultValue, uint256 debtValue, bool hasPosition) {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             DataType.UserStatus memory userStatus = _vault.openPositions[i];
 
@@ -97,8 +98,9 @@ library PositionCalculator {
 
                 PositionParams memory positionParams;
                 if (_enableUnrealizedFeeCalculation) {
-                    positionParams =
-                        getPositionWithUnrealizedFee(_assets[Constants.STABLE_ASSET_ID], _assets[assetId], userStatus.perpTrade);
+                    positionParams = getPositionWithUnrealizedFee(
+                        _assets[Constants.STABLE_ASSET_ID], _assets[assetId], userStatus.perpTrade
+                    );
                 } else {
                     positionParams = getPosition(userStatus.perpTrade);
                 }
@@ -107,7 +109,9 @@ library PositionCalculator {
 
                 vaultValue += calculateValue(sqrtPrice, positionParams);
 
-                debtValue += calculateDebtValue(sqrtPrice, positionParams);
+                debtValue += calculateSquartDebtValue(sqrtPrice, userStatus.perpTrade);
+
+                hasPosition = hasPosition || getHasPositionFlag(userStatus.perpTrade);
             }
         }
 
@@ -146,6 +150,11 @@ library PositionCalculator {
             _perpUserStatus.sqrtPerp.amount,
             _perpUserStatus.underlying.positionAmount - _perpUserStatus.sqrtPerp.underlyingRebalanceEntryValue
         );
+    }
+
+    function getHasPositionFlag(Perp.UserStatus memory _perpUserStatus) internal pure returns (bool) {
+        return _perpUserStatus.stable.positionAmount < 0 || _perpUserStatus.sqrtPerp.amount < 0
+            || _perpUserStatus.underlying.positionAmount < 0;
     }
 
     /**
@@ -206,18 +215,17 @@ library PositionCalculator {
             + (2 * (_positionParams.amountSqrt * int256(_sqrtPrice)) >> Constants.RESOLUTION) + _positionParams.amountStable;
     }
 
-    function calculateDebtValue(uint256 _sqrtPrice, PositionParams memory _positionParams)
+    function calculateSquartDebtValue(uint256 _sqrtPrice, Perp.UserStatus memory _perpUserStatus)
         internal
         pure
         returns (uint256)
     {
-        uint256 price = (_sqrtPrice * _sqrtPrice) >> Constants.RESOLUTION;
+        int256 squartPosition = _perpUserStatus.sqrtPerp.amount;
 
-        uint256 amountStable = _positionParams.amountStable < 0 ? uint256(-_positionParams.amountStable) : 0;
-        uint256 amountUnderlying = _positionParams.amountUnderlying < 0 ? uint256(-_positionParams.amountUnderlying) : 0;
-        uint256 amountSqrt = _positionParams.amountSqrt < 0 ? uint256(-_positionParams.amountSqrt) : 0;
+        if (squartPosition > 0) {
+            return 0;
+        }
 
-        return ((amountUnderlying * price) >> Constants.RESOLUTION)
-            + (2 * (amountSqrt * _sqrtPrice) >> Constants.RESOLUTION) + amountStable;
+        return (2 * (uint256(-squartPosition) * _sqrtPrice) >> Constants.RESOLUTION);
     }
 }

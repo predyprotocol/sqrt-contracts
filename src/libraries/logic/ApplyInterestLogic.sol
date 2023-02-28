@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "../AssetGroupLib.sol";
 import "../Perp.sol";
 import "../ScaledAsset.sol";
@@ -30,10 +31,7 @@ library ApplyInterestLogic {
         }
     }
 
-    function applyInterestForToken(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
-        uint256 _tokenId
-    ) public {
+    function applyInterestForToken(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _tokenId) public {
         DataType.AssetStatus storage assetStatus = _assets[_tokenId];
 
         if (block.timestamp <= assetStatus.lastUpdateTimestamp) {
@@ -89,13 +87,18 @@ library ApplyInterestLogic {
         DataType.AssetGroup memory _assetGroup,
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         uint256 _assetId
-    ) external returns (bool) {
+    ) external returns (bool reallocationHappened, int256 profit) {
         DataType.AssetStatus storage underlyingAsset = _assets[_assetId];
         DataType.AssetStatus storage stableAsset = _assets[Constants.STABLE_ASSET_ID];
 
         applyInterestForToken(_assets, _assetId);
         applyInterestForToken(_assets, _assetGroup.stableAssetId);
 
-        return Perp.reallocate(underlyingAsset, stableAsset.tokenStatus, underlyingAsset.sqrtAssetStatus);
+        (reallocationHappened, profit) =
+            Perp.reallocate(underlyingAsset, stableAsset.tokenStatus, underlyingAsset.sqrtAssetStatus, false);
+
+        if (profit < 0) {
+            TransferHelper.safeTransferFrom(stableAsset.token, msg.sender, address(this), uint256(-profit));
+        }
     }
 }

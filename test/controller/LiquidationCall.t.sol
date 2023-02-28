@@ -49,7 +49,7 @@ contract TestControllerLiquidationCall is TestController {
 
     // liquidation call
     function testLiquidationCall() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-3 * 1e8, 0));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 
@@ -60,7 +60,7 @@ contract TestControllerLiquidationCall is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 68740000);
+        assertEq(vault.margin, 58390000);
 
         // check liquidation reward
         assertEq(usdc.balanceOf(liquidator), 200000);
@@ -120,7 +120,7 @@ contract TestControllerLiquidationCall is TestController {
 
     // trade after liquidation call
     function testTradeAfterLiquidationCall() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-3 * 1e8, 0));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 
@@ -132,7 +132,8 @@ contract TestControllerLiquidationCall is TestController {
     }
 
     function testCannotLiquidateAfterLiquidationCall() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-3 * 1e8, 0));
+        DataType.TradeResult memory result = controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+        assertEq(result.minDeposit, 79999996);
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 

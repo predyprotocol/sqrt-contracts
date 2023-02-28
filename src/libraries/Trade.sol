@@ -17,7 +17,9 @@ library Trade {
         DataType.AssetStatus storage _stableAssetStatus,
         Perp.UserStatus storage _perpUserStatus
     ) internal returns (int256 fee) {
-        Perp.reallocate(_underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus);
+        Perp.reallocate(
+            _underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus, true
+        );
 
         (int256 underlyingFee, int256 stableFee) =
             settleUserBalanceAndFee(_underlyingAssetStatus, _stableAssetStatus.tokenStatus, _perpUserStatus);
@@ -39,7 +41,9 @@ library Trade {
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
     ) internal returns (DataType.TradeResult memory tradeResult) {
-        Perp.reallocate(_underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus);
+        Perp.reallocate(
+            _underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus, true
+        );
 
         int256 underlyingFee;
         int256 stableFee;

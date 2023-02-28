@@ -5,6 +5,7 @@ import "@solmate/utils/FixedPointMathLib.sol";
 import "../DataType.sol";
 import "../Perp.sol";
 import "../PositionCalculator.sol";
+import "../DebtCalculator.sol";
 import "../Trade.sol";
 import "../ScaledAsset.sol";
 
@@ -103,12 +104,11 @@ library LiquidationLogic {
         {
             // reverts if price is out of slippage threshold
             uint256 sqrtPrice = UniHelper.getSqrtPrice(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
-            uint256 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
+            uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
             uint256 liquidationSlippageSqrtTolerance;
 
             {
-                uint256 debtValue =
-                    PositionCalculator.calculateDebtValue(sqrtTwap, PositionCalculator.getPosition(_perpUserStatus));
+                uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
                 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(debtValue);
 
                 penaltyAmount += calculatePenaltyAmount(debtValue);

@@ -286,7 +286,7 @@ contract TestControllerTradePerp is TestController {
         wbtcUniswapPool.swap(address(this), false, 1 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
-        assertEq(vaultStatus.minDeposit, 3627549);
+        assertEq(vaultStatus.minDeposit, 3027469);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -10 * 1e6));
         controller.tradePerp(vaultId, WBTC_ASSET_ID, getTradeParams(10 * 1e6, -2 * 1e6));
@@ -306,7 +306,7 @@ contract TestControllerTradePerp is TestController {
         wbtcUniswapPool.swap(address(this), false, 1 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
-        assertEq(vaultStatus.minDeposit, 3627549);
+        assertEq(vaultStatus.minDeposit, 3027469);
 
         vm.expectRevert(bytes("NS"));
         controller.updateMargin(vaultId, -1e10 + 3 * 1e6);
@@ -334,7 +334,10 @@ contract TestControllerTradePerp is TestController {
 
         vm.warp(block.timestamp + 1 days);
 
-        assertTrue(controller.reallocate(WETH_ASSET_ID));
+        {
+            (bool reallocationHappened,) = controller.reallocate(WETH_ASSET_ID);
+            assertTrue(reallocationHappened);
+        }
 
         vm.warp(block.timestamp + 1 days);
 
@@ -360,7 +363,10 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(currentTick, 784);
 
-        assertTrue(controller.reallocate(WETH_ASSET_ID));
+        {
+            (bool reallocationHappened,) = controller.reallocate(WETH_ASSET_ID);
+            assertTrue(reallocationHappened);
+        }
 
         vm.warp(block.timestamp + 1 days);
 
