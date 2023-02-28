@@ -25,12 +25,12 @@ contract TestControllerCallback is TestController {
         vm.prank(user);
         controller.supplyToken(2, 1e10);
 
-        vaultId = controller.updateMargin(0, 1e6);
+        vaultId = controller.updateMargin(0, 1e8);
     }
 
     function predyTradeCallback(DataType.TradeResult memory _tradeResult, bytes calldata _data) external {
         TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
-            1 * 1e6, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, false, ""
+            1 * 1e8, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, false, ""
         );
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -38,7 +38,7 @@ contract TestControllerCallback is TestController {
 
     function testCannotTradePerp() public {
         TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
-            5 * 1e6, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, true, ""
+            5 * 1e8, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, true, ""
         );
 
         vm.expectRevert(bytes("NS"));
@@ -47,13 +47,13 @@ contract TestControllerCallback is TestController {
 
     function testTradePerp() public {
         TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
-            4 * 1e6, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, true, ""
+            4 * 1e8, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, true, ""
         );
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.openPositions[0].perpTrade.perp.amount, 5000000);
+        assertEq(vault.openPositions[0].perpTrade.perp.amount, 500000000);
     }
 }

@@ -67,6 +67,10 @@ library PositionCalculator {
         int256 minMinValue = SafeCast.toInt256(calculateRequiredCollateralWithDebt(debtValue) * debtValue / 1e6);
 
         minDeposit = vaultValue - minValue + minMinValue;
+
+        if (hasPosition && minDeposit < Constants.MIN_MARGIN_AMOUNT) {
+            minDeposit = Constants.MIN_MARGIN_AMOUNT;
+        }
     }
 
     function calculateRequiredCollateralWithDebt(uint256 _debtValue) internal pure returns (uint256) {
