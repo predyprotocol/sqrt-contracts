@@ -70,10 +70,7 @@ library PositionCalculator {
     }
 
     function calculateRequiredCollateralWithDebt(uint256 _debtValue) internal pure returns (uint256) {
-        return Math.max(
-            Constants.MIN_COLLATERAL_WITH_DEBT_SLOPE * FixedPointMathLib.sqrt(_debtValue * 1e6) / 1e6,
-            Constants.BASE_MIN_COLLATERAL_WITH_DEBT
-        );
+        return Constants.BASE_MIN_COLLATERAL_WITH_DEBT;
     }
 
     /**

@@ -39,7 +39,7 @@ library TradeLogic {
     ) public returns (DataType.TradeResult memory tradeResult) {
         checkDeadline(_tradeParams.deadline);
 
-        tradeResult = Trade.trade(
+        tradeResult = trade(
             _underlyingAssetStatus,
             _stableAssetStatus,
             _userStatus.perpTrade,
@@ -68,6 +68,16 @@ library TradeLogic {
             tradeResult.payoff,
             tradeResult.fee
             );
+    }
+
+    function trade(
+        DataType.AssetStatus storage _underlyingAssetStatus,
+        DataType.AssetStatus storage _stableAssetStatus,
+        Perp.UserStatus storage _perpUserStatus,
+        int256 _tradeAmount,
+        int256 _tradeAmountSqrt
+    ) public returns (DataType.TradeResult memory) {
+        return Trade.trade(_underlyingAssetStatus, _stableAssetStatus, _perpUserStatus, _tradeAmount, _tradeAmountSqrt);
     }
 
     function checkDeadline(uint256 _deadline) internal view {

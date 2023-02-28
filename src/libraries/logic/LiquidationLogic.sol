@@ -6,8 +6,8 @@ import "../DataType.sol";
 import "../Perp.sol";
 import "../PositionCalculator.sol";
 import "../DebtCalculator.sol";
-import "../Trade.sol";
 import "../ScaledAsset.sol";
+import "./TradeLogic.sol";
 
 /*
  * Error Codes
@@ -97,7 +97,7 @@ library LiquidationLogic {
         int256 tradeAmountSqrt = -_perpUserStatus.sqrtPerp.amount * int256(_closeRatio) / int256(Constants.ONE);
 
         DataType.TradeResult memory tradeResult =
-            Trade.trade(_underlyingAssetStatus, _stableAssetStatus, _perpUserStatus, tradeAmount, tradeAmountSqrt);
+            TradeLogic.trade(_underlyingAssetStatus, _stableAssetStatus, _perpUserStatus, tradeAmount, tradeAmountSqrt);
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 

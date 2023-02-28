@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@solmate/utils/FixedPointMathLib.sol";
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {LiquidityAmounts} from "@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol";
-import "./UniHelper.sol";
 import "./DataType.sol";
 import "./Constants.sol";
-import "./PerpFee.sol";
-import "./math/Math.sol";
+import "./Perp.sol";
 
 library DebtCalculator {
     function calculateDebtValue(

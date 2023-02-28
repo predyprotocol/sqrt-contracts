@@ -74,11 +74,11 @@ contract TestControllerLiquidationCall is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(800 * 1e6, -800 * 1e6));
 
-        vm.warp(block.timestamp + 11 weeks);
+        vm.warp(block.timestamp + 14 weeks);
 
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
 
-        assertEq(controller.getVault(vaultId).margin, 30590000);
+        assertEq(controller.getVault(vaultId).margin, 11720000);
     }
 
     // vault becomes insolvent

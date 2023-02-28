@@ -24,8 +24,8 @@ library Constants {
     uint8 internal constant RESOLUTION = 96;
     uint256 internal constant Q96 = 0x1000000000000000000000000;
 
-    // 2%
-    uint256 internal constant BASE_MIN_COLLATERAL_WITH_DEBT = 20000;
+    // 1%
+    uint256 internal constant BASE_MIN_COLLATERAL_WITH_DEBT = 10000;
     // 0.00005
     uint256 internal constant MIN_COLLATERAL_WITH_DEBT_SLOPE = 50;
     // 2.5% scaled by 1e6

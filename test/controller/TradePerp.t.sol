@@ -627,8 +627,7 @@ contract TestControllerTradePerp is TestController {
         DataType.TradeResult memory tradeResult =
             controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e5, -1 * 1e6));
 
-        console.log(uint256(tradeResult.minDeposit));
-        assertEq(tradeResult.minDeposit, 210892);
+        assertEq(tradeResult.minDeposit, 190892);
 
         (uint256 ur,) = controller.getUtilizationRatio(WETH_ASSET_ID);
 
