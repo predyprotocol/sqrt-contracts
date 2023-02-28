@@ -9,6 +9,8 @@ import 'hardhat-deploy'
 import '@eth-optimism/hardhat-ovm'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-preprocessor'
+// eslint-disable-next-line node/no-missing-import
+import './tasks/update-asset-risk-params'
 
 dotenv.config()
 

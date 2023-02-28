@@ -34,7 +34,7 @@ export const networkNameToWETH = (name: string) => {
 export const networkNameToController = (name: string) => {
   switch (name) {
     case 'goerliArbitrum':
-      return '0x3f366213fb56158D34d7838b8607a190D8eB5ECD'
+      return '0xcfb458074C06A52cCD17c00107F156291ae8f083'
     case 'arbitrum':
       return '0xAdBAeE9665C101413EbFF07e20520bdB67C71AB6'
     default:
