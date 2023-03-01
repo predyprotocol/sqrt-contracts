@@ -64,6 +64,16 @@ contract PositionCalculatorTest is Test {
         assertEq(value, 79355428);
     }
 
+    function testCalculateValueFuzz(uint256 _underlyingAmount) public {
+        uint256 underlyingAmount = bound(_underlyingAmount, 0, 1e32);
+
+        int256 value = PositionCalculator.calculateValue(
+            PRICE_ONE, PositionCalculator.PositionParams(0, -int256(underlyingAmount), int256(underlyingAmount))
+        );
+
+        assertLe(value, 0);
+    }
+
     function testCalculateDebt() public {
         uint256 debtValue = DebtCalculator._calculateDebtValue(PRICE_ONE, -1e6, -1e6);
 
@@ -82,7 +92,7 @@ contract PositionCalculatorTest is Test {
             PRICE_ONE, PositionCalculator.PositionParams(0, 7 * 1e6, -3 * 1e6), RISK_RATIO
         );
 
-        assertEq(value, 10280192);
+        assertEq(value, 10280193);
     }
 
     function testCalculateValueGammaShort() public {
@@ -90,7 +100,7 @@ contract PositionCalculatorTest is Test {
             PRICE_ONE * 1e8 / RISK_RATIO, PositionCalculator.PositionParams(0, 7 * 1e6, -3 * 1e6)
         );
 
-        assertEq(value, 10280192);
+        assertEq(value, 10280193);
     }
 
     function testCalculateMinValueGammaLong(uint256 _sqrtPrice) public {
@@ -110,6 +120,18 @@ contract PositionCalculatorTest is Test {
             sqrtPrice, PositionCalculator.PositionParams(0, -10 * 1e6, 1 * 1e6), RISK_RATIO
         );
 
-        assertEq(value, -20708904);
+        assertEq(value, -20708903);
+    }
+
+    function testCalculateMinValueGammaLongFuzz(uint256 _underlyingAmount) public {
+        uint256 underlyingAmount = bound(_underlyingAmount, 0, 1e32);
+
+        int256 value = PositionCalculator.calculateMinValue(
+            PRICE_ONE,
+            PositionCalculator.PositionParams(0, -int256(underlyingAmount), int256(underlyingAmount)),
+            RISK_RATIO
+        );
+
+        assertLe(value, 0);
     }
 }

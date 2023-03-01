@@ -133,7 +133,7 @@ contract TestControllerLiquidationCall is TestController {
 
     function testCannotLiquidateAfterLiquidationCall() public {
         DataType.TradeResult memory result = controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
-        assertEq(result.minDeposit, 79999996);
+        assertEq(result.minDeposit, 79999995);
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 

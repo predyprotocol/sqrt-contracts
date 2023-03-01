@@ -12,6 +12,7 @@ import "./math/Math.sol";
 
 library PositionCalculator {
     using ScaledAsset for ScaledAsset.TokenStatus;
+    using SafeCast for uint256;
 
     struct PositionParams {
         // x^0
@@ -64,7 +65,7 @@ library PositionCalculator {
         (minValue, vaultValue, debtValue, hasPosition) =
             calculateMinValue(_assets, _vault, _enableUnrealizedFeeCalculation);
 
-        int256 minMinValue = SafeCast.toInt256(calculateRequiredCollateralWithDebt(debtValue) * debtValue / 1e6);
+        int256 minMinValue = SafeCast.toInt256(calculateRequiredCollateralWithDebt() * debtValue / 1e6);
 
         minDeposit = vaultValue - minValue + minMinValue;
 
@@ -73,7 +74,7 @@ library PositionCalculator {
         }
     }
 
-    function calculateRequiredCollateralWithDebt(uint256 _debtValue) internal pure returns (uint256) {
+    function calculateRequiredCollateralWithDebt() internal pure returns (uint256) {
         return Constants.BASE_MIN_COLLATERAL_WITH_DEBT;
     }
 
@@ -190,8 +191,8 @@ library PositionCalculator {
         }
 
         if (_positionParams.amountSqrt < 0 && _positionParams.amountUnderlying > 0) {
-            uint256 minSqrtPrice = (uint256(-_positionParams.amountSqrt) << Constants.RESOLUTION)
-                / uint256(_positionParams.amountUnderlying);
+            uint256 minSqrtPrice =
+                (uint256(-_positionParams.amountSqrt) * Constants.Q96) / uint256(_positionParams.amountUnderlying);
 
             if (lowerPrice < minSqrtPrice && minSqrtPrice < upperPrice) {
                 int256 v = calculateValue(minSqrtPrice, _positionParams);
@@ -210,10 +211,11 @@ library PositionCalculator {
      * and `c` is Stable asset amount
      */
     function calculateValue(uint256 _sqrtPrice, PositionParams memory _positionParams) internal pure returns (int256) {
-        int256 price = int256(_sqrtPrice * _sqrtPrice) >> Constants.RESOLUTION;
+        uint256 price = (_sqrtPrice * _sqrtPrice) >> Constants.RESOLUTION;
 
-        return ((_positionParams.amountUnderlying * price) >> Constants.RESOLUTION)
-            + (2 * (_positionParams.amountSqrt * int256(_sqrtPrice)) >> Constants.RESOLUTION) + _positionParams.amountStable;
+        return ((_positionParams.amountUnderlying * price.toInt256()) / int256(Constants.Q96))
+            + (2 * (_positionParams.amountSqrt * _sqrtPrice.toInt256()) / int256(Constants.Q96))
+            + _positionParams.amountStable;
     }
 
     function calculateSquartDebtValue(uint256 _sqrtPrice, Perp.UserStatus memory _perpUserStatus)

@@ -608,7 +608,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 9999838138);
+        assertEq(vaultStatus.vaultValue, 9999838139);
 
         withdrawAll();
     }

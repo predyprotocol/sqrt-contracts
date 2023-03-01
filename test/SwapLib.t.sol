@@ -123,4 +123,32 @@ contract SwapLibTest is Test {
         assertEq(swapResult.amountSqrtPerp, -900);
         assertEq(swapResult.fee, -100);
     }
+
+    function testCalculateStableAmountMarginZero() public {
+        uint160 sqrtPrice = 4 * 2 ** 96;
+        uint256 stableAmount = SwapLib.calculateStableAmount(sqrtPrice, 1e18, true);
+
+        assertEq(stableAmount, 16000000000000000000);
+    }
+
+    function testCalculateStableAmountMarginOne() public {
+        uint160 sqrtPrice = 4 * 2 ** 96;
+        uint256 stableAmount = SwapLib.calculateStableAmount(sqrtPrice, 1e18, false);
+
+        assertEq(stableAmount, 62500000000000000);
+    }
+
+    function testCalculateStableAmountMarginZeroFuzz(uint256 _underlyingAmount) public {
+        uint256 underlyingAmount = bound(_underlyingAmount, 0, 1e32);
+
+        uint160 sqrtPrice = 4 * 2 ** 96;
+        SwapLib.calculateStableAmount(sqrtPrice, underlyingAmount, true);
+    }
+
+    function testCalculateStableAmountMarginOneFuzz(uint256 _underlyingAmount) public {
+        uint256 underlyingAmount = bound(_underlyingAmount, 0, 1e32);
+
+        uint160 sqrtPrice = 4 * 2 ** 96;
+        SwapLib.calculateStableAmount(sqrtPrice, underlyingAmount, false);
+    }
 }
