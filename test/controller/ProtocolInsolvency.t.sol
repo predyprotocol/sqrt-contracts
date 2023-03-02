@@ -240,6 +240,32 @@ contract TestControllerTradePerp is TestController {
         withdrawAll();
     }
 
+    function testCaseRebalanceFuzz(uint256 _tradeAmount) public {
+        uint256 tradeAmount = bound(_tradeAmount, 1 * 1e6, 1000 * 1e6);
+
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 1000 * 1e6));
+        vm.stopPrank();
+
+        {
+            uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+            (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+            assertEq(currentTick, 975);
+        }
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -int256(tradeAmount)));
+
+        uniswapPool.swap(address(this), true, -5 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e6, 21 * 1e6));
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -11 * 1e6));
+
+        withdrawAll();
+    }
+
     function testRebalanceOutOfRangeEdgeCase1() public {
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
 
@@ -274,6 +300,22 @@ contract TestControllerTradePerp is TestController {
         DataType.Vault memory vault = controller.getVault(vaultId);
 
         assertEq(vault.margin, 10000100000);
+
+        withdrawAll();
+    }
+
+    function testRebalanceOutOfRangeFuzz(uint256 _tradeAmount) public {
+        int256 tradeAmount = int256(bound(_tradeAmount, 1 * 1e6, 1000 * 1e6));
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, tradeAmount));
+
+        uniswapPool.swap(address(this), false, 52 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        (, int256 requiredStableAmount) = controller.reallocate(WETH_ASSET_ID);
+
+        assertGt(requiredStableAmount, -100);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -tradeAmount));
 
         withdrawAll();
     }
