@@ -26,8 +26,6 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
     uint256 finalDepositAmountCached;
 
-    uint256 strategyRevenue;
-
     event DepositedToStrategy(address indexed account, uint256 strategyTokenAmount, uint256 depositedAmount);
     event WithdrawnFromStrategy(address indexed account, uint256 strategyTokenAmount, uint256 withdrawnAmount);
 
@@ -57,15 +55,15 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         uint256 finalDepositMargin = calShareToMargin(entryUpdate, entryValue, share, totalMargin);
 
-        uint256 finalDepositMarginRoundUp = roundUpMarginAndAddStrategyRevenue(finalDepositMargin);
+        finalDepositMargin = roundUpMargin(finalDepositMargin, Constants.MARGIN_ROUNDED_DECIMALS);
 
-        finalDepositAmountCached = finalDepositMarginRoundUp;
+        finalDepositAmountCached = finalDepositMargin;
 
         if (isQuoteMode) {
-            revertMarginAmount(finalDepositMarginRoundUp);
+            revertMarginAmount(finalDepositMargin);
         }
 
-        TransferHelper.safeTransferFrom(usdc, caller, address(this), finalDepositMarginRoundUp);
+        TransferHelper.safeTransferFrom(usdc, caller, address(this), finalDepositMargin);
 
         controller.updateMargin(vaultId, int256(finalDepositMargin));
     }
@@ -181,23 +179,13 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         _burn(msg.sender, _withdrawStrategyAmount);
 
-        finalWithdrawAmount = roundDownMarginAndAddStrategyRevenue(uint256(withdrawMarginAmount));
+        finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), Constants.MARGIN_ROUNDED_DECIMALS);
 
-        controller.updateMargin(vaultId, -withdrawMarginAmount);
+        controller.updateMargin(vaultId, -int256(finalWithdrawAmount));
 
         TransferHelper.safeTransfer(usdc, _recepient, finalWithdrawAmount);
 
         emit WithdrawnFromStrategy(_recepient, _withdrawStrategyAmount, finalWithdrawAmount);
-    }
-
-    function withdrawStrategyRevenue(address _recepient) external onlyOwner returns (uint256 withdrawAmount) {
-        withdrawAmount = strategyRevenue;
-
-        strategyRevenue = 0;
-
-        if (withdrawAmount > 0) {
-            TransferHelper.safeTransfer(usdc, _recepient, withdrawAmount);
-        }
     }
 
     function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOwner {
@@ -295,18 +283,6 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
             SafeCast.toUint256(int256(_share) * (int256(_totalMarginBefore) + _entryValue) / 1e18 - _entryUpdate);
 
         return t * 1e18 / (1e18 - _share);
-    }
-
-    function roundUpMarginAndAddStrategyRevenue(uint256 _amount) internal returns (uint256 rounded) {
-        rounded = roundUpMargin(_amount, Constants.MARGIN_ROUNDED_DECIMALS);
-
-        strategyRevenue += rounded - _amount;
-    }
-
-    function roundDownMarginAndAddStrategyRevenue(uint256 _amount) internal returns (uint256 rounded) {
-        rounded = roundDownMargin(_amount, Constants.MARGIN_ROUNDED_DECIMALS);
-
-        strategyRevenue += _amount - rounded;
     }
 
     function roundUpMargin(uint256 _amount, uint256 _roundedDecimals) internal pure returns (uint256) {
