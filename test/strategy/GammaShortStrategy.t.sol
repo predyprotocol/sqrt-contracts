@@ -52,6 +52,11 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertGt(getMinPerVaultValue(), 1e16);
     }
 
+    function withdrawAll() internal {
+        console.log(usdc.balanceOf(address(strategy)));
+        strategy.withdrawStrategyRevenue(address(this));
+    }
+
     function getStrategyTradeParams() internal view returns (IStrategyVault.StrategyTradeParams memory) {
         return IStrategyVault.StrategyTradeParams(0, type(uint256).max, block.timestamp);
     }
@@ -113,9 +118,25 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         vm.stopPrank();
 
         assertEq(balance1 - balance2, 10000000000);
-        assertEq(balance3 - balance2, 9999990000);
+        assertEq(balance3 - balance2, 9999980000);
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawMarginAmount, 9999990000);
+        assertEq(withdrawMarginAmount, 9999980000);
+
+        withdrawAll();
+    }
+
+    function testDeposit1Fuzz(uint256 _amount) public {
+        uint256 amount = bound(_amount, 1e6, 1e12);
+
+        vm.startPrank(user);
+
+        strategy.deposit(amount, user, 1e12, false, getStrategyTradeParams());
+
+        strategy.withdraw(amount, user, 0, getStrategyTradeParams());
+
+        vm.stopPrank();
+
+        withdrawAll();
     }
 
     function testDeposit2() public {
@@ -139,7 +160,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawAmount, 10049200000);
+        assertEq(withdrawAmount, 10049190000);
     }
 
     function testDeposit3() public {
@@ -152,7 +173,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawAmount, 9833550000);
+        assertEq(withdrawAmount, 9833540000);
     }
 
     function testDeposit4() public {
@@ -173,7 +194,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(finalDeposit2, 1377600000);
         assertEq(estimatedDepositAmount, 1377600000);
 
-        assertEq(withdrawAmount1, 1257550000);
+        assertEq(withdrawAmount1, 1257540000);
         assertEq(withdrawAmount2, 1257540000);
     }
 
@@ -191,7 +212,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 9465460000);
-        assertEq(withdrawMarginAmount, 9457740000);
+        assertEq(withdrawMarginAmount, 9457730000);
     }
 
     function testDeltaHedging() public {
@@ -210,7 +231,27 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawMarginAmount, 9960930000);
+        assertEq(withdrawMarginAmount, 9960920000);
+    }
+
+    function testDeltaHedgingFuzz(uint256 _amount) public {
+        uint256 amount = bound(_amount, 2 * 1e4, 1e12);
+
+        uint256 depositMarginAmount = strategy.deposit(amount, address(this), 1e12, false, getStrategyTradeParams());
+
+        uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        strategy.execDeltaHedge(getStrategyTradeParams());
+
+        uniswapPool.swap(address(this), true, 15 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        vm.warp(block.timestamp + 1 days);
+
+        uint256 withdrawMarginAmount = strategy.withdraw(amount, address(this), 0, getStrategyTradeParams());
+
+        assertGt(depositMarginAmount, withdrawMarginAmount);
+
+        withdrawAll();
     }
 
     function testCannotUpdateGamma() public {
@@ -236,6 +277,6 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawMarginAmount, 9974850000);
+        assertEq(withdrawMarginAmount, 9974840000);
     }
 }
