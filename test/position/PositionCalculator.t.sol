@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../src/libraries/PositionCalculator.sol";
-import "../src/libraries/DebtCalculator.sol";
+import "../../src/libraries/PositionCalculator.sol";
+import "../../src/libraries/DebtCalculator.sol";
 
 /*
  * https://www.desmos.com/calculator/p4gc1eri8v
