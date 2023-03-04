@@ -152,44 +152,6 @@ contract Controller is
     }
 
     /**
-     * @notice Adds an asset group
-     * @dev Only operator can call this function.
-     * @param _stableAssetAddress The address of stable asset
-     * @param _irmParams Interest rate model params for stable asset
-     * @param _addAssetParams The list of asset parameters
-     * @return stableAssetId  New stable asset id
-     * @return assetIds underlying asset ids
-     */
-    function initializeAssetGroup(
-        address _stableAssetAddress,
-        InterestRateModel.IRMParams memory _irmParams,
-        DataType.AddAssetParams[] memory _addAssetParams
-    ) internal returns (uint256 stableAssetId, uint256[] memory assetIds) {
-        // add stable token
-        stableAssetId = Constants.STABLE_ASSET_ID;
-
-        _addPair(
-            stableAssetId,
-            _stableAssetAddress,
-            false,
-            address(0),
-            DataType.AssetRiskParams(0, 0, 0),
-            _irmParams,
-            InterestRateModel.IRMParams(0, 0, 0, 0)
-        );
-
-        assetGroup.setStableAssetId(stableAssetId);
-
-        assetIds = new uint256[](_addAssetParams.length);
-
-        for (uint256 i; i < _addAssetParams.length; i++) {
-            assetIds[i] = addPair(i + 2, _addAssetParams[i]);
-        }
-
-        emit AssetGroupInitialized(stableAssetId, assetIds);
-    }
-
-    /**
      * @notice Updates asset risk parameters.
      * @dev The function can be called by operator.
      * @param _assetId The id of asset to update params.
@@ -391,6 +353,43 @@ contract Controller is
     ///////////////////////
     // Private Functions //
     ///////////////////////
+
+    /**
+     * @notice Sets an asset group
+     * @param _stableAssetAddress The address of stable asset
+     * @param _irmParams Interest rate model params for stable asset
+     * @param _addAssetParams The list of asset parameters
+     * @return stableAssetId  New stable asset id
+     * @return assetIds underlying asset ids
+     */
+    function initializeAssetGroup(
+        address _stableAssetAddress,
+        InterestRateModel.IRMParams memory _irmParams,
+        DataType.AddAssetParams[] memory _addAssetParams
+    ) internal returns (uint256 stableAssetId, uint256[] memory assetIds) {
+        // add stable token
+        stableAssetId = Constants.STABLE_ASSET_ID;
+
+        _addPair(
+            stableAssetId,
+            _stableAssetAddress,
+            false,
+            address(0),
+            DataType.AssetRiskParams(0, 0, 0),
+            _irmParams,
+            InterestRateModel.IRMParams(0, 0, 0, 0)
+        );
+
+        assetGroup.setStableAssetId(stableAssetId);
+
+        assetIds = new uint256[](_addAssetParams.length);
+
+        for (uint256 i; i < _addAssetParams.length; i++) {
+            assetIds[i] = addPair(i + 2, _addAssetParams[i]);
+        }
+
+        emit AssetGroupInitialized(stableAssetId, assetIds);
+    }
 
     /**
      * @notice add token pair
