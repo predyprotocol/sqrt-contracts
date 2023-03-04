@@ -69,7 +69,8 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
     }
 
     /**
-     * Initializes strategy
+     * @notice Initializes strategy contract.
+     * @dev The function can be called by owner.
      * @param _initialMarginAmount initial margin amount
      * @param _initialPerpAmount initial perp amount
      * @param _initialSquartAmount initial squart amount
@@ -106,10 +107,19 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         emit DepositedToStrategy(msg.sender, _initialMarginAmount, _initialMarginAmount);
     }
 
+    /**
+     * @notice Deposits margin and mints strategy token.
+     * @param _strategyTokenAmount strategy token amount to mint
+     * @param _recepient recepient address of strategy token
+     * @param _maxDepositAmount maximum USDC amount that caller deposits
+     * @param isQuoteMode is quote mode or not
+     * @param _tradeParams trade parameters
+     * @return finalDepositMargin USDC amount that caller actually deposits
+     */
     function deposit(
         uint256 _strategyTokenAmount,
         address _recepient,
-        uint256 _maxMarginAmount,
+        uint256 _maxDepositAmount,
         bool isQuoteMode,
         IStrategyVault.StrategyTradeParams memory _tradeParams
     ) external override returns (uint256 finalDepositMargin) {
@@ -140,13 +150,21 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         finalDepositAmountCached = DEFAULT_AMOUNT_IN_CACHED;
 
-        require(finalDepositMargin <= _maxMarginAmount, "GSS2");
+        require(finalDepositMargin <= _maxDepositAmount, "GSS2");
 
         _mint(_recepient, _strategyTokenAmount);
 
         emit DepositedToStrategy(_recepient, _strategyTokenAmount, finalDepositMargin);
     }
 
+    /**
+     * @notice Withdraws margin and burns strategy token.
+     * @param _withdrawStrategyAmount strategy token amount to burn
+     * @param _recepient recepient address of stable token
+     * @param _minWithdrawAmount minimum USDC amount that caller deposits
+     * @param _tradeParams trade parameters
+     * @return finalWithdrawAmount USDC amount that caller actually withdraws
+     */
     function withdraw(
         uint256 _withdrawStrategyAmount,
         address _recepient,
@@ -229,6 +247,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
     }
 
     /**
+     * @notice Gets price of strategy token by USDC.
      * @dev The function should not be called on chain.
      */
     function getPrice() external returns (uint256) {

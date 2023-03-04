@@ -15,7 +15,7 @@ library DataType {
         address uniswapPool;
         DataType.AssetRiskParams assetRiskParams;
         InterestRateModel.IRMParams irmParams;
-        InterestRateModel.IRMParams premiumParams;
+        InterestRateModel.IRMParams squartIRMParams;
     }
 
     struct AssetRiskParams {
@@ -33,7 +33,7 @@ library DataType {
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
         InterestRateModel.IRMParams irmParams;
-        InterestRateModel.IRMParams premiumParams;
+        InterestRateModel.IRMParams squartIRMParams;
         uint256 lastUpdateTimestamp;
         uint256 accumulatedProtocolRevenue;
     }

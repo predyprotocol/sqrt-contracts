@@ -71,7 +71,7 @@ contract Controller is
     event ProtocolRevenueWithdrawn(uint256 assetId, uint256 withdrawnProtocolFee);
     event AssetRiskParamsUpdated(uint256 assetId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
-        uint256 assetId, InterestRateModel.IRMParams irmParams, InterestRateModel.IRMParams premiumParams
+        uint256 assetId, InterestRateModel.IRMParams irmParams, InterestRateModel.IRMParams squartIRMParams
     );
 
     modifier onlyOperator() {
@@ -189,6 +189,12 @@ contract Controller is
         emit AssetGroupInitialized(stableAssetId, assetIds);
     }
 
+    /**
+     * @notice Updates asset risk parameters.
+     * @dev The function can be called by operator.
+     * @param _assetId The id of asset to update params.
+     * @param _riskParams Asset risk parameters.
+     */
     function updateAssetRiskParams(uint256 _assetId, DataType.AssetRiskParams memory _riskParams)
         external
         onlyOperator
@@ -204,22 +210,33 @@ contract Controller is
         emit AssetRiskParamsUpdated(_assetId, _riskParams);
     }
 
+    /**
+     * @notice Updates interest rate model parameters.
+     * @dev The function can be called by operator.
+     * @param _assetId The id of asset to update params.
+     * @param _irmParams Asset interest-rate parameters.
+     * @param _squartIRMParams Squart interest-rate parameters.
+     */
     function updateIRMParams(
         uint256 _assetId,
         InterestRateModel.IRMParams memory _irmParams,
-        InterestRateModel.IRMParams memory _premiumParams
+        InterestRateModel.IRMParams memory _squartIRMParams
     ) external onlyOperator {
         validateIRMParams(_irmParams);
-        validateIRMParams(_premiumParams);
+        validateIRMParams(_squartIRMParams);
 
         DataType.AssetStatus storage asset = assets[_assetId];
 
         asset.irmParams = _irmParams;
-        asset.premiumParams = _premiumParams;
+        asset.squartIRMParams = _squartIRMParams;
 
-        emit IRMParamsUpdated(_assetId, _irmParams, _premiumParams);
+        emit IRMParamsUpdated(_assetId, _irmParams, _squartIRMParams);
     }
 
+    /**
+     * @notice Reallocates range of Uniswap LP position.
+     * @param _assetId The id of asset to reallocate.
+     */
     function reallocate(uint256 _assetId) external returns (bool, int256) {
         applyInterest();
 
@@ -394,7 +411,7 @@ contract Controller is
             _addAssetParam.uniswapPool,
             _addAssetParam.assetRiskParams,
             _addAssetParam.irmParams,
-            _addAssetParam.premiumParams
+            _addAssetParam.squartIRMParams
         );
 
         assetGroup.appendTokenId(_assetId);
@@ -411,7 +428,7 @@ contract Controller is
         address _uniswapPool,
         DataType.AssetRiskParams memory _assetRiskParams,
         InterestRateModel.IRMParams memory _irmParams,
-        InterestRateModel.IRMParams memory _premiumParams
+        InterestRateModel.IRMParams memory _squartIRMParams
     ) internal {
         if (_uniswapPool != address(0)) {
             validateIRMParams(_assetRiskParams);
@@ -428,7 +445,7 @@ contract Controller is
             Perp.createAssetStatus(_uniswapPool, -_assetRiskParams.rangeSize, _assetRiskParams.rangeSize),
             _isMarginZero,
             _irmParams,
-            _premiumParams,
+            _squartIRMParams,
             block.timestamp,
             0
         );
