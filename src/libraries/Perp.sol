@@ -349,7 +349,7 @@ library Perp {
 
     function updateFeeAndPremiumGrowth(
         SqrtPerpAssetStatus storage _assetStatus,
-        InterestRateModel.IRMParams memory _premiumParams,
+        InterestRateModel.IRMParams memory _squartIRMParams,
         bool _isMarginZero,
         uint256 _lastUpdateTimestamp
     ) internal returns (uint256) {
@@ -359,7 +359,7 @@ library Perp {
 
         updateFeeGrowth(_assetStatus);
 
-        return updatePremiumGrowth(_assetStatus, _premiumParams, _isMarginZero, _lastUpdateTimestamp);
+        return updatePremiumGrowth(_assetStatus, _squartIRMParams, _isMarginZero, _lastUpdateTimestamp);
     }
 
     function updateFeeGrowth(SqrtPerpAssetStatus storage _assetStatus) internal {
@@ -384,7 +384,7 @@ library Perp {
 
     function updatePremiumGrowth(
         SqrtPerpAssetStatus storage _assetStatus,
-        InterestRateModel.IRMParams memory _premiumParams,
+        InterestRateModel.IRMParams memory _squartIRMParams,
         bool _isMarginZero,
         uint256 _lastUpdateTimestamp
     ) internal returns (uint256) {
@@ -395,7 +395,7 @@ library Perp {
         }
 
         uint256 interestRate = computePremium(
-            _premiumParams,
+            _squartIRMParams,
             utilization,
             UniHelper.convertSqrtPrice(UniHelper.getSqrtPrice(_assetStatus.uniswapPool), _isMarginZero)
         ) * (block.timestamp - _lastUpdateTimestamp) / 365 days;
@@ -415,12 +415,12 @@ library Perp {
         return (protocolFeePerLiquidity * _assetStatus.borrowedAmount) / Constants.ONE;
     }
 
-    function computePremium(InterestRateModel.IRMParams memory _premiumParams, uint256 _utilization, uint256 _sqrtPrice)
+    function computePremium(InterestRateModel.IRMParams memory _squartIRMParams, uint256 _utilization, uint256 _sqrtPrice)
         internal
         pure
         returns (uint256 interestRate)
     {
-        uint256 variance = InterestRateModel.calculateInterestRate(_premiumParams, _utilization);
+        uint256 variance = InterestRateModel.calculateInterestRate(_squartIRMParams, _utilization);
 
         return (_sqrtPrice * variance) >> FixedPoint96.RESOLUTION;
     }

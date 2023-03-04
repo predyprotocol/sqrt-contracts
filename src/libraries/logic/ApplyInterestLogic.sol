@@ -41,7 +41,7 @@ library ApplyInterestLogic {
         if (_tokenId != Constants.STABLE_ASSET_ID) {
             _assets[Constants.STABLE_ASSET_ID].accumulatedProtocolRevenue += Perp.updateFeeAndPremiumGrowth(
                 assetStatus.sqrtAssetStatus,
-                assetStatus.premiumParams,
+                assetStatus.squartIRMParams,
                 assetStatus.isMarginZero,
                 assetStatus.lastUpdateTimestamp
             );

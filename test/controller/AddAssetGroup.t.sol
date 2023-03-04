@@ -57,9 +57,9 @@ contract TestControllerAddPair is TestController {
         assertEq(asset.irmParams.kinkRate, 10 * 1e17);
         assertEq(asset.irmParams.slope1, 10 * 1e17);
         assertEq(asset.irmParams.slope2, 2 * 1e18);
-        assertEq(asset.premiumParams.baseRate, 2 * 1e16);
-        assertEq(asset.premiumParams.kinkRate, 10 * 1e17);
-        assertEq(asset.premiumParams.slope1, 10 * 1e17);
-        assertEq(asset.premiumParams.slope2, 2 * 1e18);
+        assertEq(asset.squartIRMParams.baseRate, 2 * 1e16);
+        assertEq(asset.squartIRMParams.kinkRate, 10 * 1e17);
+        assertEq(asset.squartIRMParams.slope1, 10 * 1e17);
+        assertEq(asset.squartIRMParams.slope2, 2 * 1e18);
     }
 }
