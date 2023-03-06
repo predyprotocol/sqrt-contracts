@@ -16,6 +16,6 @@ Predy offers Squart perpetual trading by supplying and borrowing Uniswap V3's LP
 
 Testing
 
-'''
+```
 forge test
-'''
+```

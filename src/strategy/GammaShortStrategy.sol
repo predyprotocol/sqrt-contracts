@@ -20,7 +20,12 @@ import "../Reader.sol";
  * GSS5: caller must be Controller
  */
 contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback {
+    using SafeCast for uint256;
+    using SafeCast for int256;
+
     Reader immutable reader;
+
+    uint256 private constant SHARE_SCALER = 1e18;
 
     uint256 private constant DEFAULT_AMOUNT_IN_CACHED = type(uint256).max;
 
@@ -171,7 +176,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         int256 _minWithdrawAmount,
         IStrategyVault.StrategyTradeParams memory _tradeParams
     ) external returns (uint256 finalWithdrawAmount) {
-        uint256 strategyShare = _withdrawStrategyAmount * 1e18 / totalSupply();
+        uint256 strategyShare = _withdrawStrategyAmount * SHARE_SCALER / totalSupply();
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
@@ -179,8 +184,8 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
             vaultId,
             assetId,
             TradeLogic.TradeParams(
-                -int256(strategyShare) * vault.openPositions[0].perpTrade.perp.amount / int256(1e18),
-                -int256(strategyShare) * vault.openPositions[0].perpTrade.sqrtPerp.amount / int256(1e18),
+                -int256(strategyShare) * vault.openPositions[0].perpTrade.perp.amount / int256(SHARE_SCALER),
+                -int256(strategyShare) * vault.openPositions[0].perpTrade.sqrtPerp.amount / int256(SHARE_SCALER),
                 _tradeParams.lowerSqrtPrice,
                 _tradeParams.upperSqrtPrice,
                 _tradeParams.deadline,
@@ -190,7 +195,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         );
 
         // Calculates realized and unrealized PnL.
-        int256 withdrawMarginAmount = (vault.margin + tradeResult.fee) * int256(strategyShare) / int256(1e18)
+        int256 withdrawMarginAmount = (vault.margin + tradeResult.fee) * int256(strategyShare) / int256(SHARE_SCALER)
             + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
         require(withdrawMarginAmount >= _minWithdrawAmount && _minWithdrawAmount >= 0, "GSS3");
@@ -257,7 +262,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
             return 0;
         }
 
-        return uint256(vaultStatusResult.vaultValue) * 1e18 / totalSupply();
+        return uint256(vaultStatusResult.vaultValue) * SHARE_SCALER / totalSupply();
     }
 
     function getMinPerVaultValue() internal returns (uint256) {
@@ -286,11 +291,11 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
     }
 
     function calMintToShare(uint256 _mint, uint256 _total) internal pure returns (uint256) {
-        return _mint * 1e18 / (_total + _mint);
+        return _mint * SHARE_SCALER / (_total + _mint);
     }
 
     function calShareToMint(uint256 _share, int256 _total) internal pure returns (int256) {
-        return _total * int256(_share) / int256(1e18 - _share);
+        return _total * _share.toInt256() / (SHARE_SCALER - _share).toInt256();
     }
 
     function calShareToMargin(int256 _entryUpdate, int256 _entryValue, uint256 _share, uint256 _totalMarginBefore)
@@ -298,10 +303,11 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         pure
         returns (uint256)
     {
-        uint256 t =
-            SafeCast.toUint256(int256(_share) * (int256(_totalMarginBefore) + _entryValue) / 1e18 - _entryUpdate);
+        uint256 t = SafeCast.toUint256(
+            _share.toInt256() * (_totalMarginBefore.toInt256() + _entryValue) / int256(SHARE_SCALER) - _entryUpdate
+        );
 
-        return t * 1e18 / (1e18 - _share);
+        return t * SHARE_SCALER / (SHARE_SCALER - _share);
     }
 
     function roundUpMargin(uint256 _amount, uint256 _roundedDecimals) internal pure returns (uint256) {
