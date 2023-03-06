@@ -415,11 +415,11 @@ library Perp {
         return (protocolFeePerLiquidity * _assetStatus.borrowedAmount) / Constants.ONE;
     }
 
-    function computePremium(InterestRateModel.IRMParams memory _squartIRMParams, uint256 _utilization, uint256 _sqrtPrice)
-        internal
-        pure
-        returns (uint256 interestRate)
-    {
+    function computePremium(
+        InterestRateModel.IRMParams memory _squartIRMParams,
+        uint256 _utilization,
+        uint256 _sqrtPrice
+    ) internal pure returns (uint256 interestRate) {
         uint256 variance = InterestRateModel.calculateInterestRate(_squartIRMParams, _utilization);
 
         return (_sqrtPrice * variance) >> FixedPoint96.RESOLUTION;

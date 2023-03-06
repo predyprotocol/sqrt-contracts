@@ -11,7 +11,7 @@ import "../mocks/MockERC20.sol";
 
 contract TestPositionCalculator is Test {
     uint256 internal constant RISK_RATIO = 109544511;
-    
+
     MockERC20 internal usdc;
     MockERC20 internal weth;
     MockERC20 internal wbtc;
