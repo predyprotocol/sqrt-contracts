@@ -430,10 +430,12 @@ contract TestControllerTradePerp is TestController {
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 200 * 1e6));
         vm.stopPrank();
 
+        controller.tradePerp(vaultId, WBTC_ASSET_ID, getTradeParams(-500 * 1e6, 500 * 1e6));
+
         DataType.TradeResult memory tradeResult =
             controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-520 * 1e7, 500 * 1e7));
 
-        assertEq(tradeResult.minDeposit, 85548843);
+        assertEq(tradeResult.minDeposit, 90103728);
 
         controller.updateMargin(vaultId, -9850000000);
 
@@ -447,8 +449,8 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 125697392);
-        assertEq(vaultStatus.minDeposit, 132206644);
+        assertEq(vaultStatus.vaultValue, 125697303);
+        assertEq(vaultStatus.minDeposit, 136761535);
 
         vm.prank(user2);
         controller.liquidationCall(vaultId, 1e18);
