@@ -35,11 +35,11 @@ library ReaderLogic {
             subVaults[i].sqrtAmount = userStatus.perpTrade.sqrtPerp.amount;
 
             {
-                (int256 amountUnderlying,) = Perp.getAmounts(
+                (uint256 assetAmountUnderlying,, uint256 debtAmountUnderlying,) = Perp.getAmounts(
                     _assets[userStatus.assetId].sqrtAssetStatus, userStatus.perpTrade, isMarginZero, sqrtPrice
                 );
 
-                subVaults[i].delta = amountUnderlying;
+                subVaults[i].delta = int256(assetAmountUnderlying) - int256(debtAmountUnderlying);
             }
 
             (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
@@ -78,10 +78,10 @@ library ReaderLogic {
                 continue;
             }
 
-            (int256 amountUnderlying,) =
+            (uint256 assetAmountUnderlying,, uint256 debtAmountUnderlying,) =
                 Perp.getAmounts(_sqrtAssetStatus, _vault.openPositions[i].perpTrade, _isMarginZero, _sqrtPrice);
 
-            _delta += amountUnderlying;
+            _delta += int256(assetAmountUnderlying) - int256(debtAmountUnderlying);
         }
     }
 }

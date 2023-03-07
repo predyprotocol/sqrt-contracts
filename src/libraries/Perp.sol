@@ -703,10 +703,16 @@ library Perp {
         UserStatus memory _userStatus,
         bool _isMarginZero,
         uint160 _sqrtPrice
-    ) internal pure returns (int256 amountUnderlying, int256 amountStable) {
-        int256 positionAmount0InUniswap;
-        int256 positionAmount1InUniswap;
-
+    )
+        internal
+        pure
+        returns (
+            uint256 assetAmountUnderlying,
+            uint256 assetAmountStable,
+            uint256 debtAmountUnderlying,
+            uint256 debtAmountStable
+        )
+    {
         {
             (uint256 amount0InUniswap, uint256 amount1InUniswap) = LiquidityAmounts.getAmountsForLiquidity(
                 _sqrtPrice,
@@ -716,24 +722,39 @@ library Perp {
             );
 
             if (_userStatus.sqrtPerp.amount > 0) {
-                positionAmount0InUniswap = int256(amount0InUniswap);
-                positionAmount1InUniswap = int256(amount1InUniswap);
+                if (_isMarginZero) {
+                    assetAmountStable = amount0InUniswap;
+                    assetAmountUnderlying = amount1InUniswap;
+                } else {
+                    assetAmountUnderlying = amount0InUniswap;
+                    assetAmountStable = amount1InUniswap;
+                }
             } else {
-                positionAmount0InUniswap = -int256(amount0InUniswap);
-                positionAmount1InUniswap = -int256(amount1InUniswap);
+                if (_isMarginZero) {
+                    debtAmountStable = amount0InUniswap;
+                    debtAmountUnderlying = amount1InUniswap;
+                } else {
+                    debtAmountUnderlying = amount0InUniswap;
+                    debtAmountStable = amount1InUniswap;
+                }
             }
         }
 
-        if (_isMarginZero) {
-            amountStable += positionAmount0InUniswap;
-            amountUnderlying += positionAmount1InUniswap;
-        } else {
-            amountStable += positionAmount1InUniswap;
-            amountUnderlying += positionAmount0InUniswap;
+        if (_userStatus.stable.positionAmount > 0) {
+            assetAmountStable += uint256(_userStatus.stable.positionAmount);
         }
 
-        amountStable += _userStatus.stable.positionAmount;
-        amountUnderlying += _userStatus.underlying.positionAmount;
+        if (_userStatus.stable.positionAmount < 0) {
+            debtAmountStable += uint256(-_userStatus.stable.positionAmount);
+        }
+
+        if (_userStatus.underlying.positionAmount > 0) {
+            assetAmountUnderlying += uint256(_userStatus.underlying.positionAmount);
+        }
+
+        if (_userStatus.underlying.positionAmount < 0) {
+            debtAmountUnderlying += uint256(-_userStatus.underlying.positionAmount);
+        }
     }
 
     /**
