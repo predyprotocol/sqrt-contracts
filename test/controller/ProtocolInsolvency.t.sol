@@ -424,4 +424,35 @@ contract TestControllerTradePerp is TestController {
 
         withdrawAll();
     }
+
+    function testLiquidation() public {
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 200 * 1e6));
+        vm.stopPrank();
+
+        DataType.TradeResult memory tradeResult =
+            controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-520 * 1e7, 500 * 1e7));
+
+        assertEq(tradeResult.minDeposit, 85548843);
+
+        controller.updateMargin(vaultId, -9850000000);
+
+        uniswapPool.swap(address(this), false, 4 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+        assertEq(currentTick, 784);
+
+        vm.warp(block.timestamp + 1 hours);
+
+        DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
+
+        assertEq(vaultStatus.vaultValue, 125697392);
+        assertEq(vaultStatus.minDeposit, 132206644);
+
+        vm.prank(user2);
+        controller.liquidationCall(vaultId, 1e18);
+
+        withdrawAll();
+    }
 }
