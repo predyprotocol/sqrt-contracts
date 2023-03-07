@@ -14,6 +14,8 @@ library PositionCalculator {
     using ScaledAsset for ScaledAsset.TokenStatus;
     using SafeCast for uint256;
 
+    uint256 internal constant RISK_RATIO_ONE = 1e8;
+
     struct PositionParams {
         // x^0
         int256 amountStable;
@@ -173,8 +175,8 @@ library PositionCalculator {
     {
         minValue = type(int256).max;
 
-        uint256 upperPrice = _sqrtPrice * _riskRatio / 1e8;
-        uint256 lowerPrice = _sqrtPrice * 1e8 / _riskRatio;
+        uint256 upperPrice = _sqrtPrice * _riskRatio / RISK_RATIO_ONE;
+        uint256 lowerPrice = _sqrtPrice * RISK_RATIO_ONE / _riskRatio;
 
         {
             int256 v = calculateValue(upperPrice, _positionParams);
