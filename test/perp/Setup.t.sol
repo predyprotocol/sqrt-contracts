@@ -64,8 +64,8 @@ contract TestPerp is Test {
         stableAssetStatus = ScaledAsset.createTokenStatus();
         userStatus = Perp.createPerpUserStatus();
 
-        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1000);
-        ScaledAsset.addAsset(stableAssetStatus, 10000);
+        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1e8);
+        ScaledAsset.addAsset(stableAssetStatus, 1e8);
     }
 
     function uniswapV3MintCallback(uint256 amount0, uint256 amount1, bytes calldata data) external {

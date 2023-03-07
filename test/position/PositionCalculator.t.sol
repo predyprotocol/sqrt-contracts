@@ -75,7 +75,7 @@ contract PositionCalculatorTest is Test {
     }
 
     function testCalculateDebt() public {
-        uint256 debtValue = DebtCalculator._calculateDebtValue(PRICE_ONE, -1e6, -1e6);
+        uint256 debtValue = DebtCalculator._calculateDebtValue(PRICE_ONE, 1e6, 1e6);
 
         assertEq(debtValue, 2000000);
     }

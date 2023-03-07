@@ -47,6 +47,18 @@ contract TestPerpUpdatePosition is TestPerp {
         assertEq(userStatus.perp.entryValue, -100);
         assertEq(userStatus.sqrtPerp.amount, 10);
         assertEq(userStatus.sqrtPerp.entryValue, -100);
+
+        (
+            uint256 assetAmountUnderlying,
+            uint256 assetAmountStable,
+            uint256 debtAmountUnderlying,
+            uint256 debtAmountStable
+        ) = Perp.getAmounts(underlyingAssetStatus.sqrtAssetStatus, userStatus, false, 2 ** 96);
+
+        assertEq(assetAmountUnderlying, 19);
+        assertEq(assetAmountStable, 0);
+        assertEq(debtAmountUnderlying, 0);
+        assertEq(debtAmountStable, 191);
     }
 
     // Closes long position
@@ -108,5 +120,28 @@ contract TestPerpUpdatePosition is TestPerp {
         assertEq(payoff.sqrtPayoff, 0);
         assertEq(userStatus2.perp.amount, -100);
         assertEq(userStatus2.perp.entryValue, 200);
+    }
+
+    // Opens gamma short position
+    function testOpenGammaShort() public {
+        Perp.updatePosition(
+            underlyingAssetStatus,
+            stableAssetStatus,
+            userStatus,
+            Perp.UpdatePerpParams(-1e6, 1e6),
+            Perp.UpdateSqrtPerpParams(1e6, -2 * 1e6)
+        );
+
+        (
+            uint256 assetAmountUnderlying,
+            uint256 assetAmountStable,
+            uint256 debtAmountUnderlying,
+            uint256 debtAmountStable
+        ) = Perp.getAmounts(underlyingAssetStatus.sqrtAssetStatus, userStatus, false, 2 ** 96);
+
+        assertEq(assetAmountUnderlying, 4987);
+        assertEq(assetAmountStable, 4987);
+        assertEq(debtAmountUnderlying, 4988);
+        assertEq(debtAmountStable, 4988);
     }
 }

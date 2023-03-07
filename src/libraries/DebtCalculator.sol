@@ -11,22 +11,19 @@ library DebtCalculator {
         Perp.UserStatus memory _perpUserStatus,
         uint160 _sqrtPrice
     ) internal pure returns (uint256) {
-        (int256 amountUnderlying, int256 amountStable) = Perp.getAmounts(
+        (,, uint256 debtAmountUnderlying, uint256 debtAmountStable) = Perp.getAmounts(
             _underlyingAssetStatus.sqrtAssetStatus, _perpUserStatus, _underlyingAssetStatus.isMarginZero, _sqrtPrice
         );
 
-        return _calculateDebtValue(_sqrtPrice, amountUnderlying, amountStable);
+        return _calculateDebtValue(_sqrtPrice, debtAmountUnderlying, debtAmountStable);
     }
 
-    function _calculateDebtValue(uint256 _sqrtPrice, int256 amountUnderlying, int256 amountStable)
+    function _calculateDebtValue(uint256 _sqrtPrice, uint256 debtAmountUnderlying, uint256 debtAmountStable)
         internal
         pure
         returns (uint256)
     {
         uint256 price = (_sqrtPrice * _sqrtPrice) >> Constants.RESOLUTION;
-
-        uint256 debtAmountStable = amountStable < 0 ? uint256(-amountStable) : 0;
-        uint256 debtAmountUnderlying = amountUnderlying < 0 ? uint256(-amountUnderlying) : 0;
 
         return ((debtAmountUnderlying * price) >> Constants.RESOLUTION) + debtAmountStable;
     }
