@@ -56,7 +56,7 @@ contract Controller is
     /// @dev account -> vaultId
     mapping(address => uint256) internal mainVaults;
 
-    uint256 assetsCount;
+    uint256 reserve;
 
     uint256 public vaultCount;
 
@@ -114,7 +114,6 @@ contract Controller is
         InterestRateModel.IRMParams memory _irmParams,
         DataType.AddAssetParams[] memory _addAssetParams
     ) public initializer {
-        assetsCount = 1;
         vaultCount = 1;
 
         operator = msg.sender;
@@ -336,15 +335,12 @@ contract Controller is
 
         applyInterest();
 
-        uint256 stableAssetId = assetGroup.stableAssetId;
-
         uint256 mainVaultId = mainVaults[vault.owner];
 
-        uint256 penaltyAmount =
-            LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], assets[stableAssetId], _closeRatio);
+        uint256 penaltyAmount = LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
 
         if (penaltyAmount > 0) {
-            TransferHelper.safeTransfer(assets[stableAssetId].token, msg.sender, penaltyAmount);
+            TransferHelper.safeTransfer(assets[Constants.STABLE_ASSET_ID].token, msg.sender, penaltyAmount);
         }
     }
 
@@ -395,7 +391,7 @@ contract Controller is
     function addPair(uint256 _assetId, DataType.AddAssetParams memory _addAssetParam) internal returns (uint256) {
         IUniswapV3Pool uniswapPool = IUniswapV3Pool(_addAssetParam.uniswapPool);
 
-        address stableTokenAddress = assets[assetGroup.stableAssetId].token;
+        address stableTokenAddress = assets[Constants.STABLE_ASSET_ID].token;
 
         require(uniswapPool.token0() == stableTokenAddress || uniswapPool.token1() == stableTokenAddress, "C3");
 

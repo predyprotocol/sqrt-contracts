@@ -16,15 +16,15 @@ const WETH_IRM_PARAMS = {
   slope2: '1400000000000000000',
 }
 const PREMIUM_PARAMS = {
-  baseRate: '30000000000000000',
-  kinkRate: '500000000000000000',
-  slope1: '120000000000000000',
-  slope2: '1562500000000000000',
+  baseRate: '22000000000000000',
+  kinkRate: '450000000000000000',
+  slope1: '140000000000000000',
+  slope2: '1600000000000000000',
 }
 const ASSET_RISK_PARAMS = {
-  riskRatio: '108627804',
-  rangeSize: 600,
-  rebalanceThreshold: 300
+  riskRatio: '109544511',
+  rangeSize: 1000,
+  rebalanceThreshold: 500
 }
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -85,7 +85,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     const controller = await ethers.getContract('Controller', deployer)
 
-    // await controller.setOperator(operatorAddress)
+    if (network.name === 'arbitrum') {
+      await controller.setOperator(operatorAddress)
+    }
   }
 }
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../../interfaces/IController.sol";
+import "../../libraries/Constants.sol";
 
 contract BaseStrategy is ERC20, Ownable {
     struct MinPerValueLimit {
@@ -34,8 +35,7 @@ contract BaseStrategy is ERC20, Ownable {
 
         minPerValueLimit = _minPerValueLimit;
 
-        DataType.AssetGroup memory assetGroup = controller.getAssetGroup();
-        DataType.AssetStatus memory asset = controller.getAsset(assetGroup.stableAssetId);
+        DataType.AssetStatus memory asset = controller.getAsset(Constants.STABLE_ASSET_ID);
 
         usdc = asset.token;
 

@@ -25,13 +25,11 @@ library UpdateMarginLogic {
 
         _vault.margin += _marginAmount;
 
-        uint256 stableAssetId = _assetGroup.stableAssetId;
-
         // if debt is 0 we should check margin is greater than 0 directly
         require(_vault.margin >= 0, "M1");
         PositionCalculator.isSafe(_assets, _vault);
 
-        proceedMarginUpdate(_vault, getStableToken(_assets, stableAssetId), _marginAmount);
+        proceedMarginUpdate(_vault, getStableToken(_assets), _marginAmount);
     }
 
     function proceedMarginUpdate(DataType.Vault memory _vault, address _stable, int256 _marginAmount) internal {
@@ -44,11 +42,7 @@ library UpdateMarginLogic {
         emit MarginUpdated(_vault.id, _marginAmount);
     }
 
-    function getStableToken(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _stableAssetId)
-        internal
-        view
-        returns (address)
-    {
-        return _assets[_stableAssetId].token;
+    function getStableToken(mapping(uint256 => DataType.AssetStatus) storage _assets) internal view returns (address) {
+        return _assets[Constants.STABLE_ASSET_ID].token;
     }
 }

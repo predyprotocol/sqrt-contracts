@@ -16,7 +16,7 @@ library ReaderLogic {
         DataType.Vault storage _vault,
         uint256 _mainVaultId
     ) external view returns (DataType.VaultStatusResult memory) {
-        DataType.AssetStatus memory stableAssetStatus = _assets[_assetGroup.stableAssetId];
+        DataType.AssetStatus memory stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
 
         DataType.SubVaultStatusResult[] memory subVaults =
             new DataType.SubVaultStatusResult[](_vault.openPositions.length);

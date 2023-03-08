@@ -34,10 +34,11 @@ library LiquidationLogic {
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
-        DataType.AssetStatus storage _stableAssetStatus,
         uint256 _closeRatio
     ) external returns (uint256 totalPenaltyAmount) {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
+
+        DataType.AssetStatus storage stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
 
         // The vault must be danger
         PositionCalculator.isDanger(_assets, _vault);
@@ -46,7 +47,7 @@ library LiquidationLogic {
             DataType.UserStatus storage userStatus = _vault.openPositions[i];
 
             (int256 totalPayoff, uint256 penaltyAmount) =
-                closePerp(_vault.id, _assets[userStatus.assetId], _stableAssetStatus, userStatus.perpTrade, _closeRatio);
+                closePerp(_vault.id, _assets[userStatus.assetId], stableAssetStatus, userStatus.perpTrade, _closeRatio);
 
             _vault.margin += totalPayoff;
             totalPenaltyAmount += penaltyAmount;

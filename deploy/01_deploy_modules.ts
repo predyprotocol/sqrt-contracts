@@ -9,17 +9,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deploy } = deployments
 
-  await deploy('LiquidationLogic', {
-    from: deployer,
-    log: true,
-  })
-
   await deploy('TradeLogic', {
     from: deployer,
     log: true,
   })
 
   const TradeLogic = await ethers.getContract('TradeLogic', deployer)
+
+  await deploy('LiquidationLogic', {
+    from: deployer,
+    log: true,
+    libraries: {
+      TradeLogic: TradeLogic.address
+    }
+  })
 
   await deploy('IsolatedVaultLogic', {
     from: deployer,
