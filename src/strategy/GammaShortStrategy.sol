@@ -31,8 +31,21 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
     uint256 finalDepositAmountCached;
 
+    uint256 public lastHedgeTimestamp;
+
+    uint256 public lastHedgePrice;
+
+    uint256 private hedgeSqrtPriceThreshold;
+
+    uint256 private hedgeInterval;
+
     event DepositedToStrategy(address indexed account, uint256 strategyTokenAmount, uint256 depositedAmount);
     event WithdrawnFromStrategy(address indexed account, uint256 strategyTokenAmount, uint256 withdrawnAmount);
+
+    event HedgePriceThresholdUpdated(uint256 hedgeSqrtPriceThreshold);
+    event HedgeIntervalUpdated(uint256 hedgeInterval);
+
+    event DeltaHedged(int256 delta);
 
     constructor(
         address _controller,
@@ -43,6 +56,14 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         string memory _symbol
     ) BaseStrategy(_controller, _assetId, _minPerValueLimit, _name, _symbol) {
         reader = Reader(_reader);
+
+        // square root of 8% scaled by 1e18
+        hedgeSqrtPriceThreshold = 10392304845 * 1e8;
+        hedgeInterval = 2 days;
+
+        // initialize last sqrt price and timestamp
+        lastHedgePrice = controller.getSqrtPrice(_assetId);
+        lastHedgeTimestamp = block.timestamp;
     }
 
     /**
@@ -72,6 +93,10 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         controller.updateMargin(vaultId, int256(finalDepositMargin));
     }
+
+    ////////////////////////
+    // Operator Functions //
+    ////////////////////////
 
     /**
      * @notice Initializes strategy contract.
@@ -111,6 +136,62 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         emit DepositedToStrategy(msg.sender, _initialMarginAmount, _initialMarginAmount);
     }
+
+    /**
+     * @notice Updates price threshold for delta hedging.
+     * @param _newSqrtPriceThreshold New square root price threshold
+     */
+    function updateHedgePriceThreshold(uint256 _newSqrtPriceThreshold) external onlyOwner {
+        require(1e18 <= _newSqrtPriceThreshold && _newSqrtPriceThreshold < 2 * 1e18);
+
+        hedgeSqrtPriceThreshold = _newSqrtPriceThreshold;
+
+        emit HedgePriceThresholdUpdated(_newSqrtPriceThreshold);
+    }
+
+    /**
+     * @notice Updates interval for delta hedging.
+     * @param _hedgeInterval New interval
+     */
+    function updateHedgeInterval(uint256 _hedgeInterval) external onlyOwner {
+        require(1 hours <= _hedgeInterval && _hedgeInterval <= 2 weeks);
+
+        hedgeInterval = _hedgeInterval;
+
+        emit HedgeIntervalUpdated(_hedgeInterval);
+    }
+
+    /**
+     * @notice Changes gamma size per share.
+     * @param _squartAmount squart amount
+     * @param _tradeParams trade parameters
+     */
+    function updateGamma(int256 _squartAmount, IStrategyVault.StrategyTradeParams memory _tradeParams)
+        external
+        onlyOwner
+    {
+        controller.tradePerp(
+            vaultId,
+            assetId,
+            TradeLogic.TradeParams(
+                0,
+                _squartAmount,
+                _tradeParams.lowerSqrtPrice,
+                _tradeParams.upperSqrtPrice,
+                _tradeParams.deadline,
+                false,
+                ""
+            )
+        );
+
+        uint256 minPerVaultValue = getMinPerVaultValue();
+
+        require(minPerValueLimit.lower <= minPerVaultValue && minPerVaultValue <= minPerValueLimit.upper, "GSS4");
+    }
+
+    //////////////////////
+    //  User Functions  //
+    //////////////////////
 
     /**
      * @notice Deposits margin and mints strategy token.
@@ -211,44 +292,19 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         emit WithdrawnFromStrategy(_recepient, _withdrawStrategyAmount, finalWithdrawAmount);
     }
 
-    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOwner {
-        int256 delta = reader.getDelta(assetId, vaultId);
-
-        controller.tradePerp(
-            vaultId,
-            assetId,
-            TradeLogic.TradeParams(
-                -delta, 0, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice, _tradeParams.deadline, false, ""
-            )
-        );
-    }
-
     /**
-     * Changes gamma size per share.
-     * @param _squartAmount squart amount
-     * @param _tradeParams trade parameters
+     * @notice Anyone can call the delta hedging function if the price has changed by a set ratio
+     * from the last price at the hedging or time has elapsed by a set interval since the last hedge time.
+     * @param _tradeParams Trade parameters for Predy contract
      */
-    function updateGamma(int256 _squartAmount, IStrategyVault.StrategyTradeParams memory _tradeParams)
-        external
-        onlyOwner
-    {
-        controller.tradePerp(
-            vaultId,
-            assetId,
-            TradeLogic.TradeParams(
-                0,
-                _squartAmount,
-                _tradeParams.lowerSqrtPrice,
-                _tradeParams.upperSqrtPrice,
-                _tradeParams.deadline,
-                false,
-                ""
-            )
-        );
+    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external {
+        uint256 sqrtPrice = controller.getSqrtPrice(assetId);
 
-        uint256 minPerVaultValue = getMinPerVaultValue();
+        require(isTimeHedge() || isPriceHedge(sqrtPrice), "TG");
 
-        require(minPerValueLimit.lower <= minPerVaultValue && minPerVaultValue <= minPerValueLimit.upper, "GSS4");
+        _execDeltaHedge(_tradeParams);
+
+        lastHedgePrice = sqrtPrice;
     }
 
     /**
@@ -265,13 +321,49 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         return uint256(vaultStatusResult.vaultValue) * SHARE_SCALER / totalSupply();
     }
 
+    function checkPriceHedge() external view returns (bool) {
+        return isPriceHedge(controller.getSqrtPrice(assetId));
+    }
+
+    function checkTimeHedge() external view returns (bool) {
+        return isTimeHedge();
+    }
+
+    ///////////////////////
+    // Private Functions //
+    ///////////////////////
+
+    function isPriceHedge(uint256 _sqrtPrice) internal view returns (bool) {
+        uint256 lower = lastHedgePrice * Constants.ONE / hedgeSqrtPriceThreshold;
+
+        uint256 upper = lastHedgePrice * hedgeSqrtPriceThreshold / Constants.ONE;
+
+        return _sqrtPrice < lower || upper < _sqrtPrice;
+    }
+
+    function isTimeHedge() internal view returns (bool) {
+        return lastHedgeTimestamp + hedgeInterval < block.timestamp;
+    }
+
     function getMinPerVaultValue() internal returns (uint256) {
         DataType.VaultStatusResult memory vaultStatusResult = controller.getVaultStatus(vaultId);
 
         return SafeCast.toUint256(vaultStatusResult.minDeposit * 1e18 / vaultStatusResult.vaultValue);
     }
 
-    // private functions
+    function _execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) internal {
+        int256 delta = reader.getDelta(assetId, vaultId);
+
+        controller.tradePerp(
+            vaultId,
+            assetId,
+            TradeLogic.TradeParams(
+                -delta, 0, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice, _tradeParams.deadline, false, ""
+            )
+        );
+
+        emit DeltaHedged(delta);
+    }
 
     function calEntryValue(Perp.Payoff memory payoff)
         internal

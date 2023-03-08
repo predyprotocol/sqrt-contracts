@@ -206,26 +206,71 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(withdrawMarginAmount, 9457740000);
     }
 
-    function testDeltaHedging() public {
+    function testCannotDeltaHedge_IfTimeHasNotPassed() public {
         uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
+        uniswapPool.swap(address(this), false, -1 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        assertFalse(strategy.checkPriceHedge());
+        assertFalse(strategy.checkTimeHedge());
+
+        vm.expectRevert(bytes("TG"));
+        strategy.execDeltaHedge(getStrategyTradeParams());
+    }
+
+    function testDeltaHedgeByTime() public {
+        vm.warp(block.timestamp + 2 days + 1 minutes);
+
         uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        assertFalse(strategy.checkPriceHedge());
+        assertTrue(strategy.checkTimeHedge());
 
         assertEq(reader.getDelta(2, strategy.vaultId()), -2399999973);
         strategy.execDeltaHedge(getStrategyTradeParams());
         assertEq(reader.getDelta(2, strategy.vaultId()), -30);
 
-        uniswapPool.swap(address(this), true, 15 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
-
-        vm.warp(block.timestamp + 1 days);
-
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
-        assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawMarginAmount, 9960930000);
+        uniswapPool.swap(address(this), true, 15 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        vm.warp(block.timestamp + 1 hours);
+
+        assertEq(depositMarginAmount, 9975920000);
+        assertEq(withdrawMarginAmount, 9974650000);
+    }
+
+    function testDeltaHedgeByPriceUp() public {
+        strategy.updateHedgePriceThreshold(10120000000 * 1e8);
+
+        uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        assertTrue(strategy.checkPriceHedge());
+        assertFalse(strategy.checkTimeHedge());
+
+        strategy.execDeltaHedge(getStrategyTradeParams());
+    }
+
+    function testDeltaHedgeByPriceDown() public {
+        strategy.updateHedgePriceThreshold(10120000000 * 1e8);
+
+        uniswapPool.swap(address(this), true, 20 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        assertTrue(strategy.checkPriceHedge());
+        assertFalse(strategy.checkTimeHedge());
+
+        strategy.execDeltaHedge(getStrategyTradeParams());
     }
 
     function testDeltaHedgingFuzz(uint256 _amount) public {
+        vm.warp(block.timestamp + 2 days + 1 minutes);
+
         uint256 amount = bound(_amount, 2 * 1e4, 1e12);
 
         uint256 depositMarginAmount = strategy.deposit(amount, address(this), 1e12, false, getStrategyTradeParams());
