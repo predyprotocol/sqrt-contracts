@@ -189,6 +189,21 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         require(minPerValueLimit.lower <= minPerVaultValue && minPerVaultValue <= minPerValueLimit.upper, "GSS4");
     }
 
+    /**
+     * @notice Operator can call the delta hedging function if the price has changed by a set ratio
+     * from the last price at the hedging or time has elapsed by a set interval since the last hedge time.
+     * @param _tradeParams Trade parameters for Predy contract
+     */
+    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOwner {
+        uint256 sqrtPrice = controller.getSqrtPrice(assetId);
+
+        require(isTimeHedge() || isPriceHedge(sqrtPrice), "TG");
+
+        _execDeltaHedge(_tradeParams);
+
+        lastHedgePrice = sqrtPrice;
+    }
+
     //////////////////////
     //  User Functions  //
     //////////////////////
@@ -290,21 +305,6 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         TransferHelper.safeTransfer(usdc, _recepient, finalWithdrawAmount);
 
         emit WithdrawnFromStrategy(_recepient, _withdrawStrategyAmount, finalWithdrawAmount);
-    }
-
-    /**
-     * @notice Anyone can call the delta hedging function if the price has changed by a set ratio
-     * from the last price at the hedging or time has elapsed by a set interval since the last hedge time.
-     * @param _tradeParams Trade parameters for Predy contract
-     */
-    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external {
-        uint256 sqrtPrice = controller.getSqrtPrice(assetId);
-
-        require(isTimeHedge() || isPriceHedge(sqrtPrice), "TG");
-
-        _execDeltaHedge(_tradeParams);
-
-        lastHedgePrice = sqrtPrice;
     }
 
     /**

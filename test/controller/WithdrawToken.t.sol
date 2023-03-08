@@ -39,6 +39,20 @@ contract TestControllerWithdrawToken is TestController {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
+    function testCannotWithdrawToken_IfAssetIdIsZero() public {
+        controller.supplyToken(WETH_ASSET_ID, 100);
+
+        vm.expectRevert(bytes("A0"));
+        controller.withdrawToken(0, 100);
+    }
+
+    function testCannotWithdrawToken_IfAssetIdIsNotExisted() public {
+        controller.supplyToken(WETH_ASSET_ID, 100);
+
+        vm.expectRevert(bytes("A0"));
+        controller.withdrawToken(4, 100);
+    }
+
     // withdraw token
     function testWithdrawToken() public {
         controller.supplyToken(WETH_ASSET_ID, 100);

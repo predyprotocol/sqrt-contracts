@@ -7,7 +7,7 @@ import "../Perp.sol";
 import "../PositionCalculator.sol";
 import "../Trade.sol";
 import "../VaultLib.sol";
-import "./UpdateMarginLogic.sol";
+import "../AssetLib.sol";
 
 /*
  * Error Codes
@@ -32,16 +32,20 @@ library TradeLogic {
     function execTrade(
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault storage _vault,
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
+        uint256 _assetId,
         DataType.UserStatus storage _userStatus,
         TradeParams memory _tradeParams
     ) public returns (DataType.TradeResult memory tradeResult) {
+        DataType.AssetStatus storage underlyingAssetStatus = _assets[_assetId];
+        DataType.AssetStatus storage stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
+
+        AssetLib.checkUnderlyingAsset(_assetId, underlyingAssetStatus);
+
         checkDeadline(_tradeParams.deadline);
 
         tradeResult = trade(
-            _underlyingAssetStatus,
-            _stableAssetStatus,
+            underlyingAssetStatus,
+            stableAssetStatus,
             _userStatus.perpTrade,
             _tradeParams.tradeAmount,
             _tradeParams.tradeAmountSqrt
@@ -50,7 +54,7 @@ library TradeLogic {
         _vault.margin += tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
         checkPrice(
-            _underlyingAssetStatus.sqrtAssetStatus.uniswapPool, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice
+            underlyingAssetStatus.sqrtAssetStatus.uniswapPool, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice
         );
 
         if (_tradeParams.enableCallback) {
@@ -62,7 +66,7 @@ library TradeLogic {
 
         emit PositionUpdated(
             _vault.id,
-            _underlyingAssetStatus.id,
+            underlyingAssetStatus.id,
             _tradeParams.tradeAmount,
             _tradeParams.tradeAmountSqrt,
             tradeResult.payoff,

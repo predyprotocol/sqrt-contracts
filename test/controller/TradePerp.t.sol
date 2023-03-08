@@ -108,6 +108,17 @@ contract TestControllerTradePerp is TestController {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
+    // cannot trade if vaultId is not existed
+    function testCannotTrade_IfVaultIdIsNotExisted() public {
+        TradeLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
+
+        vm.expectRevert(bytes("V1"));
+        controller.tradePerp(0, WETH_ASSET_ID, tradeParams);
+
+        vm.expectRevert(bytes("V1"));
+        controller.tradePerp(1000, WETH_ASSET_ID, tradeParams);
+    }
+
     // cannot trade if caller is not vault owner
     function testCannotTrade_IfCallerIsNotVaultOwner() public {
         TradeLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
@@ -153,6 +164,20 @@ contract TestControllerTradePerp is TestController {
 
         vm.expectRevert(bytes("T2"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
+    }
+
+    function testCannotTradePerp_IfAssetIdIsStable() public {
+        TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+
+        vm.expectRevert(bytes("ASSETID"));
+        controller.tradePerp(vaultId, STABLE_ASSET_ID, tradeParams);
+    }
+
+    function testCannotTradePerp_IfAssetIdIsNotExisted() public {
+        TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+
+        vm.expectRevert(bytes("ASSETID"));
+        controller.tradePerp(vaultId, 4, tradeParams);
     }
 
     // open delta long

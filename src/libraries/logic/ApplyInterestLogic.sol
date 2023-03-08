@@ -5,6 +5,7 @@ import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/Transfer
 import "../AssetGroupLib.sol";
 import "../Perp.sol";
 import "../ScaledAsset.sol";
+import "../AssetLib.sol";
 
 library ApplyInterestLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
@@ -31,14 +32,16 @@ library ApplyInterestLogic {
         }
     }
 
-    function applyInterestForToken(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _tokenId) public {
-        DataType.AssetStatus storage assetStatus = _assets[_tokenId];
+    function applyInterestForToken(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _assetId) public {
+        DataType.AssetStatus storage assetStatus = _assets[_assetId];
+
+        require(assetStatus.id > 0, "A0");
 
         if (block.timestamp <= assetStatus.lastUpdateTimestamp) {
             return;
         }
 
-        if (_tokenId != Constants.STABLE_ASSET_ID) {
+        if (_assetId != Constants.STABLE_ASSET_ID) {
             _assets[Constants.STABLE_ASSET_ID].accumulatedProtocolRevenue += Perp.updateFeeAndPremiumGrowth(
                 assetStatus.sqrtAssetStatus,
                 assetStatus.squartIRMParams,
@@ -91,8 +94,7 @@ library ApplyInterestLogic {
         DataType.AssetStatus storage underlyingAsset = _assets[_assetId];
         DataType.AssetStatus storage stableAsset = _assets[Constants.STABLE_ASSET_ID];
 
-        applyInterestForToken(_assets, _assetId);
-        applyInterestForToken(_assets, _assetGroup.stableAssetId);
+        AssetLib.checkUnderlyingAsset(_assetId, underlyingAsset);
 
         (reallocationHappened, profit) =
             Perp.reallocate(underlyingAsset, stableAsset.tokenStatus, underlyingAsset.sqrtAssetStatus, false);

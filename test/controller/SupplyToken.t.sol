@@ -14,5 +14,14 @@ contract TestControllerSupplyToken is TestController {
 
         assertEq(IERC20(getSupplyTokenAddress(WETH_ASSET_ID)).balanceOf(address(this)), 100);
     }
-    // supply token if utilization is full
-} // cannot supply token if user has no balance
+
+    function testCannotSupplyToken_IfAssetIdIsZero() public {
+        vm.expectRevert(bytes("A0"));
+        controller.supplyToken(0, 100);
+    }
+
+    function testCannotSupplyToken_IfAssetIdIsNotExisted() public {
+        vm.expectRevert(bytes("A0"));
+        controller.supplyToken(4, 100);
+    }
+}

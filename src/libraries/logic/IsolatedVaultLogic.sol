@@ -35,9 +35,7 @@ library IsolatedVaultLogic {
         require(_vault.margin >= 0, "I1");
         PositionCalculator.isSafe(_assets, _vault);
 
-        tradeResult = TradeLogic.execTrade(
-            _assets, _isolatedVault, _assets[_assetId], _assets[_assetGroup.stableAssetId], perpUserStatus, _tradeParams
-        );
+        tradeResult = TradeLogic.execTrade(_assets, _isolatedVault, _assetId, perpUserStatus, _tradeParams);
 
         emit IsolatedVaultOpened(_vault.id, _isolatedVault.id, _depositAmount);
     }
@@ -52,9 +50,7 @@ library IsolatedVaultLogic {
     ) external returns (DataType.TradeResult memory tradeResult) {
         DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_assetGroup, _isolatedVault, _assetId);
 
-        tradeResult = closeVault(
-            _assets, _isolatedVault, _assets[_assetId], _assets[_assetGroup.stableAssetId], perpUserStatus, _closeParams
-        );
+        tradeResult = closeVault(_assets, _isolatedVault, _assetId, perpUserStatus, _closeParams);
 
         // _isolatedVault.margin must be greater than 0
 
@@ -70,8 +66,7 @@ library IsolatedVaultLogic {
     function closeVault(
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault storage _vault,
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
+        uint256 _assetId,
         DataType.UserStatus storage _userStatus,
         CloseParams memory _closeParams
     ) internal returns (DataType.TradeResult memory tradeResult) {
@@ -81,8 +76,7 @@ library IsolatedVaultLogic {
         return TradeLogic.execTrade(
             _assets,
             _vault,
-            _underlyingAssetStatus,
-            _stableAssetStatus,
+            _assetId,
             _userStatus,
             TradeLogic.TradeParams(
                 tradeAmount,

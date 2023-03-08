@@ -320,9 +320,7 @@ contract Controller is
         applyInterest();
         settleUserFee(vaults[_vaultId], _assetId);
 
-        return TradeLogic.execTrade(
-            assets, vaults[_vaultId], assets[_assetId], assets[assetGroup.stableAssetId], perpUserStatus, _tradeParams
-        );
+        return TradeLogic.execTrade(assets, vaults[_vaultId], _assetId, perpUserStatus, _tradeParams);
     }
 
     /**

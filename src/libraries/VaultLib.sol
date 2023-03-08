@@ -14,7 +14,7 @@ library VaultLib {
     {
         checkVault(_vault, msg.sender);
 
-        require(_assetGroup.isAllow(_assetId));
+        require(_assetGroup.isAllow(_assetId), "ASSETID");
 
         userStatus = createOrGetUserStatus(_vault, _assetId);
     }
@@ -24,17 +24,17 @@ library VaultLib {
         require(_vault.owner == _caller, "V2");
     }
 
-    function createOrGetUserStatus(DataType.Vault storage _vault, uint256 _tokenId)
+    function createOrGetUserStatus(DataType.Vault storage _vault, uint256 _assetId)
         internal
         returns (DataType.UserStatus storage)
     {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            if (_vault.openPositions[i].assetId == _tokenId) {
+            if (_vault.openPositions[i].assetId == _assetId) {
                 return _vault.openPositions[i];
             }
         }
 
-        _vault.openPositions.push(DataType.UserStatus(_tokenId, Perp.createPerpUserStatus()));
+        _vault.openPositions.push(DataType.UserStatus(_assetId, Perp.createPerpUserStatus()));
 
         return _vault.openPositions[_vault.openPositions.length - 1];
     }
