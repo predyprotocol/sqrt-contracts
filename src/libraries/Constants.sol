@@ -6,11 +6,11 @@ library Constants {
 
     uint256 internal constant ONE = 1e18;
 
-    // Reserve factor is 10%
-    uint256 internal constant RESERVE_FACTOR = 10 * 1e16;
+    // Reserve factor is 8%
+    uint256 internal constant RESERVE_FACTOR = 8 * 1e16;
 
-    // Reserve factor of LPToken is 5%
-    uint256 internal constant LPT_RESERVE_FACTOR = 5 * 1e16;
+    // Reserve factor of LPToken is 4%
+    uint256 internal constant LPT_RESERVE_FACTOR = 4 * 1e16;
 
     // Margin option
     int256 internal constant MIN_MARGIN_AMOUNT = 1e6;

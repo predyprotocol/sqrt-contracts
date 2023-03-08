@@ -60,7 +60,7 @@ contract TestReader is TestController {
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId2);
         vm.stopPrank();
 
-        assertEq(vaultStatus.vaultValue, 9930806374);
+        assertEq(vaultStatus.vaultValue, 9930806394);
         assertEq(vaultStatus.minDeposit, 16000000);
     }
 
