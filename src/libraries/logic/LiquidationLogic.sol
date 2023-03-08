@@ -96,6 +96,9 @@ library LiquidationLogic {
         int256 tradeAmount = -_perpUserStatus.perp.amount * int256(_closeRatio) / int256(Constants.ONE);
         int256 tradeAmountSqrt = -_perpUserStatus.sqrtPerp.amount * int256(_closeRatio) / int256(Constants.ONE);
 
+        uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
+        uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
+
         DataType.TradeResult memory tradeResult =
             TradeLogic.trade(_underlyingAssetStatus, _stableAssetStatus, _perpUserStatus, tradeAmount, tradeAmountSqrt);
 
@@ -104,15 +107,9 @@ library LiquidationLogic {
         {
             // reverts if price is out of slippage threshold
             uint256 sqrtPrice = UniHelper.getSqrtPrice(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
-            uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
-            uint256 liquidationSlippageSqrtTolerance;
 
-            {
-                uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
-                liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(debtValue);
-
-                penaltyAmount += calculatePenaltyAmount(debtValue);
-            }
+            uint256 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(debtValue);
+            penaltyAmount = calculatePenaltyAmount(debtValue);
 
             require(
                 sqrtTwap * 1e6 / (1e6 + liquidationSlippageSqrtTolerance) <= sqrtPrice
