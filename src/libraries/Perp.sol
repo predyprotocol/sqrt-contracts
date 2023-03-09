@@ -301,30 +301,27 @@ library Perp {
     ) internal returns (int256 profit) {
         uint160 tickSqrtPrice = TickMath.getSqrtRatioAtTick(_tick);
 
-        // 1/tickSqrtPrice - 1/_currentSqrtPrice
+        // 1/_currentSqrtPrice - 1/tickSqrtPrice
         int256 deltaPosition0 =
-            LPMath.calculateAmount0ForLiquidity(tickSqrtPrice, _currentSqrtPrice, _totalLiquidityAmount, false);
+            LPMath.calculateAmount0ForLiquidity(_currentSqrtPrice, tickSqrtPrice, _totalLiquidityAmount, true);
 
-        // tickSqrtPrice - _currentSqrtPrice
+        // _currentSqrtPrice - tickSqrtPrice
         int256 deltaPosition1 =
-            LPMath.calculateAmount1ForLiquidity(tickSqrtPrice, _currentSqrtPrice, _totalLiquidityAmount, false);
+            LPMath.calculateAmount1ForLiquidity(_currentSqrtPrice, tickSqrtPrice, _totalLiquidityAmount, true);
 
         (, int256 amount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).swap(
             address(this),
-            deltaPosition0 > deltaPosition1,
+            // if x < lower then zeroForOne, if upper < x
+            deltaPosition0 < 0,
             // + means exactIn, - means exactOut
-            deltaPosition0,
-            (deltaPosition0 > deltaPosition1 ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1),
+            -deltaPosition0,
+            (deltaPosition0 < 0 ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1),
             ""
         );
 
-        if (deltaPosition0 > 0) {
-            profit = (deltaPosition1 - amount1);
-        } else {
-            profit = (amount1 - deltaPosition1);
-        }
+        profit = -amount1 - deltaPosition1;
 
-        updateRebalancePosition(_assetStatusUnderlying, _assetStatusStable, -deltaPosition0, -deltaPosition1);
+        updateRebalancePosition(_assetStatusUnderlying, _assetStatusStable, deltaPosition0, deltaPosition1);
     }
 
     function getAvailableLiquidityAmount(
