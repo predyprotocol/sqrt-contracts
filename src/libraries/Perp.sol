@@ -311,7 +311,7 @@ library Perp {
 
         (, int256 amount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).swap(
             address(this),
-            // if x < lower then zeroForOne, if upper < x
+            // if x < lower then swap token0 for token1, if upper < x then swap token1 for token0.
             deltaPosition0 < 0,
             // + means exactIn, - means exactOut
             -deltaPosition0,
