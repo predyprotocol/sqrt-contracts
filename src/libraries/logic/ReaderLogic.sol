@@ -11,7 +11,6 @@ library ReaderLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
     function getVaultStatus(
-        DataType.AssetGroup memory _assetGroup,
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault storage _vault,
         uint256 _mainVaultId

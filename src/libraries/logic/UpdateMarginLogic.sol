@@ -12,7 +12,6 @@ library UpdateMarginLogic {
     event MarginUpdated(uint256 vaultId, int256 marginAmount);
 
     function updateMargin(
-        DataType.AssetGroup storage _assetGroup,
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault storage _vault,
         int256 _marginAmount
@@ -20,7 +19,7 @@ library UpdateMarginLogic {
         VaultLib.checkVault(_vault, msg.sender);
         // settle user fee and balance
         if (_marginAmount < 0) {
-            SettleUserFeeLogic.settleUserFee(_assetGroup, _assets, _vault);
+            SettleUserFeeLogic.settleUserFee(_assets, _vault);
         }
 
         _vault.margin += _marginAmount;
