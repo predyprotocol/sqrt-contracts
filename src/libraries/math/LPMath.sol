@@ -43,18 +43,16 @@ library LPMath {
         int256 r;
 
         bool isRoundUp = swaped ? !_isRoundUp : _isRoundUp;
-        uint256 numerator = _liquidityAmount << FixedPoint96.RESOLUTION;
+        uint256 numerator = _liquidityAmount;
 
         if (isRoundUp) {
-            uint256 r0 =
-                UnsafeMath.divRoundingUp(FullMath.mulDivRoundingUp(numerator, _sqrtRatioB, _sqrtRatioB), _sqrtRatioA);
-            uint256 r1 = FullMath.mulDiv(numerator, _sqrtRatioA, _sqrtRatioB) / _sqrtRatioA;
+            uint256 r0 = FullMath.mulDivRoundingUp(numerator, FixedPoint96.Q96, _sqrtRatioA);
+            uint256 r1 = FullMath.mulDiv(numerator, FixedPoint96.Q96, _sqrtRatioB);
 
             r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1);
         } else {
-            uint256 r0 = FullMath.mulDiv(numerator, _sqrtRatioB, _sqrtRatioB) / _sqrtRatioA;
-            uint256 r1 =
-                UnsafeMath.divRoundingUp(FullMath.mulDivRoundingUp(numerator, _sqrtRatioA, _sqrtRatioB), _sqrtRatioA);
+            uint256 r0 = FullMath.mulDiv(numerator, FixedPoint96.Q96, _sqrtRatioA);
+            uint256 r1 = FullMath.mulDivRoundingUp(numerator, FixedPoint96.Q96, _sqrtRatioB);
 
             r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1);
         }

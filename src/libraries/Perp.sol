@@ -184,15 +184,6 @@ library Perp {
             return (false, 0);
         }
 
-        int24 tick;
-
-        if (_sqrtAssetStatus.tickLower > currentTick) {
-            tick = _sqrtAssetStatus.tickLower;
-        }
-        if (_sqrtAssetStatus.tickUpper <= currentTick) {
-            tick = _sqrtAssetStatus.tickUpper;
-        }
-
         uint128 totalLiquidityAmount = getAvailableLiquidityAmount(
             address(this), _sqrtAssetStatus.uniswapPool, _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper
         );
@@ -202,32 +193,27 @@ library Perp {
             return (false, 0);
         }
 
-        (uint256 receivedAmount0, uint256 receivedAmount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).burn(
-            _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, totalLiquidityAmount
+        int24 tick;
+        bool isOutOfRange;
+
+        if (currentTick < _sqrtAssetStatus.tickLower) {
+            // lower out
+            isOutOfRange = true;
+            tick = _sqrtAssetStatus.tickLower;
+        } else if (currentTick < _sqrtAssetStatus.tickUpper) {
+            // in range
+            isOutOfRange = false;
+        } else {
+            // upper out
+            isOutOfRange = true;
+            tick = _sqrtAssetStatus.tickUpper;
+        }
+
+        rebalanceForInRange(
+            _assetStatusUnderlying, _assetStatusStable, _sqrtAssetStatus, currentTick, totalLiquidityAmount
         );
 
-        IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).collect(
-            address(this),
-            _sqrtAssetStatus.tickLower,
-            _sqrtAssetStatus.tickUpper,
-            receivedAmount0.safeCastTo128(),
-            receivedAmount1.safeCastTo128()
-        );
-
-        (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) = getNewRange(_assetStatusUnderlying, currentTick);
-
-        (uint256 requiredAmount0, uint256 requiredAmount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).mint(
-            address(this), _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, totalLiquidityAmount, ""
-        );
-
-        updateRebalancePosition(
-            _assetStatusUnderlying,
-            _assetStatusStable,
-            int256(receivedAmount0) - int256(requiredAmount0),
-            int256(receivedAmount1) - int256(requiredAmount1)
-        );
-
-        if (tick != 0) {
+        if (isOutOfRange) {
             profit = swapForOutOfRange(
                 _assetStatusUnderlying,
                 _assetStatusStable,
@@ -247,6 +233,39 @@ library Perp {
         emit Rebalanced(_assetStatusUnderlying.id, _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, profit);
 
         return (true, profit);
+    }
+
+    function rebalanceForInRange(
+        DataType.AssetStatus storage _assetStatusUnderlying,
+        ScaledAsset.TokenStatus storage _assetStatusStable,
+        SqrtPerpAssetStatus storage _sqrtAssetStatus,
+        int24 _currentTick,
+        uint128 _totalLiquidityAmount
+    ) internal {
+        (uint256 receivedAmount0, uint256 receivedAmount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).burn(
+            _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, _totalLiquidityAmount
+        );
+
+        IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).collect(
+            address(this),
+            _sqrtAssetStatus.tickLower,
+            _sqrtAssetStatus.tickUpper,
+            receivedAmount0.safeCastTo128(),
+            receivedAmount1.safeCastTo128()
+        );
+
+        (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) = getNewRange(_assetStatusUnderlying, _currentTick);
+
+        (uint256 requiredAmount0, uint256 requiredAmount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).mint(
+            address(this), _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, _totalLiquidityAmount, ""
+        );
+
+        updateRebalancePosition(
+            _assetStatusUnderlying,
+            _assetStatusStable,
+            int256(receivedAmount0) - int256(requiredAmount0),
+            int256(receivedAmount1) - int256(requiredAmount1)
+        );
     }
 
     function getNewRange(DataType.AssetStatus storage _assetStatusUnderlying, int24 _currentTick)
@@ -283,7 +302,6 @@ library Perp {
         uint160 tickSqrtPrice = TickMath.getSqrtRatioAtTick(_tick);
 
         // 1/tickSqrtPrice - 1/_currentSqrtPrice
-
         int256 deltaPosition0 =
             LPMath.calculateAmount0ForLiquidity(tickSqrtPrice, _currentSqrtPrice, _totalLiquidityAmount, false);
 
