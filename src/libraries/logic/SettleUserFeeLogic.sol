@@ -8,16 +8,14 @@ import "../ScaledAsset.sol";
 library SettleUserFeeLogic {
     event FeeCollected(uint256 vaultId, uint256 assetId, int256 feeCollected);
 
-    function settleUserFee(
-        DataType.AssetGroup storage _assetGroup,
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
-        DataType.Vault storage _vault
-    ) external returns (int256[] memory latestFees) {
-        return settleUserFee(_assetGroup, _assets, _vault, 0);
+    function settleUserFee(mapping(uint256 => DataType.AssetStatus) storage _assets, DataType.Vault storage _vault)
+        external
+        returns (int256[] memory latestFees)
+    {
+        return settleUserFee(_assets, _vault, 0);
     }
 
     function settleUserFee(
-        DataType.AssetGroup storage _assetGroup,
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault storage _vault,
         uint256 _excludeAssetId

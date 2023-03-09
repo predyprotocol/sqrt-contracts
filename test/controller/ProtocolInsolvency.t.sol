@@ -81,13 +81,13 @@ contract TestControllerTradePerp is TestController {
             controller.updateMargin(lpVaultId, -margin);
         }
 
-        console.log(usdc.balanceOf(address(controller)));
-        console.log(weth.balanceOf(address(controller)));
-
         vm.prank(user2);
         controller.withdrawToken(1, 1e18);
         vm.prank(user2);
         controller.withdrawToken(2, 1e18);
+
+        console.log(usdc.balanceOf(address(controller)));
+        console.log(weth.balanceOf(address(controller)));
 
         {
             DataType.AssetStatus memory asset = controller.getAsset(1);
@@ -300,6 +300,48 @@ contract TestControllerTradePerp is TestController {
         DataType.Vault memory vault = controller.getVault(vaultId);
 
         assertEq(vault.margin, 10000100000);
+
+        withdrawAll();
+    }
+
+    function testRebalanceLower() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
+
+        uniswapPool.swap(address(this), true, -487 * 1e14, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        {
+            (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+            assertEq(currentTick, -999);
+        }
+
+        (bool isRealocated, int256 profit) = controller.reallocate(WETH_ASSET_ID);
+
+        {
+            (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+            assertEq(currentTick, -999);
+        }
+
+        assertTrue(isRealocated);
+        assertEq(profit, 0);
+
+        withdrawAll();
+    }
+
+    function testRebalanceUpper() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
+
+        uniswapPool.swap(address(this), false, 5131 * 1e13, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+        assertEq(currentTick, 1000);
+
+        (bool isRealocated, int256 profit) = controller.reallocate(WETH_ASSET_ID);
+
+        assertTrue(isRealocated);
+        assertEq(profit, -4);
 
         withdrawAll();
     }

@@ -201,7 +201,7 @@ contract Controller is
     function reallocate(uint256 _assetId) external returns (bool, int256) {
         applyInterest();
 
-        return ApplyInterestLogic.reallocate(assetGroup, assets, _assetId);
+        return ApplyInterestLogic.reallocate(assets, _assetId);
     }
 
     /**
@@ -249,7 +249,7 @@ contract Controller is
 
         DataType.Vault storage vault = vaults[vaultId];
 
-        UpdateMarginLogic.updateMargin(assetGroup, assets, vault, _marginAmount);
+        UpdateMarginLogic.updateMargin(assets, vault, _marginAmount);
     }
 
     /**
@@ -460,7 +460,7 @@ contract Controller is
         internal
         returns (int256[] memory latestFees)
     {
-        return SettleUserFeeLogic.settleUserFee(assetGroup, assets, _vault, _excludeAssetId);
+        return SettleUserFeeLogic.settleUserFee(assets, _vault, _excludeAssetId);
     }
 
     function createVaultIfNeeded(uint256 _vaultId, address _caller, bool _isMainVault)
@@ -527,7 +527,7 @@ contract Controller is
 
         DataType.Vault storage vault = vaults[_vaultId];
 
-        return ReaderLogic.getVaultStatus(assetGroup, assets, vault, mainVaults[vault.owner]);
+        return ReaderLogic.getVaultStatus(assets, vault, mainVaults[vault.owner]);
     }
 
     /**

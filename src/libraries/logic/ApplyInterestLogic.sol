@@ -86,11 +86,10 @@ library ApplyInterestLogic {
             );
     }
 
-    function reallocate(
-        DataType.AssetGroup memory _assetGroup,
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
-        uint256 _assetId
-    ) external returns (bool reallocationHappened, int256 profit) {
+    function reallocate(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _assetId)
+        external
+        returns (bool reallocationHappened, int256 profit)
+    {
         DataType.AssetStatus storage underlyingAsset = _assets[_assetId];
         DataType.AssetStatus storage stableAsset = _assets[Constants.STABLE_ASSET_ID];
 
@@ -100,7 +99,15 @@ library ApplyInterestLogic {
             Perp.reallocate(underlyingAsset, stableAsset.tokenStatus, underlyingAsset.sqrtAssetStatus, false);
 
         if (profit < 0) {
-            TransferHelper.safeTransferFrom(stableAsset.token, msg.sender, address(this), uint256(-profit));
+            address token;
+
+            if (underlyingAsset.isMarginZero) {
+                token = underlyingAsset.token;
+            } else {
+                token = stableAsset.token;
+            }
+
+            TransferHelper.safeTransferFrom(token, msg.sender, address(this), uint256(-profit));
         }
     }
 }

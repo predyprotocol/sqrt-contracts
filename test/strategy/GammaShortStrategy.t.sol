@@ -207,7 +207,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
     }
 
     function testCannotDeltaHedge_IfTimeHasNotPassed() public {
-        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+        strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         uniswapPool.swap(address(this), false, -1 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
@@ -247,7 +247,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+        strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         assertTrue(strategy.checkPriceHedge());
         assertFalse(strategy.checkTimeHedge());
@@ -260,7 +260,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         uniswapPool.swap(address(this), true, 20 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 
-        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+        strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         assertTrue(strategy.checkPriceHedge());
         assertFalse(strategy.checkTimeHedge());
