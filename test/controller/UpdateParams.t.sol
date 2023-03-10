@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "./Setup.t.sol";
 
-contract TestControllerAddPair is TestController {
+contract TestControllerUpdateParams is TestController {
     address internal user = vm.addr(uint256(1));
     InterestRateModel.IRMParams internal newIrmParams;
 
@@ -12,6 +12,17 @@ contract TestControllerAddPair is TestController {
         TestController.setUp();
 
         newIrmParams = InterestRateModel.IRMParams(2 * 1e16, 10 * 1e17, 10 * 1e17, 2 * 1e18);
+    }
+
+    function testCannotInitializeTwice() public {
+        DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](1);
+
+        addAssetParams[0] = DataType.AddAssetParams(
+            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+        );
+
+        vm.expectRevert(bytes("Initializable: contract is already initialized"));
+        controller.initialize(address(usdc), irmParams, addAssetParams);
     }
 
     function testCannotUpdateAssetRiskParams_IfAParamIsInvalid() public {
