@@ -28,7 +28,7 @@ contract TestControllerCallback is TestController {
         vaultId = controller.updateMargin(0, 1e8);
     }
 
-    function predyTradeCallback(DataType.TradeResult memory _tradeResult, bytes calldata _data) external {
+    function predyTradeCallback(DataType.TradeResult memory, bytes calldata) external {
         TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
             1 * 1e8, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, false, ""
         );

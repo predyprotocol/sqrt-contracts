@@ -74,7 +74,7 @@ contract TestBaseStrategy is Test {
     /**
      * @dev Callback for Uniswap V3 pool.
      */
-    function uniswapV3MintCallback(uint256 amount0, uint256 amount1, bytes calldata data) external {
+    function uniswapV3MintCallback(uint256 amount0, uint256 amount1, bytes calldata) external {
         if (amount0 > 0) {
             TransferHelper.safeTransfer(token0, msg.sender, amount0);
         }
@@ -86,7 +86,7 @@ contract TestBaseStrategy is Test {
     /**
      * @dev Callback for Uniswap V3 pool.
      */
-    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
+    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata) external {
         if (amount0Delta > 0) {
             TransferHelper.safeTransfer(token0, msg.sender, uint256(amount0Delta));
         }

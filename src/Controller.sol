@@ -84,7 +84,7 @@ contract Controller is
     /**
      * @dev Callback for Uniswap V3 pool.
      */
-    function uniswapV3MintCallback(uint256 amount0, uint256 amount1, bytes calldata data) external override {
+    function uniswapV3MintCallback(uint256 amount0, uint256 amount1, bytes calldata) external override {
         require(allowedUniswapPools[msg.sender]);
         IUniswapV3Pool uniswapPool = IUniswapV3Pool(msg.sender);
         if (amount0 > 0) {
@@ -98,7 +98,7 @@ contract Controller is
     /**
      * @dev Callback for Uniswap V3 pool.
      */
-    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external override {
+    function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata) external override {
         require(allowedUniswapPools[msg.sender]);
         IUniswapV3Pool uniswapPool = IUniswapV3Pool(msg.sender);
         if (amount0Delta > 0) {
