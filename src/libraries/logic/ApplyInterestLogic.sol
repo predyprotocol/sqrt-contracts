@@ -57,6 +57,8 @@ library ApplyInterestLogic {
             // Update last update timestamp
             assetStatus.lastUpdateTimestamp = block.timestamp;
 
+            emitInterestGrowthEvent(assetStatus);
+
             return;
         }
 
