@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
-import { networkNameToUSDC } from '../tasks/utils'
+import { networkNameToUSDC, networkNameToWethUniswapPool } from '../tasks/utils'
 
 const operatorAddress = '0xb8d843c8E6e0E90eD2eDe80550856b64da92ee30'
 const USDC_IRM_PARAMS = {
@@ -66,12 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             usdc,
             USDC_IRM_PARAMS,
             [{
-              uniswapPool: '0xe506cCa8C784bF0911D6dF2A3A871B766a6D816E',
-              assetRiskParams: ASSET_RISK_PARAMS,
-              irmParams: WETH_IRM_PARAMS,
-              premiumParams: PREMIUM_PARAMS
-            }, {
-              uniswapPool: '0x790795655ef5C836B86B30CDbf6279db66660aa8',
+              uniswapPool: networkNameToWethUniswapPool(network.name),
               assetRiskParams: ASSET_RISK_PARAMS,
               irmParams: WETH_IRM_PARAMS,
               premiumParams: PREMIUM_PARAMS

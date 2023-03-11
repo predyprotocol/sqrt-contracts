@@ -42,6 +42,17 @@ export const networkNameToController = (name: string) => {
   }
 }
 
+export const networkNameToWethUniswapPool = (name: string) => {
+  switch (name) {
+    case 'goerliArbitrum':
+      return '0xe506cCa8C784bF0911D6dF2A3A871B766a6D816E'
+    case 'arbitrum':
+      return '0xC31E54c7a869B9FcBEcc14363CF510d1c41fa443'
+    default:
+      return undefined
+  }
+}
+
 export const getUSDC = async (ethers: any, deployer: string, networkName: string) => {
   const usdcAddress = networkNameToUSDC(networkName)
   if (usdcAddress === undefined) {
