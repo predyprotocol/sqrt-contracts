@@ -69,7 +69,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
               uniswapPool: networkNameToWethUniswapPool(network.name),
               assetRiskParams: ASSET_RISK_PARAMS,
               irmParams: WETH_IRM_PARAMS,
-              premiumParams: PREMIUM_PARAMS
+              squartIRMParams: PREMIUM_PARAMS
             }]
           ],
         },

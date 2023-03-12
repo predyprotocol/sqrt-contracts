@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     2,
     {
       lower: '100000000000000000',
-      upper: '500000000000000000'
+      upper: '200000000000000000'
     },
     'Strategy WETH-USDC',
     'GSETH'
