@@ -202,6 +202,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         _execDeltaHedge(_tradeParams);
 
         lastHedgePrice = sqrtPrice;
+        lastHedgeTimestamp = block.timestamp;
     }
 
     //////////////////////
