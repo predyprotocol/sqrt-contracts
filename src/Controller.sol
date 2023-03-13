@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
@@ -46,9 +46,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     mapping(uint256 => DataType.Vault) internal vaults;
 
     /// @dev account -> vaultId
-    mapping(address => uint256) internal mainVaults;
-
-    uint256 reserve;
+    mapping(address => DataType.OwnVaults) internal ownVaults;
 
     uint256 public vaultCount;
 
@@ -277,14 +275,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _isolatedVaultId The id of isolated vault
      * @param _assetId Asset id of the asset
      * @param _closeParams The close parameters
-     * @return TradeResult The result of perp trade
+     * @return tradeResult The result of perp trade
      */
     function closeIsolatedVault(
         uint256 _vaultId,
         uint256 _isolatedVaultId,
         uint256 _assetId,
         IsolatedVaultLogic.CloseParams memory _closeParams
-    ) external nonReentrant returns (DataType.TradeResult memory) {
+    ) external nonReentrant returns (DataType.TradeResult memory tradeResult) {
         DataType.Vault storage vault = vaults[_vaultId];
         DataType.Vault storage isolatedVault = vaults[_isolatedVaultId];
 
@@ -292,7 +290,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         applyInterest();
 
-        return IsolatedVaultLogic.closeIsolatedVault(assetGroup, assets, vault, isolatedVault, _assetId, _closeParams);
+        tradeResult =
+            IsolatedVaultLogic.closeIsolatedVault(assetGroup, assets, vault, isolatedVault, _assetId, _closeParams);
+
+        VaultLib.removeIsolatedVaultId(ownVaults[msg.sender], isolatedVault.id);
     }
 
     /**
@@ -327,9 +328,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         applyInterest();
 
-        uint256 mainVaultId = mainVaults[vault.owner];
+        uint256 mainVaultId = ownVaults[vault.owner].mainVaultId;
 
         uint256 penaltyAmount = LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
+
+        VaultLib.removeIsolatedVaultId(ownVaults[vault.owner], vault.id);
 
         if (penaltyAmount > 0) {
             TransferHelper.safeTransfer(assets[Constants.STABLE_ASSET_ID].token, msg.sender, penaltyAmount);
@@ -468,8 +471,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             vaults[vaultId].owner = _caller;
 
             if (_isMainVault) {
-                require(mainVaults[_caller] == 0, "C5");
-                mainVaults[_caller] = vaultId;
+                require(ownVaults[_caller].mainVaultId == 0, "C5");
+                ownVaults[_caller].mainVaultId = vaultId;
+            } else {
+                VaultLib.addIsolatedVaultId(ownVaults[_caller], vaultId);
             }
 
             emit VaultCreated(vaultId, msg.sender, _isMainVault);
@@ -514,22 +519,32 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @dev This function should not be called on chain.
      * @param _vaultId The id of the vault
      */
-    function getVaultStatus(uint256 _vaultId) public returns (DataType.VaultStatusResult memory) {
+    function getVaultStatus(uint256 _vaultId) external returns (DataType.VaultStatusResult memory) {
         applyInterest();
 
         DataType.Vault storage vault = vaults[_vaultId];
 
-        return ReaderLogic.getVaultStatus(assets, vault, mainVaults[vault.owner]);
+        return ReaderLogic.getVaultStatus(assets, vault, ownVaults[vault.owner].mainVaultId);
     }
 
     /**
      * @notice Gets latest main vault status that the caller has.
      * @dev This function should not be called on chain.
      */
-    function getVaultStatusWithAddress() external returns (uint256 vaultId, DataType.VaultStatusResult memory) {
-        vaultId = mainVaults[msg.sender];
+    function getVaultStatusWithAddress() external returns (uint256 mainVaultId, DataType.VaultStatusResult[] memory) {
+        applyInterest();
 
-        return (vaultId, getVaultStatus(vaultId));
+        DataType.OwnVaults memory ownVaults = ownVaults[msg.sender];
+
+        DataType.VaultStatusResult[] memory vaultStatusResults =
+            new DataType.VaultStatusResult[](ownVaults.isolatedVaultIds.length);
+
+        for (uint256 i; i < ownVaults.isolatedVaultIds.length; i++) {
+            vaultStatusResults[i] =
+                ReaderLogic.getVaultStatus(assets, vaults[ownVaults.isolatedVaultIds[i]], ownVaults.mainVaultId);
+        }
+
+        return (ownVaults.mainVaultId, vaultStatusResults);
     }
 
     function getUtilizationRatio(uint256 _tokenId) external view returns (uint256, uint256) {

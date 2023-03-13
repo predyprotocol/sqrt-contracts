@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "../../src/strategy/StrategyFactory.sol";

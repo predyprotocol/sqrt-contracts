@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "./ScaledAsset.sol";
 import "./Perp.sol";
@@ -9,6 +9,11 @@ library DataType {
     struct AssetGroup {
         uint256 stableAssetId;
         uint256[] assetIds;
+    }
+
+    struct OwnVaults {
+        uint256 mainVaultId;
+        uint256[] isolatedVaultIds;
     }
 
     struct AddAssetParams {
