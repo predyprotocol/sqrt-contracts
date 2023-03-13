@@ -57,17 +57,17 @@ contract TestControllerIsolatedVault is TestController {
     function testCannotOpenIsolatedVault_IfCallerIsNotOwner() public {
         TradeLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
 
-        vm.expectRevert(bytes("C2"));
+        vm.expectRevert(bytes("V2"));
         controller.openIsolatedVault(vaultId2, 10 * 1e8, WETH_ASSET_ID, tradeParams);
     }
 
     function testCannotOpenIsolatedVault_IfVaultIsInvalid() public {
         TradeLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
 
-        vm.expectRevert(bytes("C2"));
+        vm.expectRevert(bytes("V1"));
         controller.openIsolatedVault(0, 10 * 1e8, WETH_ASSET_ID, tradeParams);
 
-        vm.expectRevert(bytes("C2"));
+        vm.expectRevert(bytes("V1"));
         controller.openIsolatedVault(1000, 10 * 1e8, WETH_ASSET_ID, tradeParams);
     }
 
@@ -97,13 +97,13 @@ contract TestControllerIsolatedVault is TestController {
 
         vm.startPrank(user2);
 
-        vm.expectRevert(bytes("C2"));
+        vm.expectRevert(bytes("V2"));
         controller.closeIsolatedVault(vaultId1, isolatedVaultId2, WETH_ASSET_ID, closeParams);
 
-        vm.expectRevert(bytes("C2"));
+        vm.expectRevert(bytes("V1"));
         controller.closeIsolatedVault(0, isolatedVaultId2, WETH_ASSET_ID, closeParams);
 
-        vm.expectRevert(bytes("C2"));
+        vm.expectRevert(bytes("V1"));
         controller.closeIsolatedVault(1000, isolatedVaultId2, WETH_ASSET_ID, closeParams);
 
         vm.stopPrank();

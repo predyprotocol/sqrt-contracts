@@ -258,7 +258,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     ) external nonReentrant returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult) {
         DataType.Vault storage vault = vaults[_vaultId];
 
-        require(vault.owner == msg.sender, "C2");
+        VaultLib.checkVault(vault, msg.sender);
 
         applyInterest();
         settleUserFee(vault);
@@ -286,7 +286,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         DataType.Vault storage vault = vaults[_vaultId];
         DataType.Vault storage isolatedVault = vaults[_isolatedVaultId];
 
-        require(vault.owner == msg.sender, "C2");
+        VaultLib.checkVault(vault, msg.sender);
 
         applyInterest();
 
