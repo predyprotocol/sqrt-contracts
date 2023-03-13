@@ -25,7 +25,7 @@ contract TestControllerCallback is TestController {
         vm.prank(user);
         controller.supplyToken(2, 1e10);
 
-        vaultId = controller.updateMargin(0, 1e8);
+        vaultId = controller.updateMargin(1e8);
     }
 
     function predyTradeCallback(DataType.TradeResult memory, bytes calldata) external {

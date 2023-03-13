@@ -38,10 +38,10 @@ contract TestControllerTradePerp is TestController {
         controller.supplyToken(WBTC_ASSET_ID, 1e10);
 
         // create vault
-        vaultId = controller.updateMargin(0, 1e10);
+        vaultId = controller.updateMargin(1e10);
 
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(0, 1e10);
+        lpVaultId = controller.updateMargin(1e10);
     }
 
     function withdrawAll() internal {
@@ -60,7 +60,7 @@ contract TestControllerTradePerp is TestController {
                 }
             }
 
-            controller.updateMargin(vaultId, -controller.getVault(vaultId).margin);
+            controller.updateMargin(-controller.getVault(vaultId).margin);
         }
 
         {
@@ -81,7 +81,7 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             int256 margin = controller.getVault(lpVaultId).margin;
             vm.prank(user2);
-            controller.updateMargin(lpVaultId, -margin);
+            controller.updateMargin(-margin);
         }
 
         vm.prank(user2);
@@ -148,20 +148,20 @@ contract TestControllerTradePerp is TestController {
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(vaultId, 1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
 
             uniswapPool.swap(address(this), true, -1 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
-            controller.closeIsolatedVault(vaultId, isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(vaultId, 1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6));
+                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6));
 
             uniswapPool.swap(address(this), true, -2 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
-            controller.closeIsolatedVault(vaultId, isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1 * 1e6, 1 * 1e6 + 123));
@@ -186,22 +186,22 @@ contract TestControllerTradePerp is TestController {
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(vaultId, 1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
 
             uniswapPool.swap(address(this), false, 2 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
 
-            controller.closeIsolatedVault(vaultId, isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(vaultId, 1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
 
             uniswapPool.swap(address(this), true, -3 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 
             checkTick(629);
 
-            controller.closeIsolatedVault(vaultId, isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1 * 1e6, 10 * 1e6));
@@ -447,9 +447,9 @@ contract TestControllerTradePerp is TestController {
         assertEq(vaultStatus.minDeposit, 3027467);
 
         vm.expectRevert(bytes("NS"));
-        controller.updateMargin(vaultId, -1e10 + 3 * 1e6);
+        controller.updateMargin(-1e10 + 3 * 1e6);
 
-        controller.updateMargin(vaultId, -1e10 + 4 * 1e6);
+        controller.updateMargin(-1e10 + 4 * 1e6);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -10 * 1e6));
         controller.tradePerp(vaultId, WBTC_ASSET_ID, getTradeParams(10 * 1e6, -2 * 1e6));
@@ -533,7 +533,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(tradeResult.minDeposit, 90103728);
 
-        controller.updateMargin(vaultId, -9850000000);
+        controller.updateMargin(-9850000000);
 
         uniswapPool.swap(address(this), false, 4 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 

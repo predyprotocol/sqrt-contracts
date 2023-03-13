@@ -46,7 +46,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     mapping(uint256 => DataType.Vault) internal vaults;
 
     /// @dev account -> vaultId
-    mapping(address => DataType.OwnVaults) internal ownVaults;
+    mapping(address => DataType.OwnVaults) internal ownVaultsMap;
 
     uint256 public vaultCount;
 
@@ -225,17 +225,13 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Deposit or withdraw margin
-     * @param _vaultId The id of vault. If 0 then the contract create new one.
      * @param _marginAmount The amount of margin. Positive means deposit and negative means withdraw.
      * @return vaultId The id of vault created
      */
-    function updateMargin(uint256 _vaultId, int256 _marginAmount)
-        external
-        override(IController)
-        nonReentrant
-        returns (uint256 vaultId)
-    {
-        vaultId = createVaultIfNeeded(_vaultId, msg.sender, true);
+    function updateMargin(int256 _marginAmount) external override(IController) nonReentrant returns (uint256 vaultId) {
+        vaultId = ownVaultsMap[msg.sender].mainVaultId;
+
+        vaultId = createVaultIfNeeded(vaultId, msg.sender, true);
 
         DataType.Vault storage vault = vaults[vaultId];
 
@@ -250,13 +246,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @return isolatedVaultId The id of isolated vault
      * @return tradeResult The result of perp trade
      */
-    function openIsolatedVault(
-        uint256 _vaultId,
-        uint256 _depositAmount,
-        uint256 _assetId,
-        TradeLogic.TradeParams memory _tradeParams
-    ) external nonReentrant returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult) {
-        DataType.Vault storage vault = vaults[_vaultId];
+    function openIsolatedVault(uint256 _depositAmount, uint256 _assetId, TradeLogic.TradeParams memory _tradeParams)
+        external
+        nonReentrant
+        returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
+    {
+        uint256 vaultId = ownVaultsMap[msg.sender].mainVaultId;
+
+        DataType.Vault storage vault = vaults[vaultId];
 
         VaultLib.checkVault(vault, msg.sender);
 
@@ -278,12 +275,13 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @return tradeResult The result of perp trade
      */
     function closeIsolatedVault(
-        uint256 _vaultId,
         uint256 _isolatedVaultId,
         uint256 _assetId,
         IsolatedVaultLogic.CloseParams memory _closeParams
     ) external nonReentrant returns (DataType.TradeResult memory tradeResult) {
-        DataType.Vault storage vault = vaults[_vaultId];
+        uint256 vaultId = ownVaultsMap[msg.sender].mainVaultId;
+
+        DataType.Vault storage vault = vaults[vaultId];
         DataType.Vault storage isolatedVault = vaults[_isolatedVaultId];
 
         VaultLib.checkVault(vault, msg.sender);
@@ -293,11 +291,12 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         tradeResult =
             IsolatedVaultLogic.closeIsolatedVault(assetGroup, assets, vault, isolatedVault, _assetId, _closeParams);
 
-        VaultLib.removeIsolatedVaultId(ownVaults[msg.sender], isolatedVault.id);
+        VaultLib.removeIsolatedVaultId(ownVaultsMap[msg.sender], isolatedVault.id);
     }
 
     /**
      * @notice Trades perps of x and sqrt(x)
+     * @param _vaultId The id of vault
      * @param _assetId Asset id of the asset
      * @param _tradeParams The trade parameters
      * @return TradeResult The result of perp trade
@@ -328,11 +327,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         applyInterest();
 
-        uint256 mainVaultId = ownVaults[vault.owner].mainVaultId;
+        uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
 
         uint256 penaltyAmount = LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
 
-        VaultLib.removeIsolatedVaultId(ownVaults[vault.owner], vault.id);
+        VaultLib.removeIsolatedVaultId(ownVaultsMap[vault.owner], vault.id);
 
         if (penaltyAmount > 0) {
             TransferHelper.safeTransfer(assets[Constants.STABLE_ASSET_ID].token, msg.sender, penaltyAmount);
@@ -471,9 +470,9 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             vaults[vaultId].owner = _caller;
 
             if (_isMainVault) {
-                VaultLib.updateMainVaultId(ownVaults[_caller], vaultId);
+                VaultLib.updateMainVaultId(ownVaultsMap[_caller], vaultId);
             } else {
-                VaultLib.addIsolatedVaultId(ownVaults[_caller], vaultId);
+                VaultLib.addIsolatedVaultId(ownVaultsMap[_caller], vaultId);
             }
 
             emit VaultCreated(vaultId, msg.sender, _isMainVault);
@@ -523,7 +522,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         DataType.Vault storage vault = vaults[_vaultId];
 
-        return ReaderLogic.getVaultStatus(assets, vault, ownVaults[vault.owner].mainVaultId);
+        return ReaderLogic.getVaultStatus(assets, vault, ownVaultsMap[vault.owner].mainVaultId);
     }
 
     /**
@@ -533,7 +532,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     function getVaultStatusWithAddress() external returns (uint256 mainVaultId, DataType.VaultStatusResult[] memory) {
         applyInterest();
 
-        DataType.OwnVaults memory ownVaults = ownVaults[msg.sender];
+        DataType.OwnVaults memory ownVaults = ownVaultsMap[msg.sender];
 
         DataType.VaultStatusResult[] memory vaultStatusResults =
             new DataType.VaultStatusResult[](ownVaults.isolatedVaultIds.length);

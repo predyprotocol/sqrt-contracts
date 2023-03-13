@@ -32,9 +32,9 @@ contract TestControllerLiquidationCall is TestController {
         controller.supplyToken(2, 1e10);
 
         // create vault
-        vaultId = controller.updateMargin(0, 1e8);
+        vaultId = controller.updateMargin(1e8);
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(0, 1e10);
+        lpVaultId = controller.updateMargin(1e10);
 
         uniswapPool.mint(address(this), -20000, 20000, 1e18, bytes(""));
     }
@@ -95,7 +95,7 @@ contract TestControllerLiquidationCall is TestController {
 
         assertEq(vault.margin, -23550000);
 
-        controller.updateMargin(vaultId, 1e8);
+        controller.updateMargin(1e8);
     }
 
     // cannot exec liquidation call if vault is safe

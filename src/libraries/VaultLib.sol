@@ -74,7 +74,7 @@ library VaultLib {
 
     function getIsolatedVaultIndex(DataType.OwnVaults memory _ownVaults, uint256 _vaultId)
         internal
-        view
+        pure
         returns (uint256)
     {
         uint256 index = type(uint256).max;

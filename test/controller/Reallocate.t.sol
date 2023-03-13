@@ -32,7 +32,7 @@ contract TestControllerReallocate is TestController {
 
         // create vault
         vm.startPrank(user1);
-        vaultId1 = controller.updateMargin(0, 1e10);
+        vaultId1 = controller.updateMargin(1e10);
 
         controller.tradePerp(vaultId1, WETH_ASSET_ID, getTradeParams(-20 * 1e6, 100 * 1e6));
         vm.stopPrank();

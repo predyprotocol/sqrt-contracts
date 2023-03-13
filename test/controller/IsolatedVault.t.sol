@@ -22,13 +22,13 @@ contract TestControllerIsolatedVault is TestController {
         weth.approve(address(controller), type(uint256).max);
         controller.supplyToken(1, 1e10);
         controller.supplyToken(2, 1e10);
-        vaultId1 = controller.updateMargin(0, 1e10);
+        vaultId1 = controller.updateMargin(1e10);
         vm.stopPrank();
 
         // create vault
         vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-        vaultId2 = controller.updateMargin(0, 1e10);
+        vaultId2 = controller.updateMargin(1e10);
         vm.stopPrank();
     }
 
@@ -57,24 +57,14 @@ contract TestControllerIsolatedVault is TestController {
     function testCannotOpenIsolatedVault_IfCallerIsNotOwner() public {
         TradeLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
 
-        vm.expectRevert(bytes("V2"));
-        controller.openIsolatedVault(vaultId2, 10 * 1e8, WETH_ASSET_ID, tradeParams);
-    }
-
-    function testCannotOpenIsolatedVault_IfVaultIsInvalid() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
-
         vm.expectRevert(bytes("V1"));
-        controller.openIsolatedVault(0, 10 * 1e8, WETH_ASSET_ID, tradeParams);
-
-        vm.expectRevert(bytes("V1"));
-        controller.openIsolatedVault(1000, 10 * 1e8, WETH_ASSET_ID, tradeParams);
+        controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, tradeParams);
     }
 
     function testOpenIsolatedVault() public {
         vm.startPrank(user2);
         (, DataType.TradeResult memory tradeResult) =
-            controller.openIsolatedVault(vaultId2, 10 * 1e8, WETH_ASSET_ID, getTradeParams(-45 * 1e8, 0));
+            controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, getTradeParams(-45 * 1e8, 0));
         vm.stopPrank();
 
         assertEq(tradeResult.payoff.perpEntryUpdate, 4497749979);
@@ -85,12 +75,7 @@ contract TestControllerIsolatedVault is TestController {
 
     function testCannotCloseIsolatedVault_IfCallerIsNotOwner() public {
         vm.startPrank(user1);
-        controller.openIsolatedVault(vaultId1, 10 * 1e8, WETH_ASSET_ID, getTradeParams(-20 * 1e8, 0));
-        vm.stopPrank();
-
-        vm.startPrank(user2);
-        (uint256 isolatedVaultId2,) =
-            controller.openIsolatedVault(vaultId2, 10 * 1e8, WETH_ASSET_ID, getTradeParams(-25 * 1e8, 0));
+        (uint256 isolatedVaultId,) = controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, getTradeParams(-20 * 1e8, 0));
         vm.stopPrank();
 
         IsolatedVaultLogic.CloseParams memory closeParams = getCloseParams();
@@ -98,50 +83,23 @@ contract TestControllerIsolatedVault is TestController {
         vm.startPrank(user2);
 
         vm.expectRevert(bytes("V2"));
-        controller.closeIsolatedVault(vaultId1, isolatedVaultId2, WETH_ASSET_ID, closeParams);
+        controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, closeParams);
 
         vm.expectRevert(bytes("V1"));
-        controller.closeIsolatedVault(0, isolatedVaultId2, WETH_ASSET_ID, closeParams);
+        controller.closeIsolatedVault(0, WETH_ASSET_ID, closeParams);
 
         vm.expectRevert(bytes("V1"));
-        controller.closeIsolatedVault(1000, isolatedVaultId2, WETH_ASSET_ID, closeParams);
-
-        vm.stopPrank();
-    }
-
-    function testCannotCloseIsolatedVault_IfCallerIsNotIsolatedOwner() public {
-        vm.startPrank(user1);
-        (uint256 isolatedVaultId1,) =
-            controller.openIsolatedVault(vaultId1, 10 * 1e8, WETH_ASSET_ID, getTradeParams(-20 * 1e8, 0));
-        vm.stopPrank();
-
-        vm.startPrank(user2);
-        controller.openIsolatedVault(vaultId2, 10 * 1e8, WETH_ASSET_ID, getTradeParams(-25 * 1e8, 0));
-        vm.stopPrank();
-
-        IsolatedVaultLogic.CloseParams memory closeParams = getCloseParams();
-
-        vm.startPrank(user2);
-
-        vm.expectRevert(bytes("V2"));
-        controller.closeIsolatedVault(vaultId2, isolatedVaultId1, WETH_ASSET_ID, closeParams);
-
-        vm.expectRevert(bytes("V1"));
-        controller.closeIsolatedVault(vaultId2, 0, WETH_ASSET_ID, closeParams);
-
-        vm.expectRevert(bytes("V1"));
-        controller.closeIsolatedVault(vaultId2, 1000, WETH_ASSET_ID, closeParams);
+        controller.closeIsolatedVault(1000, WETH_ASSET_ID, closeParams);
 
         vm.stopPrank();
     }
 
     function testCloseIsolatedVault() public {
         vm.startPrank(user2);
-        (uint256 isolatedVaultId,) =
-            controller.openIsolatedVault(vaultId2, 10 * 1e8, WETH_ASSET_ID, getTradeParams(-45 * 1e8, 0));
+        (uint256 isolatedVaultId,) = controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, getTradeParams(-45 * 1e8, 0));
 
         DataType.TradeResult memory tradeResult =
-            controller.closeIsolatedVault(vaultId2, isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         vm.stopPrank();
 
         assertEq(tradeResult.payoff.perpPayoff, -4510000);

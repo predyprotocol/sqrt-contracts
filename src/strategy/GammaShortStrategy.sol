@@ -91,7 +91,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         TransferHelper.safeTransferFrom(usdc, caller, address(this), finalDepositMargin);
 
-        controller.updateMargin(vaultId, int256(finalDepositMargin));
+        controller.updateMargin(int256(finalDepositMargin));
     }
 
     ////////////////////////
@@ -116,7 +116,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         TransferHelper.safeTransferFrom(usdc, msg.sender, address(this), _initialMarginAmount);
 
-        vaultId = controller.updateMargin(vaultId, int256(_initialMarginAmount));
+        vaultId = controller.updateMargin(int256(_initialMarginAmount));
 
         controller.tradePerp(
             vaultId,
@@ -301,7 +301,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), Constants.MARGIN_ROUNDED_DECIMALS);
 
-        controller.updateMargin(vaultId, -int256(finalWithdrawAmount));
+        controller.updateMargin(-int256(finalWithdrawAmount));
 
         TransferHelper.safeTransfer(usdc, _recepient, finalWithdrawAmount);
 

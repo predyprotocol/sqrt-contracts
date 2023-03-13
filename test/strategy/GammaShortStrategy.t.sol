@@ -46,7 +46,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         strategy.initialize(1e10, -6 * 1e10, 6 * 1e10, getStrategyTradeParams());
 
-        lpVaultId = controller.updateMargin(0, 1e10);
+        lpVaultId = controller.updateMargin(1e10);
 
         // Min / VaultValue must be greater than 1%
         assertGt(getMinPerVaultValue(), 1e16);
