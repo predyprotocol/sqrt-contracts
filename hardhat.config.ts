@@ -129,14 +129,6 @@ const config: HardhatUserConfig = {
           apiURL: "https://api-testnet.arbiscan.io/api",
           browserURL: "https://testnet.arbiscan.io/",
         }
-      },
-      {
-        network: "arbitrum",
-        chainId: 42161,
-        urls: {
-          apiURL: "https://api.arbiscan.io/api",
-          browserURL: "https://arbiscan.io/",
-        }
       }
     ]
   },
