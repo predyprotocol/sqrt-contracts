@@ -273,8 +273,24 @@ library Perp {
         view
         returns (int24 lower, int24 upper)
     {
-        lower = (_currentTick / 10) * 10 - _assetStatusUnderlying.riskParams.rangeSize;
-        upper = (_currentTick / 10) * 10 + _assetStatusUnderlying.riskParams.rangeSize;
+        int24 tickSpacing = IUniswapV3Pool(_assetStatusUnderlying.sqrtAssetStatus.uniswapPool).tickSpacing();
+
+        lower = calculateUsableTick(_currentTick - _assetStatusUnderlying.riskParams.rangeSize, tickSpacing);
+        upper = calculateUsableTick(_currentTick + _assetStatusUnderlying.riskParams.rangeSize, tickSpacing);
+    }
+
+    function calculateUsableTick(int24 _tick, int24 _tickSpacing) internal pure returns (int24 result) {
+        require(_tickSpacing > 0);
+
+        result = _tick;
+
+        if (result < TickMath.MIN_TICK) {
+            result = TickMath.MIN_TICK;
+        } else if (result > TickMath.MAX_TICK) {
+            result = TickMath.MAX_TICK;
+        }
+
+        result = (result / _tickSpacing) * _tickSpacing;
     }
 
     /**

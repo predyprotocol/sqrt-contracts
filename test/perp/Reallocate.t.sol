@@ -26,7 +26,7 @@ contract TestPerpReallocate is TestPerp {
 
         Perp.reallocate(underlyingAssetStatus, stableAssetStatus, underlyingAssetStatus.sqrtAssetStatus, false);
 
-        assertEq(underlyingAssetStatus.sqrtAssetStatus.tickLower, -910);
+        assertEq(underlyingAssetStatus.sqrtAssetStatus.tickLower, -900);
         assertEq(underlyingAssetStatus.sqrtAssetStatus.tickUpper, 1090);
     }
 }
