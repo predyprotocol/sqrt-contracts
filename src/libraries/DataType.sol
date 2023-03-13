@@ -76,6 +76,7 @@ library DataType {
     }
 
     struct VaultStatusResult {
+        uint256 vaultId;
         bool isMainVault;
         int256 vaultValue;
         int256 margin;

@@ -529,7 +529,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @notice Gets latest main vault status that the caller has.
      * @dev This function should not be called on chain.
      */
-    function getVaultStatusWithAddress() external returns (uint256 mainVaultId, DataType.VaultStatusResult[] memory) {
+    function getVaultStatusWithAddress() external returns (DataType.VaultStatusResult[] memory) {
         applyInterest();
 
         DataType.OwnVaults memory ownVaults = ownVaultsMap[msg.sender];
@@ -542,7 +542,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
                 ReaderLogic.getVaultStatus(assets, vaults[ownVaults.isolatedVaultIds[i]], ownVaults.mainVaultId);
         }
 
-        return (ownVaults.mainVaultId, vaultStatusResults);
+        return vaultStatusResults;
     }
 
     function getUtilizationRatio(uint256 _tokenId) external view returns (uint256, uint256) {

@@ -52,7 +52,13 @@ library ReaderLogic {
         (int256 minDeposit, int256 vaultValue,) = PositionCalculator.calculateMinDeposit(_assets, _vault, true);
 
         return DataType.VaultStatusResult(
-            _mainVaultId == _vault.id, vaultValue, _vault.margin, vaultValue - _vault.margin, minDeposit, subVaults
+            _vault.id,
+            _mainVaultId == _vault.id,
+            vaultValue,
+            _vault.margin,
+            vaultValue - _vault.margin,
+            minDeposit,
+            subVaults
         );
     }
 
