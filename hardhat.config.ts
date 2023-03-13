@@ -101,7 +101,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.15',
+        version: '0.8.19',
         settings: {
           optimizer: {
             enabled: true,
@@ -128,6 +128,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-testnet.arbiscan.io/api",
           browserURL: "https://testnet.arbiscan.io/",
+        }
+      },
+      {
+        network: "arbitrum",
+        chainId: 42161,
+        urls: {
+          apiURL: "https://api.arbiscan.io/api",
+          browserURL: "https://arbiscan.io/",
         }
       }
     ]
