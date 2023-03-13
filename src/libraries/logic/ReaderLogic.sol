@@ -29,9 +29,7 @@ library ReaderLogic {
             );
 
             subVaults[i].assetId = userStatus.assetId;
-            subVaults[i].stableAmount = userStatus.perpTrade.stable.positionAmount;
-            subVaults[i].underlyingamount = userStatus.perpTrade.underlying.positionAmount;
-            subVaults[i].sqrtAmount = userStatus.perpTrade.sqrtPerp.amount;
+            subVaults[i].position = userStatus.perpTrade;
 
             {
                 (uint256 assetAmountUnderlying,, uint256 debtAmountUnderlying,) = Perp.getAmounts(

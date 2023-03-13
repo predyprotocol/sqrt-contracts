@@ -68,9 +68,7 @@ library DataType {
 
     struct SubVaultStatusResult {
         uint256 assetId;
-        int256 stableAmount;
-        int256 underlyingamount;
-        int256 sqrtAmount;
+        Perp.UserStatus position;
         int256 delta;
         int256 unrealizedFee;
     }
