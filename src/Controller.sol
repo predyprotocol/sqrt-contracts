@@ -8,7 +8,6 @@ import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/Transfer
 import "@solmate/utils/FixedPointMathLib.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./base/Multicall.sol";
 import "./libraries/DataType.sol";
 import "./libraries/VaultLib.sol";
 import "./libraries/AssetGroupLib.sol";
@@ -36,14 +35,7 @@ import "./interfaces/IController.sol";
  * C4: invalid interest rate model parameters
  * C5: invalid vault creation
  */
-contract Controller is
-    Multicall,
-    Initializable,
-    ReentrancyGuard,
-    IUniswapV3MintCallback,
-    IUniswapV3SwapCallback,
-    IController
-{
+contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback, IController {
     using AssetGroupLib for DataType.AssetGroup;
     using ScaledAsset for ScaledAsset.TokenStatus;
 

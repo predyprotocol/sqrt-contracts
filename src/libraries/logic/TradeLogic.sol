@@ -71,7 +71,7 @@ library TradeLogic {
             _tradeParams.tradeAmountSqrt,
             tradeResult.payoff,
             tradeResult.fee
-            );
+        );
     }
 
     function trade(

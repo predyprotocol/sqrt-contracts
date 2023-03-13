@@ -121,7 +121,7 @@ library LiquidationLogic {
 
         emit PositionLiquidated(
             _vaultId, _underlyingAssetStatus.id, tradeAmount, tradeAmountSqrt, tradeResult.payoff, tradeResult.fee
-            );
+        );
     }
 
     function calculateLiquidationSlippageTolerance(uint256 _debtValue) internal pure returns (uint256) {

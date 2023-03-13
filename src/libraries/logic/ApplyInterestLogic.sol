@@ -85,7 +85,7 @@ library ApplyInterestLogic {
             _assetStatus.sqrtAssetStatus.fee0Growth,
             _assetStatus.sqrtAssetStatus.fee1Growth,
             _assetStatus.accumulatedProtocolRevenue
-            );
+        );
     }
 
     function reallocate(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _assetId)
