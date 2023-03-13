@@ -471,8 +471,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             vaults[vaultId].owner = _caller;
 
             if (_isMainVault) {
-                require(ownVaults[_caller].mainVaultId == 0, "C5");
-                ownVaults[_caller].mainVaultId = vaultId;
+                VaultLib.updateMainVaultId(ownVaults[_caller], vaultId);
             } else {
                 VaultLib.addIsolatedVaultId(ownVaults[_caller], vaultId);
             }

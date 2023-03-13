@@ -12,6 +12,19 @@ contract VaultLibTest is Test {
         VaultLib.addIsolatedVaultId(ownVaults2, 200);
     }
 
+    function testUpdateMainVaultId() public {
+        VaultLib.updateMainVaultId(ownVaults1, 50);
+
+        assertEq(ownVaults1.mainVaultId, 50);
+    }
+
+    function testCannotUpdateMainVaultId() public {
+        VaultLib.updateMainVaultId(ownVaults1, 50);
+
+        vm.expectRevert(bytes("V4"));
+        VaultLib.updateMainVaultId(ownVaults1, 51);
+    }
+
     function testAddIsolatedVaultId() public {
         VaultLib.addIsolatedVaultId(ownVaults1, 100);
 

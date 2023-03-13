@@ -41,6 +41,12 @@ library VaultLib {
         return _vault.openPositions[_vault.openPositions.length - 1];
     }
 
+    function updateMainVaultId(DataType.OwnVaults storage _ownVaults, uint256 _mainVaultId) internal {
+        require(_ownVaults.mainVaultId == 0, "V4");
+
+        _ownVaults.mainVaultId = _mainVaultId;
+    }
+
     function addIsolatedVaultId(DataType.OwnVaults storage _ownVaults, uint256 _newIsolatedVaultId) internal {
         require(_newIsolatedVaultId > 0, "V1");
 

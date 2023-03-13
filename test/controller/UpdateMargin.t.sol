@@ -29,7 +29,7 @@ contract TestControllerUpdateMargin is TestController {
 
     function testCannotDepositMargin_IfAccountAlreadyHasMainVault() public {
         vm.prank(user2);
-        vm.expectRevert(bytes("C5"));
+        vm.expectRevert(bytes("V4"));
         controller.updateMargin(0, 1000 * 1e6);
     }
 
