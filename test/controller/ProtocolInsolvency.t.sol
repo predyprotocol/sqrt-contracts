@@ -243,6 +243,24 @@ contract TestControllerTradePerp is TestController {
         withdrawAll();
     }
 
+    function testShortAndReallocation() public {
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(-50 * 1e6, 100 * 1e6));
+        vm.stopPrank();
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(20 * 1e6, -50 * 1e6));
+
+        uniswapPool.swap(address(this), false, 47 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        checkTick(918);
+
+        (bool isReallocated,) = controller.reallocate(WETH_ASSET_ID);
+
+        assertTrue(isReallocated);
+
+        withdrawAll();
+    }
+
     function testCaseRebalanceFuzz(uint256 _tradeAmount) public {
         uint256 tradeAmount = bound(_tradeAmount, 1 * 1e6, 1000 * 1e6);
 
