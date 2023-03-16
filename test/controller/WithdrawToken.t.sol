@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "./Setup.t.sol";
 
@@ -28,7 +28,7 @@ contract TestControllerWithdrawToken is TestController {
         vm.stopPrank();
 
         vm.prank(user2);
-        vaultId = controller.updateMargin(0, 1e10);
+        vaultId = controller.updateMargin(1e10);
     }
 
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)

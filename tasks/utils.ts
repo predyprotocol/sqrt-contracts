@@ -34,9 +34,20 @@ export const networkNameToWETH = (name: string) => {
 export const networkNameToController = (name: string) => {
   switch (name) {
     case 'goerliArbitrum':
-      return '0xcfb458074C06A52cCD17c00107F156291ae8f083'
+      return '0x269558B44ceb53fbda9C7401f6AC6c781e3d59a8'
     case 'arbitrum':
-      return '0xAdBAeE9665C101413EbFF07e20520bdB67C71AB6'
+      return '0x68a154fB3e8ff6e4DA10ECd54DEF25D9149DDBDE'
+    default:
+      return undefined
+  }
+}
+
+export const networkNameToWethUniswapPool = (name: string) => {
+  switch (name) {
+    case 'goerliArbitrum':
+      return '0xe506cCa8C784bF0911D6dF2A3A871B766a6D816E'
+    case 'arbitrum':
+      return '0xC31E54c7a869B9FcBEcc14363CF510d1c41fa443'
     default:
       return undefined
   }

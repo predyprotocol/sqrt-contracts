@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity ^0.8.19;
 
 import "@solmate/utils/FixedPointMathLib.sol";
 import "../DataType.sol";
@@ -121,7 +121,7 @@ library LiquidationLogic {
 
         emit PositionLiquidated(
             _vaultId, _underlyingAssetStatus.id, tradeAmount, tradeAmountSqrt, tradeResult.payoff, tradeResult.fee
-            );
+        );
     }
 
     function calculateLiquidationSlippageTolerance(uint256 _debtValue) internal pure returns (uint256) {

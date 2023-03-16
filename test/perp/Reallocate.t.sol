@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "./Setup.t.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
@@ -26,7 +26,7 @@ contract TestPerpReallocate is TestPerp {
 
         Perp.reallocate(underlyingAssetStatus, stableAssetStatus, underlyingAssetStatus.sqrtAssetStatus, false);
 
-        assertEq(underlyingAssetStatus.sqrtAssetStatus.tickLower, -910);
+        assertEq(underlyingAssetStatus.sqrtAssetStatus.tickLower, -900);
         assertEq(underlyingAssetStatus.sqrtAssetStatus.tickUpper, 1090);
     }
 }

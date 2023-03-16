@@ -24,21 +24,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     2,
     {
       lower: '100000000000000000',
-      upper: '500000000000000000'
+      upper: '200000000000000000'
     },
     'Strategy WETH-USDC',
     'GSETH'
-  );
-  await StrategyFactory.createStrategy(
-    Controller.address,
-    Reader.address,
-    3,
-    {
-      lower: '100000000000000000',
-      upper: '500000000000000000'
-    },
-    'Strategy WBTC-USDC',
-    'GSBTC'
   );
 }
 

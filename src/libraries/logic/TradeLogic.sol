@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity ^0.8.19;
 
 import "../../interfaces/IPredyTradeCallback.sol";
 import "../DataType.sol";
@@ -71,7 +71,7 @@ library TradeLogic {
             _tradeParams.tradeAmountSqrt,
             tradeResult.payoff,
             tradeResult.fee
-            );
+        );
     }
 
     function trade(

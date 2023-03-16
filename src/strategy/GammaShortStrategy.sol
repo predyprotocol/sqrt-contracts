@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity ^0.8.19;
 
 import "@solmate/utils/FixedPointMathLib.sol";
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
@@ -91,7 +91,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         TransferHelper.safeTransferFrom(usdc, caller, address(this), finalDepositMargin);
 
-        controller.updateMargin(vaultId, int256(finalDepositMargin));
+        controller.updateMargin(int256(finalDepositMargin));
     }
 
     ////////////////////////
@@ -116,7 +116,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         TransferHelper.safeTransferFrom(usdc, msg.sender, address(this), _initialMarginAmount);
 
-        vaultId = controller.updateMargin(vaultId, int256(_initialMarginAmount));
+        vaultId = controller.updateMargin(int256(_initialMarginAmount));
 
         controller.tradePerp(
             vaultId,
@@ -202,6 +202,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         _execDeltaHedge(_tradeParams);
 
         lastHedgePrice = sqrtPrice;
+        lastHedgeTimestamp = block.timestamp;
     }
 
     //////////////////////
@@ -300,7 +301,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), Constants.MARGIN_ROUNDED_DECIMALS);
 
-        controller.updateMargin(vaultId, -int256(finalWithdrawAmount));
+        controller.updateMargin(-int256(finalWithdrawAmount));
 
         TransferHelper.safeTransfer(usdc, _recepient, finalWithdrawAmount);
 

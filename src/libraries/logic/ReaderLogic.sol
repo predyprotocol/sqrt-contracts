@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity ^0.8.19;
 
 import "../DataType.sol";
 import "../Perp.sol";
@@ -29,9 +29,7 @@ library ReaderLogic {
             );
 
             subVaults[i].assetId = userStatus.assetId;
-            subVaults[i].stableAmount = userStatus.perpTrade.stable.positionAmount;
-            subVaults[i].underlyingamount = userStatus.perpTrade.underlying.positionAmount;
-            subVaults[i].sqrtAmount = userStatus.perpTrade.sqrtPerp.amount;
+            subVaults[i].position = userStatus.perpTrade;
 
             {
                 (uint256 assetAmountUnderlying,, uint256 debtAmountUnderlying,) = Perp.getAmounts(
@@ -52,7 +50,13 @@ library ReaderLogic {
         (int256 minDeposit, int256 vaultValue,) = PositionCalculator.calculateMinDeposit(_assets, _vault, true);
 
         return DataType.VaultStatusResult(
-            _mainVaultId == _vault.id, vaultValue, _vault.margin, vaultValue - _vault.margin, minDeposit, subVaults
+            _vault.id,
+            _mainVaultId == _vault.id,
+            vaultValue,
+            _vault.margin,
+            vaultValue - _vault.margin,
+            minDeposit,
+            subVaults
         );
     }
 

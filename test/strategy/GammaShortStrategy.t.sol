@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "../../src/strategy/StrategyFactory.sol";
@@ -46,7 +46,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         strategy.initialize(1e10, -6 * 1e10, 6 * 1e10, getStrategyTradeParams());
 
-        lpVaultId = controller.updateMargin(0, 1e10);
+        lpVaultId = controller.updateMargin(1e10);
 
         // Min / VaultValue must be greater than 1%
         assertGt(getMinPerVaultValue(), 1e16);

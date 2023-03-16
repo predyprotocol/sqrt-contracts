@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity ^0.8.19;
 
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "../AssetGroupLib.sol";
@@ -57,6 +57,8 @@ library ApplyInterestLogic {
             // Update last update timestamp
             assetStatus.lastUpdateTimestamp = block.timestamp;
 
+            emitInterestGrowthEvent(assetStatus);
+
             return;
         }
 
@@ -83,7 +85,7 @@ library ApplyInterestLogic {
             _assetStatus.sqrtAssetStatus.fee0Growth,
             _assetStatus.sqrtAssetStatus.fee1Growth,
             _assetStatus.accumulatedProtocolRevenue
-            );
+        );
     }
 
     function reallocate(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _assetId)

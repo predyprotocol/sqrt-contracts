@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity ^0.8.19;
 
 import "../libraries/DataType.sol";
 import "../libraries/logic/TradeLogic.sol";
@@ -9,7 +9,7 @@ interface IController {
         external
         returns (DataType.TradeResult memory);
 
-    function updateMargin(uint256 _vaultId, int256 _marginAmount) external returns (uint256 vaultId);
+    function updateMargin(int256 _marginAmount) external returns (uint256 vaultId);
 
     function getSqrtPrice(uint256 _assetId) external view returns (uint160);
 

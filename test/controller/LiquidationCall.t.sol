@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "./Setup.t.sol";
@@ -32,9 +32,9 @@ contract TestControllerLiquidationCall is TestController {
         controller.supplyToken(2, 1e10);
 
         // create vault
-        vaultId = controller.updateMargin(0, 1e8);
+        vaultId = controller.updateMargin(1e8);
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(0, 1e10);
+        lpVaultId = controller.updateMargin(1e10);
 
         uniswapPool.mint(address(this), -20000, 20000, 1e18, bytes(""));
     }
@@ -74,11 +74,11 @@ contract TestControllerLiquidationCall is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(800 * 1e6, -800 * 1e6));
 
-        vm.warp(block.timestamp + 14 weeks);
+        vm.warp(block.timestamp + 15 weeks);
 
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
 
-        assertEq(controller.getVault(vaultId).margin, 11720000);
+        assertEq(controller.getVault(vaultId).margin, 5430000);
     }
 
     // vault becomes insolvent
@@ -95,7 +95,7 @@ contract TestControllerLiquidationCall is TestController {
 
         assertEq(vault.margin, -23550000);
 
-        controller.updateMargin(vaultId, 1e8);
+        controller.updateMargin(1e8);
     }
 
     // cannot exec liquidation call if vault is safe

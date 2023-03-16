@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: agpl-3.0
+pragma solidity ^0.8.19;
 
 import "./ScaledAsset.sol";
 import "./Perp.sol";
@@ -9,6 +9,11 @@ library DataType {
     struct AssetGroup {
         uint256 stableAssetId;
         uint256[] assetIds;
+    }
+
+    struct OwnVaults {
+        uint256 mainVaultId;
+        uint256[] isolatedVaultIds;
     }
 
     struct AddAssetParams {
@@ -63,14 +68,13 @@ library DataType {
 
     struct SubVaultStatusResult {
         uint256 assetId;
-        int256 stableAmount;
-        int256 underlyingamount;
-        int256 sqrtAmount;
+        Perp.UserStatus position;
         int256 delta;
         int256 unrealizedFee;
     }
 
     struct VaultStatusResult {
+        uint256 vaultId;
         bool isMainVault;
         int256 vaultValue;
         int256 margin;

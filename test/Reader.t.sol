@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "./controller/Setup.t.sol";
 import "../src/Reader.sol";
@@ -25,13 +25,13 @@ contract TestReader is TestController {
         weth.approve(address(controller), type(uint256).max);
         controller.supplyToken(1, 1e10);
         controller.supplyToken(2, 1e10);
-        vaultId1 = controller.updateMargin(0, 1e10);
+        vaultId1 = controller.updateMargin(1e10);
         vm.stopPrank();
 
         // create vault
         vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-        vaultId2 = controller.updateMargin(0, 1e10);
+        vaultId2 = controller.updateMargin(1e10);
         vm.stopPrank();
 
         reader = new Reader(controller);
@@ -61,7 +61,7 @@ contract TestReader is TestController {
         vm.stopPrank();
 
         assertEq(vaultStatus.vaultValue, 9930806394);
-        assertEq(vaultStatus.minDeposit, 16000000);
+        assertEq(vaultStatus.minDeposit, 8000000);
     }
 
     function testGetDelta() public {

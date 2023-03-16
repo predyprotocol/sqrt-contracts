@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 import "./Setup.t.sol";
 import "forge-std/console.sol";
@@ -32,10 +32,10 @@ contract TestControllerTradePerp is TestController {
         controller.supplyToken(2, 1e10);
 
         // create vault
-        vaultId = controller.updateMargin(0, 1e10);
+        vaultId = controller.updateMargin(1e10);
 
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(0, 1e10);
+        lpVaultId = controller.updateMargin(1e10);
     }
 
     function withdrawAll() internal {
@@ -51,7 +51,7 @@ contract TestControllerTradePerp is TestController {
                 }
             }
 
-            controller.updateMargin(vaultId, -controller.getVault(vaultId).margin);
+            controller.updateMargin(-controller.getVault(vaultId).margin);
         }
 
         {
@@ -72,7 +72,7 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             int256 margin = controller.getVault(lpVaultId).margin;
             vm.prank(user2);
-            controller.updateMargin(lpVaultId, -margin);
+            controller.updateMargin(-margin);
         }
 
         vm.prank(user2);
@@ -130,7 +130,7 @@ contract TestControllerTradePerp is TestController {
 
     // cannot open position if margin is not safe
     function testCannotTrade_IfVaultIsNotSafe() public {
-        controller.updateMargin(vaultId, 1e6 - 1e10);
+        controller.updateMargin(1e6 - 1e10);
 
         TradeLogic.TradeParams memory tradeParams = getTradeParams(-10 * 1e8, 0);
 
