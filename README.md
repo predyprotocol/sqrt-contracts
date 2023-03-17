@@ -5,7 +5,7 @@ predy-v3.2
 
 ## Overview
 
-Predy V3.2 is a smart contract that enables the trading of derivative products called "Squart" on the Ethereum Virtual Machine. Squart is a perpetual future that has gamma and it utilizes Uniswap's LP position. At the same time, Predy provides an easier and more capital-efficient way to utilize Uniswap LPs.
+Predy V3.2 is smart contracts that enables the trading of derivative products called "Squart" on the Ethereum Virtual Machine. Squart is a perpetual future that has gamma and it utilizes Uniswap's LP position. At the same time, Predy provides an easier and more capital-efficient way to utilize Uniswap LPs.
 
 ### Squart
 
