@@ -189,6 +189,57 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(withdrawAmount2, 1257540000);
     }
 
+    function testFrontrunnedDeposit() public {
+        uint256 finalDeposit1 = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        // This is the frontrunning tx
+        uniswapPool.swap(address(this), false, -10 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        // Frontrunned deposit tx
+        uint256 finalDeposit2 = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        vm.warp(block.timestamp + 1 minutes);
+
+        uniswapPool.swap(address(this), true, 10 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        uint256 withdrawAmount2 = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
+        uint256 withdrawAmount1 = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
+
+        // user1's deposit price and withdrawal price is almost same
+        // user2's deposit price is low
+        assertEq(finalDeposit1, 10000000000);
+        assertEq(finalDeposit2, 9994190000);
+
+        assertEq(withdrawAmount1, 10000490000);
+        assertEq(withdrawAmount2, 10000490000);
+    }
+
+    function testFrontrunnedWithdraw() public {
+        uint256 finalDeposit1 = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        uint256 finalDeposit2 = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        // This is the frontrunning tx
+        uniswapPool.swap(address(this), false, -10 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        // Frontrunned withdraw tx
+        uint256 withdrawAmount2 = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
+
+        vm.warp(block.timestamp + 1 minutes);
+
+        uniswapPool.swap(address(this), true, 10 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        uint256 withdrawAmount1 = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
+
+        // user1's deposit price and withdrawal price is almost same
+        // user2's withdrawal price is low
+        assertEq(finalDeposit1, 10000000000);
+        assertEq(finalDeposit2, 10000000000);
+
+        assertEq(withdrawAmount1, 10000740000);
+        assertEq(withdrawAmount2, 9993550000);
+    }
+
     function testDepositAfterRebalance() public {
         uniswapPool.swap(address(this), false, -10 * 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 
