@@ -37,7 +37,7 @@ contract TestControllerUpdateMargin is TestController {
 
     // Cannot withdraw margin if caller is not owner
     function testCannotUpdateMargin_IfCallerHasNoVault() public {
-        vm.expectRevert(bytes("M1"));
+        vm.expectRevert(bytes("NS"));
         controller.updateMargin(-100);
     }
 
@@ -76,7 +76,7 @@ contract TestControllerUpdateMargin is TestController {
     // Cannot withdraw margin if margin becomes negative
     function testCannotWithdrawMargin_IfMarginBecomesNegative() public {
         vm.prank(user2);
-        vm.expectRevert(bytes("M1"));
+        vm.expectRevert(bytes("NS"));
         controller.updateMargin(-1000 * 1e6 - 1);
     }
 

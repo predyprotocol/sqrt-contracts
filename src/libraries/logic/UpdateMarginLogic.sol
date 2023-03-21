@@ -24,9 +24,7 @@ library UpdateMarginLogic {
 
         _vault.margin += _marginAmount;
 
-        // if debt is 0 we should check margin is greater than 0 directly
-        require(_vault.margin >= 0, "M1");
-        PositionCalculator.isSafe(_assets, _vault);
+        PositionCalculator.isSafe(_assets, _vault, false);
 
         proceedMarginUpdate(_vault, getStableToken(_assets), _marginAmount);
     }

@@ -62,7 +62,7 @@ library TradeLogic {
             IPredyTradeCallback(msg.sender).predyTradeCallback(tradeResult, _tradeParams.data);
         }
 
-        tradeResult.minDeposit = PositionCalculator.isSafe(_assets, _vault);
+        tradeResult.minDeposit = PositionCalculator.isSafe(_assets, _vault, false);
 
         emit PositionUpdated(
             _vault.id,
