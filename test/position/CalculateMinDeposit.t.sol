@@ -145,7 +145,7 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 20000000);
         assertTrue(hasPosition);
 
-        PositionCalculator.isSafe(assets, vault);
+        PositionCalculator.isSafe(assets, vault, false);
     }
 
     function testCalculateMinDepositGammaLong() public {
@@ -169,7 +169,7 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 22000000);
         assertTrue(hasPosition);
 
-        PositionCalculator.isSafe(assets, vault);
+        PositionCalculator.isSafe(assets, vault, false);
     }
 
     function testCalculateMinDeposit_MultiAsset() public {
@@ -184,6 +184,12 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 2 * 1e8);
         assertTrue(hasPosition);
 
-        PositionCalculator.isSafe(assets, vault);
+        PositionCalculator.isSafe(assets, vault, false);
+    }
+
+    function testIsSafe() public {
+        DataType.Vault memory vault = getVault(0, 0, 0, -100);
+
+        PositionCalculator.isSafe(assets, vault, true);
     }
 }

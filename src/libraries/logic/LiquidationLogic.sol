@@ -56,7 +56,7 @@ library LiquidationLogic {
         (_vault.margin, totalPenaltyAmount) = calculatePayableReward(_vault.margin, totalPenaltyAmount);
 
         // The vault must be safe after liquidation call
-        PositionCalculator.isSafe(_assets, _vault);
+        PositionCalculator.isSafe(_assets, _vault, true);
 
         int256 withdrawnMarginAmount;
 

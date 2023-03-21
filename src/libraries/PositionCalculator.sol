@@ -38,18 +38,20 @@ library PositionCalculator {
         require(vaultValue < minDeposit || _vault.margin < 0, "ND");
     }
 
-    function isSafe(mapping(uint256 => DataType.AssetStatus) storage _assets, DataType.Vault memory _vault)
-        internal
-        view
-        returns (int256 minDeposit)
-    {
+    function isSafe(
+        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        DataType.Vault memory _vault,
+        bool _isLiquidationCall
+    ) internal view returns (int256 minDeposit) {
         int256 vaultValue;
         bool hasPosition;
 
         // isSafe does not count unrealized fee
         (minDeposit, vaultValue, hasPosition) = calculateMinDeposit(_assets, _vault, false);
 
-        if (!hasPosition) {
+        // if it is liquidationCall and vault has no positions then skip margin check
+        // because it can be insolvent vault
+        if (_isLiquidationCall && !hasPosition) {
             return 0;
         }
 

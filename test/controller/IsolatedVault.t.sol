@@ -61,6 +61,14 @@ contract TestControllerIsolatedVault is TestController {
         controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, tradeParams);
     }
 
+    function testCannotOpenIsolatedVault_IfMarginBecomesNegative() public {
+        vm.startPrank(user2);
+        TradeLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
+        vm.expectRevert(bytes("NS"));
+        controller.openIsolatedVault(1e10 + 1, WETH_ASSET_ID, tradeParams);
+        vm.stopPrank();
+    }
+
     function testOpenIsolatedVault() public {
         vm.startPrank(user2);
         (, DataType.TradeResult memory tradeResult) =

@@ -31,9 +31,7 @@ library IsolatedVaultLogic {
         _vault.margin -= int256(_depositAmount);
         _isolatedVault.margin += int256(_depositAmount);
 
-        // if debt is 0 we should check margin is greater than 0 directly
-        require(_vault.margin >= 0, "I1");
-        PositionCalculator.isSafe(_assets, _vault);
+        PositionCalculator.isSafe(_assets, _vault, false);
 
         tradeResult = TradeLogic.execTrade(_assets, _isolatedVault, _assetId, perpUserStatus, _tradeParams);
 
