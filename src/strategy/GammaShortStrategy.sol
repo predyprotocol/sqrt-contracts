@@ -59,7 +59,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         // square root of 7.5% scaled by 1e18
         hedgeSqrtPriceThreshold = 10368220676 * 1e8;
-        
+
         hedgeInterval = 2 days;
 
         // initialize last sqrt price and timestamp

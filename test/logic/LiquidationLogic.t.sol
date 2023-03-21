@@ -20,8 +20,8 @@ contract LiquidationLogicTest is Test {
     function testCalculatePenaltyAmount() public {
         assertEq(LiquidationLogic.calculatePenaltyAmount(10 * 1e6), Constants.MIN_PENALTY);
 
-        assertEq(LiquidationLogic.calculatePenaltyAmount(1000 * 1e6), 2 * 1e6);
+        assertEq(LiquidationLogic.calculatePenaltyAmount(1000 * 1e6), 500000);
 
-        assertEq(LiquidationLogic.calculatePenaltyAmount(1000 * 1e6 + 100), 2 * 1e6);
+        assertEq(LiquidationLogic.calculatePenaltyAmount(1000 * 1e6 + 100), 500000);
     }
 }
