@@ -57,8 +57,9 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
     ) BaseStrategy(_controller, _assetId, _minPerValueLimit, _name, _symbol) {
         reader = Reader(_reader);
 
-        // square root of 8% scaled by 1e18
-        hedgeSqrtPriceThreshold = 10392304845 * 1e8;
+        // square root of 7.5% scaled by 1e18
+        hedgeSqrtPriceThreshold = 10368220676 * 1e8;
+        
         hedgeInterval = 2 days;
 
         // initialize last sqrt price and timestamp
