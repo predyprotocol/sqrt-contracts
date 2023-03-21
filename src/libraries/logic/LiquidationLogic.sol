@@ -139,9 +139,9 @@ library LiquidationLogic {
     }
 
     function calculatePenaltyAmount(uint256 _debtValue) internal pure returns (uint256) {
-        // penalty amount is 0.2% of debt value
+        // penalty amount is 0.05% of debt value
         return Math.max(
-            ((_debtValue / 500) / Constants.MARGIN_ROUNDED_DECIMALS) * Constants.MARGIN_ROUNDED_DECIMALS,
+            ((_debtValue / 2000) / Constants.MARGIN_ROUNDED_DECIMALS) * Constants.MARGIN_ROUNDED_DECIMALS,
             Constants.MIN_PENALTY
         );
     }

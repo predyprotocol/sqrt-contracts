@@ -60,10 +60,10 @@ contract TestControllerLiquidationCall is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 57710000);
+        assertEq(vault.margin, 58190000);
 
         // check liquidation reward
-        assertEq(usdc.balanceOf(liquidator), 880000);
+        assertEq(usdc.balanceOf(liquidator), 400000);
     }
 
     // liquidation call with interest paid
@@ -78,7 +78,7 @@ contract TestControllerLiquidationCall is TestController {
 
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
 
-        assertEq(controller.getVault(vaultId).margin, 5430000);
+        assertEq(controller.getVault(vaultId).margin, 5230000);
     }
 
     // vault becomes insolvent

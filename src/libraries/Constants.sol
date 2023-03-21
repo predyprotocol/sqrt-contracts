@@ -16,7 +16,7 @@ library Constants {
     int256 internal constant MIN_MARGIN_AMOUNT = 1e6;
     uint256 internal constant MARGIN_ROUNDED_DECIMALS = 1e4;
 
-    uint256 internal constant MIN_PENALTY = 2 * 1e5;
+    uint256 internal constant MIN_PENALTY = 4 * 1e5;
 
     uint256 internal constant MIN_SQRT_PRICE = 79228162514264337593;
     uint256 internal constant MAX_SQRT_PRICE = 79228162514264337593543950336000000000;
