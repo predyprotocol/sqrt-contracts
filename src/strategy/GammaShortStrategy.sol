@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "@solmate/utils/FixedPointMathLib.sol";
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../interfaces/IStrategyVault.sol";
 import "../interfaces/IPredyTradeCallback.sol";
 import "./base/BaseStrategy.sol";
@@ -19,7 +20,7 @@ import "../Reader.sol";
  * GSS4: invalid leverage
  * GSS5: caller must be Controller
  */
-contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback {
+contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IPredyTradeCallback {
     using SafeCast for uint256;
     using SafeCast for int256;
 
@@ -237,7 +238,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         uint256 _maxDepositAmount,
         bool isQuoteMode,
         IStrategyVault.StrategyTradeParams memory _tradeParams
-    ) external override returns (uint256 finalDepositMargin) {
+    ) external override nonReentrant returns (uint256 finalDepositMargin) {
         require(totalSupply() > 0, "GSS1");
 
         uint256 share = calMintToShare(_strategyTokenAmount, totalSupply());
@@ -285,7 +286,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         address _recepient,
         int256 _minWithdrawAmount,
         IStrategyVault.StrategyTradeParams memory _tradeParams
-    ) external returns (uint256 finalWithdrawAmount) {
+    ) external nonReentrant returns (uint256 finalWithdrawAmount) {
         uint256 strategyShare = _withdrawStrategyAmount * SHARE_SCALER / totalSupply();
 
         DataType.Vault memory vault = controller.getVault(vaultId);
