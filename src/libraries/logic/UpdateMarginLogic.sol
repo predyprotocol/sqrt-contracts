@@ -31,7 +31,7 @@ library UpdateMarginLogic {
         emitEvent(_vault, _marginAmount);
     }
 
-    function execMarginTransfer(DataType.Vault memory _vault, address _stable, int256 _marginAmount) internal {
+    function execMarginTransfer(DataType.Vault memory _vault, address _stable, int256 _marginAmount) public {
         if (_marginAmount > 0) {
             TransferHelper.safeTransferFrom(_stable, msg.sender, address(this), uint256(_marginAmount));
         } else if (_marginAmount < 0) {
