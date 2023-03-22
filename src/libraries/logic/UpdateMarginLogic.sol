@@ -26,16 +26,20 @@ library UpdateMarginLogic {
 
         PositionCalculator.isSafe(_assets, _vault, false);
 
-        proceedMarginUpdate(_vault, getStableToken(_assets), _marginAmount);
+        execMarginTransfer(_vault, getStableToken(_assets), _marginAmount);
+
+        emitEvent(_vault, _marginAmount);
     }
 
-    function proceedMarginUpdate(DataType.Vault memory _vault, address _stable, int256 _marginAmount) internal {
+    function execMarginTransfer(DataType.Vault memory _vault, address _stable, int256 _marginAmount) internal {
         if (_marginAmount > 0) {
             TransferHelper.safeTransferFrom(_stable, msg.sender, address(this), uint256(_marginAmount));
         } else if (_marginAmount < 0) {
             TransferHelper.safeTransfer(_stable, _vault.owner, uint256(-_marginAmount));
         }
+    }
 
+    function emitEvent(DataType.Vault memory _vault, int256 _marginAmount) internal {
         emit MarginUpdated(_vault.id, _marginAmount);
     }
 

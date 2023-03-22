@@ -28,26 +28,36 @@ contract TestControllerCallback is TestController {
         vaultId = controller.updateMargin(1e8);
     }
 
-    function predyTradeCallback(DataType.TradeResult memory, bytes calldata) external {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
-            1 * 1e8, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, false, ""
-        );
+    function predyTradeCallback(DataType.TradeResult memory, bytes calldata _data) external pure returns (int256) {
+        int256 margin = abi.decode(_data, (int256));
 
-        controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
+        return margin;
     }
 
     function testCannotTradePerp() public {
         TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
-            5 * 1e8, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, true, ""
+            5 * 1e8,
+            0,
+            getLowerSqrtPrice(WETH_ASSET_ID),
+            getUpperSqrtPrice(WETH_ASSET_ID),
+            block.timestamp,
+            true,
+            abi.encode(int256(-1e6))
         );
 
-        vm.expectRevert(bytes("NS"));
+        vm.expectRevert(bytes("T3"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
     }
 
     function testTradePerp() public {
         TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
-            4 * 1e8, 0, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp, true, ""
+            5 * 1e8,
+            0,
+            getLowerSqrtPrice(WETH_ASSET_ID),
+            getUpperSqrtPrice(WETH_ASSET_ID),
+            block.timestamp,
+            true,
+            abi.encode(int256(1e6))
         );
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);

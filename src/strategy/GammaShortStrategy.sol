@@ -67,12 +67,17 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
         lastHedgeTimestamp = block.timestamp;
     }
 
+    function decimals() public view override returns (uint8) {
+        return 6;
+    }
+
     /**
      * @dev Callback for Predy Controller
      */
     function predyTradeCallback(DataType.TradeResult memory _tradeResult, bytes calldata _data)
         external
         override(IPredyTradeCallback)
+        returns (int256)
     {
         require(msg.sender == address(controller), "GSS5");
 
@@ -92,7 +97,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         TransferHelper.safeTransferFrom(usdc, caller, address(this), finalDepositMargin);
 
-        controller.updateMargin(int256(finalDepositMargin));
+        return int256(finalDepositMargin);
     }
 
     ////////////////////////

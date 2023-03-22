@@ -304,6 +304,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     function tradePerp(uint256 _vaultId, uint256 _assetId, TradeLogic.TradeParams memory _tradeParams)
         external
         override(IController)
+        nonReentrant
         returns (DataType.TradeResult memory)
     {
         DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(assetGroup, vaults[_vaultId], _assetId);
