@@ -32,7 +32,7 @@
     "ethers": "^5.5.2",
     "hardhat": "^2.10.1",
     "hardhat-contract-sizer": "^2.6.1",
-    "hardhat-deploy": "^0.8.6",
+    "hardhat-deploy": "^0.8.11",
     "hardhat-preprocessor": "^0.1.4",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-dev.23",
