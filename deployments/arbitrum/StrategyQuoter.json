@@ -1,0 +1,106 @@
+{
+  "address": "0x59e6f3eF8cd1D73853732526Eb0B58bdC6434953",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IStrategyVault",
+          "name": "_strategy",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_strategyTokenAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_recepient",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_maxMarginAmount",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "lowerSqrtPrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "upperSqrtPrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IStrategyVault.StrategyTradeParams",
+          "name": "_tradeParams",
+          "type": "tuple"
+        }
+      ],
+      "name": "quoteDeposit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "finalDepositMargin",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x8c241524ddf00735f723336aec958d0ef3095d7edbbcd83062c063dce5a39946",
+  "receipt": {
+    "to": null,
+    "from": "0x4f071924D66BBC71A5254217893CC7D49938B1c4",
+    "contractAddress": "0x59e6f3eF8cd1D73853732526Eb0B58bdC6434953",
+    "transactionIndex": 8,
+    "gasUsed": "1708759",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x437d6259af63e5de893cce8b37f22c1be4af585c0680d348f8cef617a4e2bb07",
+    "transactionHash": "0x8c241524ddf00735f723336aec958d0ef3095d7edbbcd83062c063dce5a39946",
+    "logs": [],
+    "blockNumber": 72559079,
+    "cumulativeGasUsed": "5897798",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x90C2A25ac5618a872D70859BB94D6bfC78a29769"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "e687d975f01eac5df1459c404dcdd29b",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract IStrategyVault\",\"name\":\"_strategy\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_strategyTokenAmount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_recepient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_maxMarginAmount\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"lowerSqrtPrice\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"upperSqrtPrice\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"internalType\":\"struct IStrategyVault.StrategyTradeParams\",\"name\":\"_tradeParams\",\"type\":\"tuple\"}],\"name\":\"quoteDeposit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"finalDepositMargin\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"These functions should not be called on chain.\",\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/strategy/StrategyQuoter.sol\":\"StrategyQuoter\"},\"evmVersion\":\"paris\",\"libraries\":{\":__CACHE_BREAKER__\":\"0x0000000000000031363739353130373432353932\"},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"src/interfaces/IStrategyVault.sol\":{\"content\":\"// SPDX-License-Identifier: agpl-3.0\\npragma solidity >=0.7.0;\\n\\ninterface IStrategyVault {\\n    struct StrategyTradeParams {\\n        uint256 lowerSqrtPrice;\\n        uint256 upperSqrtPrice;\\n        uint256 deadline;\\n    }\\n\\n    function deposit(\\n        uint256 _strategyTokenAmount,\\n        address _recepient,\\n        uint256 _maxMarginAmount,\\n        bool isQuoteMode,\\n        StrategyTradeParams memory _tradeParams\\n    ) external returns (uint256 finalDepositMargin);\\n}\\n\",\"keccak256\":\"0xf7cf9327edf2744452d9de752ba71a2a11e1a0bb5c7c847b8cdfe9c180b08160\",\"license\":\"agpl-3.0\"},\"src/strategy/StrategyQuoter.sol\":{\"content\":\"// SPDX-License-Identifier: agpl-3.0\\npragma solidity ^0.8.19;\\n\\nimport \\\"../interfaces/IStrategyVault.sol\\\";\\n\\n/**\\n * @dev These functions should not be called on chain.\\n */\\ncontract StrategyQuoter {\\n    IStrategyVault immutable strategy;\\n\\n    constructor(IStrategyVault _strategy) {\\n        strategy = _strategy;\\n    }\\n\\n    function quoteDeposit(\\n        uint256 _strategyTokenAmount,\\n        address _recepient,\\n        uint256 _maxMarginAmount,\\n        IStrategyVault.StrategyTradeParams memory _tradeParams\\n    ) external returns (uint256 finalDepositMargin) {\\n        try strategy.deposit(_strategyTokenAmount, _recepient, _maxMarginAmount, true, _tradeParams) {}\\n        catch (bytes memory reason) {\\n            return handleRevert(reason);\\n        }\\n    }\\n\\n    function parseRevertReason(bytes memory reason) private pure returns (uint256, uint256, uint256) {\\n        if (reason.length != 96) {\\n            if (reason.length < 68) revert(\\\"Unexpected error\\\");\\n            assembly {\\n                reason := add(reason, 0x04)\\n            }\\n            revert(abi.decode(reason, (string)));\\n        }\\n        return abi.decode(reason, (uint256, uint256, uint256));\\n    }\\n\\n    function handleRevert(bytes memory reason) private pure returns (uint256 finalDepositMargin) {\\n        (finalDepositMargin,,) = parseRevertReason(reason);\\n    }\\n}\\n\",\"keccak256\":\"0x192e814fe4187ad09c2165595eb5f80dbda540bdf60d53695e80dd56538b27c2\",\"license\":\"agpl-3.0\"}},\"version\":1}",
+  "bytecode": "0x60a060405234801561001057600080fd5b506040516104dd3803806104dd83398101604081905261002f91610040565b6001600160a01b0316608052610070565b60006020828403121561005257600080fd5b81516001600160a01b038116811461006957600080fd5b9392505050565b60805161045361008a600039600060a701526104536000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c80630a39a0fa14610030575b600080fd5b61004361003e366004610231565b610055565b60405190815260200160405180910390f35b6040805163c1e80ca560e01b8152600481018690526001600160a01b038581166024830152604482018590526001606483015283516084830152602084015160a48301529183015160c48201526000917f0000000000000000000000000000000000000000000000000000000000000000169063c1e80ca59060e4016020604051808303816000875af192505050801561010c575060408051601f3d908101601f19168201909252610109918101906102d2565b60015b610151573d80801561013a576040519150601f19603f3d011682016040523d82523d6000602084013e61013f565b606091505b506101498161015b565b915050610153565b505b949350505050565b60006101668261016f565b50909392505050565b600080600083516060146101fa576044845110156101c75760405162461bcd60e51b815260206004820152601060248201526f2ab732bc3832b1ba32b21032b93937b960811b60448201526064015b60405180910390fd5b600484019350838060200190518101906101e1919061030f565b60405162461bcd60e51b81526004016101be91906103bc565b8380602001905181019061020e91906103ef565b9250925092509193909250565b634e487b7160e01b600052604160045260246000fd5b60008060008084860360c081121561024857600080fd5b8535945060208601356001600160a01b038116811461026657600080fd5b9350604086013592506060605f198201121561028157600080fd5b506040516060810181811067ffffffffffffffff821117156102a5576102a561021b565b8060405250606086013581526080860135602082015260a086013560408201528091505092959194509250565b6000602082840312156102e457600080fd5b5051919050565b60005b838110156103065781810151838201526020016102ee565b50506000910152565b60006020828403121561032157600080fd5b815167ffffffffffffffff8082111561033957600080fd5b818401915084601f83011261034d57600080fd5b81518181111561035f5761035f61021b565b604051601f8201601f19908116603f011681019083821181831017156103875761038761021b565b816040528281528760208487010111156103a057600080fd5b6103b18360208301602088016102eb565b979650505050505050565b60208152600082518060208401526103db8160408501602087016102eb565b601f01601f19169190910160400192915050565b60008060006060848603121561040457600080fd5b835192506020840151915060408401519050925092509256fea26469706673582212205b0b8eb49a3c747111d7a180951af0377fb1acac6d03a4a13c1ae13e84fa480964736f6c63430008130033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c80630a39a0fa14610030575b600080fd5b61004361003e366004610231565b610055565b60405190815260200160405180910390f35b6040805163c1e80ca560e01b8152600481018690526001600160a01b038581166024830152604482018590526001606483015283516084830152602084015160a48301529183015160c48201526000917f0000000000000000000000000000000000000000000000000000000000000000169063c1e80ca59060e4016020604051808303816000875af192505050801561010c575060408051601f3d908101601f19168201909252610109918101906102d2565b60015b610151573d80801561013a576040519150601f19603f3d011682016040523d82523d6000602084013e61013f565b606091505b506101498161015b565b915050610153565b505b949350505050565b60006101668261016f565b50909392505050565b600080600083516060146101fa576044845110156101c75760405162461bcd60e51b815260206004820152601060248201526f2ab732bc3832b1ba32b21032b93937b960811b60448201526064015b60405180910390fd5b600484019350838060200190518101906101e1919061030f565b60405162461bcd60e51b81526004016101be91906103bc565b8380602001905181019061020e91906103ef565b9250925092509193909250565b634e487b7160e01b600052604160045260246000fd5b60008060008084860360c081121561024857600080fd5b8535945060208601356001600160a01b038116811461026657600080fd5b9350604086013592506060605f198201121561028157600080fd5b506040516060810181811067ffffffffffffffff821117156102a5576102a561021b565b8060405250606086013581526080860135602082015260a086013560408201528091505092959194509250565b6000602082840312156102e457600080fd5b5051919050565b60005b838110156103065781810151838201526020016102ee565b50506000910152565b60006020828403121561032157600080fd5b815167ffffffffffffffff8082111561033957600080fd5b818401915084601f83011261034d57600080fd5b81518181111561035f5761035f61021b565b604051601f8201601f19908116603f011681019083821181831017156103875761038761021b565b816040528281528760208487010111156103a057600080fd5b6103b18360208301602088016102eb565b979650505050505050565b60208152600082518060208401526103db8160408501602087016102eb565b601f01601f19169190910160400192915050565b60008060006060848603121561040457600080fd5b835192506020840151915060408401519050925092509256fea26469706673582212205b0b8eb49a3c747111d7a180951af0377fb1acac6d03a4a13c1ae13e84fa480964736f6c63430008130033",
+  "devdoc": {
+    "details": "These functions should not be called on chain.",
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}
