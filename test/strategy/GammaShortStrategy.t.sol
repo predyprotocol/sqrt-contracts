@@ -2,7 +2,6 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "../../src/strategy/StrategyFactory.sol";
 import "../../src/strategy/GammaShortStrategy.sol";
 import "../../src/strategy/StrategyQuoter.sol";
 import "./Setup.t.sol";
@@ -16,6 +15,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
     uint256 lpVaultId;
 
     address internal user = vm.addr(uint256(1));
+    address internal user2 = vm.addr(uint256(2));
 
     function setUp() public override {
         TestBaseStrategy.setUp();
@@ -25,9 +25,9 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         controller.supplyToken(1, 1e15);
         controller.supplyToken(2, 1e15);
 
-        StrategyFactory strategyFactory = new StrategyFactory();
+        strategy = new GammaShortStrategy();
 
-        (address strategyAddress, address quoterAddress) = strategyFactory.createStrategy(
+        strategy.initialize(
             address(controller),
             address(reader),
             WETH_ASSET_ID,
@@ -35,8 +35,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
             "GS",
             "GS"
         );
-        strategy = GammaShortStrategy(strategyAddress);
-        quoter = StrategyQuoter(quoterAddress);
+        quoter = new StrategyQuoter(strategy);
 
         usdc.mint(user, type(uint128).max);
 
@@ -44,7 +43,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         vm.prank(user);
         usdc.approve(address(strategy), type(uint256).max);
 
-        strategy.initialize(1e10, -6 * 1e10, 6 * 1e10, getStrategyTradeParams());
+        strategy.depositForPositionInitialization(1e10, -6 * 1e10, 6 * 1e10, getStrategyTradeParams());
 
         lpVaultId = controller.updateMargin(1e10);
 
@@ -68,15 +67,15 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         GammaShortStrategy.StrategyTradeParams memory tradeParams = getStrategyTradeParams();
 
         vm.expectRevert(bytes("GSS0"));
-        strategy.initialize(1e10, -1e9, 1e9, tradeParams);
+        strategy.depositForPositionInitialization(1e10, -1e9, 1e9, tradeParams);
     }
 
     function testCannotInitialize_IfCallerIsNotOwner() public {
         GammaShortStrategy.StrategyTradeParams memory tradeParams = getStrategyTradeParams();
 
         vm.prank(user);
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
-        strategy.initialize(1e10, -1e9, 1e9, tradeParams);
+        vm.expectRevert(bytes("BaseStrategy: caller is not operator"));
+        strategy.depositForPositionInitialization(1e10, -1e9, 1e9, tradeParams);
     }
 
     function testCannotDeposit_IfDepositAmountIsTooLarge() public {
@@ -363,5 +362,22 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         assertEq(depositMarginAmount, 10000000000);
         assertEq(withdrawMarginAmount, 9974850000);
+    }
+
+    function testSetOperator() public {
+        strategy.setOperator(user2);
+
+        assertEq(strategy.operator(), user2);
+    }
+
+    function testCannotSetOperator_IfCallerIsNotOperator() public {
+        vm.prank(user2);
+        vm.expectRevert(bytes("BaseStrategy: caller is not operator"));
+        strategy.setOperator(user2);
+    }
+
+    function testCannotSetOperator_IfAddressIsZero() public {
+        vm.expectRevert();
+        strategy.setOperator(address(0));
     }
 }
