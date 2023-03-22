@@ -9,9 +9,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deploy } = deployments
 
+  await deploy('SettleUserFeeLogic', {
+    from: deployer,
+    log: true,
+  })
+
+  const SettleUserFeeLogic = await ethers.getContract('SettleUserFeeLogic', deployer)
+
+  await deploy('UpdateMarginLogic', {
+    from: deployer,
+    log: true,
+    libraries: {
+      SettleUserFeeLogic: SettleUserFeeLogic.address
+    }
+  })
+
+  const UpdateMarginLogic = await ethers.getContract('UpdateMarginLogic', deployer)
+
   await deploy('TradeLogic', {
     from: deployer,
     log: true,
+    libraries: {
+      UpdateMarginLogic: UpdateMarginLogic.address
+    }
   })
 
   const TradeLogic = await ethers.getContract('TradeLogic', deployer)
@@ -37,11 +57,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  await deploy('SettleUserFeeLogic', {
-    from: deployer,
-    log: true,
-  })
-
   await deploy('ReaderLogic', {
     from: deployer,
     log: true,
@@ -50,16 +65,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy('SupplyLogic', {
     from: deployer,
     log: true,
-  })
-
-  const SettleUserFeeLogic = await ethers.getContract('SettleUserFeeLogic', deployer)
-
-  await deploy('UpdateMarginLogic', {
-    from: deployer,
-    log: true,
-    libraries: {
-      SettleUserFeeLogic: SettleUserFeeLogic.address
-    }
   })
 }
 

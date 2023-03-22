@@ -81,7 +81,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const controller = await ethers.getContract('Controller', deployer)
 
     if (network.name === 'arbitrum') {
-      await controller.setOperator(operatorAddress)
+      //  await controller.setOperator(operatorAddress)
     }
   }
 }
