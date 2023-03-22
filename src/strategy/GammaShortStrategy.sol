@@ -123,7 +123,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         int256 _initialPerpAmount,
         int256 _initialSquartAmount,
         IStrategyVault.StrategyTradeParams memory _tradeParams
-    ) external onlyOperator {
+    ) external onlyOperator nonReentrant {
         require(totalSupply() == 0, "GSS0");
 
         TransferHelper.safeTransferFrom(usdc, msg.sender, address(this), _initialMarginAmount);
@@ -208,7 +208,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
      * from the last price at the hedging or time has elapsed by a set interval since the last hedge time.
      * @param _tradeParams Trade parameters for Predy contract
      */
-    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOperator {
+    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOperator nonReentrant {
         uint256 sqrtPrice = controller.getSqrtPrice(assetId);
 
         require(isTimeHedge() || isPriceHedge(sqrtPrice), "TG");
