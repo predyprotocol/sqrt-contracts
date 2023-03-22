@@ -8,11 +8,13 @@ import "../PositionCalculator.sol";
 import "../Trade.sol";
 import "../VaultLib.sol";
 import "../AssetLib.sol";
+import "./UpdateMarginLogic.sol";
 
 /*
  * Error Codes
  * T1: tx too old
  * T2: too much slippage
+ * T3: margin must be positive
  */
 library TradeLogic {
     struct TradeParams {
@@ -59,7 +61,15 @@ library TradeLogic {
 
         if (_tradeParams.enableCallback) {
             // Calls callback function
-            IPredyTradeCallback(msg.sender).predyTradeCallback(tradeResult, _tradeParams.data);
+            int256 marginAmount = IPredyTradeCallback(msg.sender).predyTradeCallback(tradeResult, _tradeParams.data);
+
+            require(marginAmount > 0, "T3");
+
+            _vault.margin += marginAmount;
+
+            UpdateMarginLogic.execMarginTransfer(_vault, stableAssetStatus.token, marginAmount);
+
+            UpdateMarginLogic.emitEvent(_vault, marginAmount);
         }
 
         tradeResult.minDeposit = PositionCalculator.isSafe(_assets, _vault, false);
