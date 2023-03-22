@@ -4,7 +4,10 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "../../src/Controller.sol";
+import {Controller} from "../../src/Controller.sol";
+import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import {InterestRateModel} from "../../src/libraries/InterestRateModel.sol";
+import "../../src/libraries/DataType.sol";
 import "../mocks/MockERC20.sol";
 
 contract TestBaseStrategy is Test {

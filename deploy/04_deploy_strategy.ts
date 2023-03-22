@@ -10,25 +10,37 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const Controller = await ethers.getContract('Controller', deployer)
   const Reader = await ethers.getContract('Reader', deployer)
 
-  await deploy('StrategyFactory', {
+  await deploy('GammaShortStrategy', {
     from: deployer,
     args: [],
     log: true,
+    proxy: {
+      execute: {
+        init: {
+          methodName: 'initialize',
+          args: [
+            Controller.address,
+            Reader.address,
+            2,
+            {
+              lower: '100000000000000000',
+              upper: '200000000000000000'
+            },
+            'Strategy WETH-USDC',
+            'GSETH'
+          ],
+        },
+      },
+    },
   })
 
-  const StrategyFactory = await ethers.getContract('StrategyFactory', deployer)
+  const GammaShortStrategy = await ethers.getContract('GammaShortStrategy', deployer)
 
-  await StrategyFactory.createStrategy(
-    Controller.address,
-    Reader.address,
-    2,
-    {
-      lower: '100000000000000000',
-      upper: '200000000000000000'
-    },
-    'Strategy WETH-USDC',
-    'GSETH'
-  );
+  await deploy('StrategyQuoter', {
+    from: deployer,
+    args: [GammaShortStrategy.address],
+    log: true,
+  })
 }
 
 export default func

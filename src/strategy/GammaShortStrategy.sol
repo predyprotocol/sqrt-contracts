@@ -23,7 +23,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
     using SafeCast for uint256;
     using SafeCast for int256;
 
-    Reader immutable reader;
+    Reader internal reader;
 
     uint256 private constant SHARE_SCALER = 1e18;
 
@@ -47,14 +47,17 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
     event DeltaHedged(int256 delta);
 
-    constructor(
+    constructor() {}
+
+    function initialize(
         address _controller,
         address _reader,
         uint256 _assetId,
         MinPerValueLimit memory _minPerValueLimit,
         string memory _name,
         string memory _symbol
-    ) BaseStrategy(_controller, _assetId, _minPerValueLimit, _name, _symbol) {
+    ) public initializer {
+        BaseStrategy.initialize(_controller, _assetId, _minPerValueLimit, _name, _symbol);
         reader = Reader(_reader);
 
         // square root of 7.5% scaled by 1e18
@@ -97,6 +100,8 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
 
         TransferHelper.safeTransferFrom(usdc, caller, address(this), finalDepositMargin);
 
+        ERC20(usdc).approve(address(controller), finalDepositMargin);
+
         return int256(finalDepositMargin);
     }
 
@@ -105,22 +110,24 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
     ////////////////////////
 
     /**
-     * @notice Initializes strategy contract.
+     * @notice deposit for the position initialization
      * @dev The function can be called by owner.
      * @param _initialMarginAmount initial margin amount
      * @param _initialPerpAmount initial perp amount
      * @param _initialSquartAmount initial squart amount
      * @param _tradeParams trade parameters
      */
-    function initialize(
+    function depositForPositionInitialization(
         uint256 _initialMarginAmount,
         int256 _initialPerpAmount,
         int256 _initialSquartAmount,
         IStrategyVault.StrategyTradeParams memory _tradeParams
-    ) external onlyOwner {
+    ) external onlyOperator {
         require(totalSupply() == 0, "GSS0");
 
         TransferHelper.safeTransferFrom(usdc, msg.sender, address(this), _initialMarginAmount);
+
+        ERC20(usdc).approve(address(controller), _initialMarginAmount);
 
         vaultId = controller.updateMargin(int256(_initialMarginAmount));
 
@@ -147,7 +154,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
      * @notice Updates price threshold for delta hedging.
      * @param _newSqrtPriceThreshold New square root price threshold
      */
-    function updateHedgePriceThreshold(uint256 _newSqrtPriceThreshold) external onlyOwner {
+    function updateHedgePriceThreshold(uint256 _newSqrtPriceThreshold) external onlyOperator {
         require(1e18 <= _newSqrtPriceThreshold && _newSqrtPriceThreshold < 2 * 1e18);
 
         hedgeSqrtPriceThreshold = _newSqrtPriceThreshold;
@@ -159,7 +166,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
      * @notice Updates interval for delta hedging.
      * @param _hedgeInterval New interval
      */
-    function updateHedgeInterval(uint256 _hedgeInterval) external onlyOwner {
+    function updateHedgeInterval(uint256 _hedgeInterval) external onlyOperator {
         require(1 hours <= _hedgeInterval && _hedgeInterval <= 2 weeks);
 
         hedgeInterval = _hedgeInterval;
@@ -174,7 +181,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
      */
     function updateGamma(int256 _squartAmount, IStrategyVault.StrategyTradeParams memory _tradeParams)
         external
-        onlyOwner
+        onlyOperator
     {
         controller.tradePerp(
             vaultId,
@@ -200,7 +207,7 @@ contract GammaShortStrategy is BaseStrategy, IStrategyVault, IPredyTradeCallback
      * from the last price at the hedging or time has elapsed by a set interval since the last hedge time.
      * @param _tradeParams Trade parameters for Predy contract
      */
-    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOwner {
+    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOperator {
         uint256 sqrtPrice = controller.getSqrtPrice(assetId);
 
         require(isTimeHedge() || isPriceHedge(sqrtPrice), "TG");
