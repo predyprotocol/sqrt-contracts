@@ -102,14 +102,12 @@ library ScaledAsset {
         if (openAmount > 0) {
             tokenStatus.totalNormalDeposited += uint256(openAmount);
 
-            // TODO: collect fee before update position
             userStatus.lastFeeGrowth = tokenStatus.assetGrowth;
         } else if (openAmount < 0) {
             require(getAvailableCollateralValue(tokenStatus) >= uint256(-openAmount), "S0");
 
             tokenStatus.totalNormalBorrowed += uint256(-openAmount);
 
-            // TODO: pay fee before update position
             userStatus.lastFeeGrowth = tokenStatus.debtGrowth;
         }
 
