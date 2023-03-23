@@ -64,6 +64,10 @@ contract CalculateMinDepositTest is TestPositionCalculator {
 
         openPositions[0].perpTrade.sqrtPerp.amount = _amountSquart;
         openPositions[0].perpTrade.underlying.positionAmount = _amountUnderlying;
+        openPositions[0].perpTrade.perp.amount = _amountUnderlying;
+
+        openPositions[0].perpTrade.perp.entryValue = _amountStable;
+        openPositions[0].perpTrade.sqrtPerp.entryValue = 0;
         openPositions[0].perpTrade.stable.positionAmount = _amountStable;
 
         return DataType.Vault(1, address(this), _margin, openPositions);
@@ -82,10 +86,17 @@ contract CalculateMinDepositTest is TestPositionCalculator {
 
         openPositions[0].perpTrade.sqrtPerp.amount = _positionParams1.amountSqrt;
         openPositions[0].perpTrade.underlying.positionAmount = _positionParams1.amountUnderlying;
+        openPositions[0].perpTrade.perp.amount = _positionParams1.amountUnderlying;
+
+        openPositions[0].perpTrade.perp.entryValue = _positionParams1.amountStable;
+        openPositions[0].perpTrade.sqrtPerp.entryValue = 0;
         openPositions[0].perpTrade.stable.positionAmount = _positionParams1.amountStable;
 
         openPositions[1].perpTrade.sqrtPerp.amount = _positionParams2.amountSqrt;
         openPositions[1].perpTrade.underlying.positionAmount = _positionParams2.amountUnderlying;
+        openPositions[1].perpTrade.perp.amount = _positionParams2.amountUnderlying;
+        openPositions[1].perpTrade.perp.entryValue = _positionParams2.amountStable;
+        openPositions[1].perpTrade.sqrtPerp.entryValue = 0;
         openPositions[1].perpTrade.stable.positionAmount = _positionParams2.amountStable;
 
         return DataType.Vault(1, address(this), _margin, openPositions);

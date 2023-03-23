@@ -138,11 +138,9 @@ library PositionCalculator {
             PerpFee.computeUserFee(_underlyingAsset, _stableAsset.tokenStatus, _perpUserStatus);
 
         return PositionParams(
-            _perpUserStatus.stable.positionAmount - _perpUserStatus.sqrtPerp.stableRebalanceEntryValue
-                + unrealizedFeeStable,
+            _perpUserStatus.perp.entryValue + _perpUserStatus.sqrtPerp.entryValue + unrealizedFeeStable,
             _perpUserStatus.sqrtPerp.amount,
-            _perpUserStatus.underlying.positionAmount - _perpUserStatus.sqrtPerp.underlyingRebalanceEntryValue
-                + unrealizedFeeUnderlying
+            _perpUserStatus.perp.amount + unrealizedFeeUnderlying
         );
     }
 
@@ -152,9 +150,9 @@ library PositionCalculator {
         returns (PositionParams memory positionParams)
     {
         return PositionParams(
-            _perpUserStatus.stable.positionAmount - _perpUserStatus.sqrtPerp.stableRebalanceEntryValue,
+            _perpUserStatus.perp.entryValue + _perpUserStatus.sqrtPerp.entryValue,
             _perpUserStatus.sqrtPerp.amount,
-            _perpUserStatus.underlying.positionAmount - _perpUserStatus.sqrtPerp.underlyingRebalanceEntryValue
+            _perpUserStatus.perp.amount
         );
     }
 
