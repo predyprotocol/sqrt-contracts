@@ -208,15 +208,21 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
      * from the last price at the hedging or time has elapsed by a set interval since the last hedge time.
      * @param _tradeParams Trade parameters for Predy contract
      */
-    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) external onlyOperator nonReentrant {
+    function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams, uint256 _deltaRatio)
+        external
+        onlyOperator
+        nonReentrant
+    {
         uint256 sqrtPrice = controller.getSqrtPrice(assetId);
 
         require(isTimeHedge() || isPriceHedge(sqrtPrice), "TG");
 
-        _execDeltaHedge(_tradeParams);
+        _execDeltaHedge(_tradeParams, _deltaRatio);
 
-        lastHedgePrice = sqrtPrice;
-        lastHedgeTimestamp = block.timestamp;
+        if (_deltaRatio == 1e18) {
+            lastHedgePrice = sqrtPrice;
+            lastHedgeTimestamp = block.timestamp;
+        }
     }
 
     //////////////////////
@@ -336,6 +342,10 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         return uint256(vaultStatusResult.vaultValue) * SHARE_SCALER / totalSupply();
     }
 
+    function getDelta() external view returns (int256) {
+        return reader.getDelta(assetId, vaultId);
+    }
+
     function checkPriceHedge() external view returns (bool) {
         return isPriceHedge(controller.getSqrtPrice(assetId));
     }
@@ -366,8 +376,10 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         return SafeCast.toUint256(vaultStatusResult.minDeposit * 1e18 / vaultStatusResult.vaultValue);
     }
 
-    function _execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams) internal {
-        int256 delta = reader.getDelta(assetId, vaultId);
+    function _execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams, uint256 _deltaRatio) internal {
+        require(_deltaRatio <= 1e18);
+
+        int256 delta = reader.getDelta(assetId, vaultId) * int256(_deltaRatio) / 1e18;
 
         controller.tradePerp(
             vaultId,

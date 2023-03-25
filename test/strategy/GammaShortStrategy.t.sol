@@ -265,7 +265,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertFalse(strategy.checkTimeHedge());
 
         vm.expectRevert(bytes("TG"));
-        strategy.execDeltaHedge(getStrategyTradeParams());
+        strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
     }
 
     function testDeltaHedgeByTime() public {
@@ -279,7 +279,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertTrue(strategy.checkTimeHedge());
 
         assertEq(reader.getDelta(2, strategy.vaultId()), -2399999973);
-        strategy.execDeltaHedge(getStrategyTradeParams());
+        strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
         assertEq(reader.getDelta(2, strategy.vaultId()), -30);
 
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
@@ -292,6 +292,28 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(withdrawMarginAmount, 9974650000);
     }
 
+    function testDeltaHedgeByTimePartially() public {
+        vm.warp(block.timestamp + 2 days + 1 minutes);
+
+        uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+
+        assertFalse(strategy.checkPriceHedge());
+        assertTrue(strategy.checkTimeHedge());
+
+        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999973);
+        strategy.execDeltaHedge(getStrategyTradeParams(), 5 * 1e17);
+
+        assertEq(reader.getDelta(2, strategy.vaultId()), -1200000002);
+
+        strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
+
+        assertEq(reader.getDelta(2, strategy.vaultId()), -16);
+
+        assertFalse(strategy.checkTimeHedge());
+    }
+
     function testDeltaHedgeByPriceUp() public {
         strategy.updateHedgePriceThreshold(10120000000 * 1e8);
 
@@ -302,7 +324,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertTrue(strategy.checkPriceHedge());
         assertFalse(strategy.checkTimeHedge());
 
-        strategy.execDeltaHedge(getStrategyTradeParams());
+        strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
     }
 
     function testDeltaHedgeByPriceDown() public {
@@ -315,7 +337,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertTrue(strategy.checkPriceHedge());
         assertFalse(strategy.checkTimeHedge());
 
-        strategy.execDeltaHedge(getStrategyTradeParams());
+        strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
     }
 
     function testDeltaHedgingFuzz(uint256 _amount) public {
@@ -327,7 +349,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        strategy.execDeltaHedge(getStrategyTradeParams());
+        strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
 
         uniswapPool.swap(address(this), true, 15 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 
