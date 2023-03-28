@@ -37,6 +37,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         );
         quoter = new StrategyQuoter(strategy);
 
+        strategy.setHedger(address(this));
+
         usdc.mint(user, type(uint128).max);
 
         usdc.approve(address(strategy), type(uint256).max);
@@ -254,6 +256,13 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         assertEq(depositMarginAmount, 9465460000);
         assertEq(withdrawMarginAmount, 9457740000);
+    }
+
+    function testCannotDeltaHedge_IfCallerIsNotHedger() public {
+        strategy.setHedger(user);
+
+        vm.expectRevert(bytes("GSS: caller is not hedger"));
+        strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
     }
 
     function testCannotDeltaHedge_IfTimeHasNotPassed() public {

@@ -40,6 +40,9 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
     uint256 private hedgeInterval;
 
+    address public hedger;
+
+    event HedgerUpdated(address newHedgerAddress);
     event DepositedToStrategy(address indexed account, uint256 strategyTokenAmount, uint256 depositedAmount);
     event WithdrawnFromStrategy(address indexed account, uint256 strategyTokenAmount, uint256 withdrawnAmount);
 
@@ -47,6 +50,11 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     event HedgeIntervalUpdated(uint256 hedgeInterval);
 
     event DeltaHedged(int256 delta);
+
+    modifier onlyHedger() {
+        require(hedger == msg.sender, "GSS: caller is not hedger");
+        _;
+    }
 
     constructor() {}
 
@@ -109,6 +117,18 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     ////////////////////////
     // Operator Functions //
     ////////////////////////
+
+    /**
+     * @notice Sets new hedger address
+     * @dev Only operator can call this function.
+     * @param _newHedger The address of new hedger
+     */
+    function setHedger(address _newHedger) external onlyOperator {
+        require(_newHedger != address(0));
+        hedger = _newHedger;
+
+        emit HedgerUpdated(_newHedger);
+    }
 
     /**
      * @notice deposit for the position initialization
@@ -204,13 +224,13 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     }
 
     /**
-     * @notice Operator can call the delta hedging function if the price has changed by a set ratio
+     * @notice Hedger can call the delta hedging function if the price has changed by a set ratio
      * from the last price at the hedging or time has elapsed by a set interval since the last hedge time.
      * @param _tradeParams Trade parameters for Predy contract
      */
     function execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams, uint256 _deltaRatio)
         external
-        onlyOperator
+        onlyHedger
         nonReentrant
     {
         uint256 sqrtPrice = controller.getSqrtPrice(assetId);
