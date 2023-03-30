@@ -155,6 +155,8 @@ contract TestControllerTradePerp is TestController {
         vm.prank(user2);
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -12345));
 
+        vm.warp(block.timestamp + 1 hours);
+
         {
             (uint256 isolatedVaultId,) =
                 controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
@@ -177,7 +179,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999940000);
+        assertEq(vault.margin, 9999930000);
 
         withdrawAll();
     }
@@ -194,6 +196,8 @@ contract TestControllerTradePerp is TestController {
         checkTick(1164);
 
         controller.reallocate(WETH_ASSET_ID);
+
+        vm.warp(block.timestamp + 1 hours);
 
         {
             (uint256 isolatedVaultId,) =
@@ -219,7 +223,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999290000);
+        assertEq(vault.margin, 9999280000);
 
         withdrawAll();
     }
@@ -378,7 +382,7 @@ contract TestControllerTradePerp is TestController {
         }
 
         assertTrue(isRealocated);
-        assertEq(profit, -235);
+        assertEq(profit, -231);
 
         withdrawAll();
     }
@@ -395,7 +399,7 @@ contract TestControllerTradePerp is TestController {
         (bool isRealocated, int256 profit) = controller.reallocate(WETH_ASSET_ID);
 
         assertTrue(isRealocated);
-        assertEq(profit, -8);
+        assertEq(profit, -4);
 
         withdrawAll();
     }
@@ -420,7 +424,7 @@ contract TestControllerTradePerp is TestController {
         }
 
         assertTrue(isRealocated);
-        assertEq(profit, 11751);
+        assertEq(profit, 11754);
 
         withdrawAll();
     }
@@ -446,7 +450,7 @@ contract TestControllerTradePerp is TestController {
         }
 
         assertTrue(isRealocated);
-        assertEq(profit, 6528);
+        assertEq(profit, 6532);
 
         withdrawAll();
     }
@@ -501,7 +505,7 @@ contract TestControllerTradePerp is TestController {
     }
 
     function testRebalanceLower_LessAvailable() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1500 * 1e8, 1500 * 1e8));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1500 * 1e8, 1505 * 1e8));
 
         uniswapPool.swap(address(this), true, -48 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
@@ -725,5 +729,25 @@ contract TestControllerTradePerp is TestController {
         controller.liquidationCall(vaultId, 1e18);
 
         withdrawAll();
+    }
+
+    function testCannotSettleUserBalance() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 200 * 1e6));
+
+        uniswapPool.swap(address(this), false, 4 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        {
+            (bool reallocationHappened,) = controller.reallocate(WETH_ASSET_ID);
+            assertTrue(reallocationHappened);
+        }
+
+        vm.warp(block.timestamp + 1 hours);
+
+        controller.settleUserBalance(vaultId);
+
+        vm.warp(block.timestamp + 1 hours);
+
+        vm.expectRevert(bytes("C6"));
+        controller.settleUserBalance(vaultId);
     }
 }

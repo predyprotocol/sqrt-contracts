@@ -39,6 +39,8 @@ contract TestControllerTradePerp is TestController {
     }
 
     function withdrawAll() internal {
+        vm.warp(block.timestamp + 1 hours);
+
         {
             DataType.Vault memory vault = controller.getVault(vaultId);
             for (uint256 i; i < vault.openPositions.length; i++) {

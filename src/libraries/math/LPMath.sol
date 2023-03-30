@@ -8,9 +8,6 @@ import "@uniswap/v3-core/contracts/libraries/UnsafeMath.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 library LPMath {
-    /// @dev Fraction to prevent protocol from having debt
-    int256 constant FRACTION = 2;
-
     function calculateAmount0ForLiquidityWithTicks(
         int24 _tickA,
         int24 _tickB,
@@ -39,6 +36,10 @@ library LPMath {
         uint256 _liquidityAmount,
         bool _isRoundUp
     ) internal pure returns (int256) {
+        if (_liquidityAmount == 0 || _sqrtRatioA == _sqrtRatioB) {
+            return 0;
+        }
+
         bool swaped = _sqrtRatioA > _sqrtRatioB;
 
         if (_sqrtRatioA > _sqrtRatioB) (_sqrtRatioA, _sqrtRatioB) = (_sqrtRatioB, _sqrtRatioA);
@@ -52,12 +53,12 @@ library LPMath {
             uint256 r0 = FullMath.mulDivRoundingUp(numerator, FixedPoint96.Q96, _sqrtRatioA);
             uint256 r1 = FullMath.mulDiv(numerator, FixedPoint96.Q96, _sqrtRatioB);
 
-            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1) + FRACTION;
+            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1);
         } else {
             uint256 r0 = FullMath.mulDiv(numerator, FixedPoint96.Q96, _sqrtRatioA);
             uint256 r1 = FullMath.mulDivRoundingUp(numerator, FixedPoint96.Q96, _sqrtRatioB);
 
-            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1) - FRACTION;
+            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1);
         }
 
         if (swaped) {
@@ -73,6 +74,10 @@ library LPMath {
         uint256 _liquidityAmount,
         bool _isRoundUp
     ) internal pure returns (int256) {
+        if (_liquidityAmount == 0 || _sqrtRatioA == _sqrtRatioB) {
+            return 0;
+        }
+
         bool swaped = _sqrtRatioA < _sqrtRatioB;
 
         if (_sqrtRatioA < _sqrtRatioB) (_sqrtRatioA, _sqrtRatioB) = (_sqrtRatioB, _sqrtRatioA);
@@ -85,12 +90,12 @@ library LPMath {
             uint256 r0 = FullMath.mulDivRoundingUp(_liquidityAmount, _sqrtRatioA, FixedPoint96.Q96);
             uint256 r1 = FullMath.mulDiv(_liquidityAmount, _sqrtRatioB, FixedPoint96.Q96);
 
-            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1) + FRACTION;
+            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1);
         } else {
             uint256 r0 = FullMath.mulDiv(_liquidityAmount, _sqrtRatioA, FixedPoint96.Q96);
             uint256 r1 = FullMath.mulDivRoundingUp(_liquidityAmount, _sqrtRatioB, FixedPoint96.Q96);
 
-            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1) - FRACTION;
+            r = SafeCast.toInt256(r0) - SafeCast.toInt256(r1);
         }
 
         if (swaped) {
