@@ -162,6 +162,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         vm.warp(block.timestamp + 1 days);
 
+        controller.reallocate(WETH_ASSET_ID);
+
         uint256 withdrawAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
@@ -172,6 +174,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 finalDeposit1 = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         uniswapPool.swap(address(this), false, -50 * 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        controller.reallocate(WETH_ASSET_ID);
 
         uint256 estimatedDepositAmount = quoter.quoteDeposit(1e10, address(this), 1e10, getStrategyTradeParams());
 
@@ -211,7 +215,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(finalDeposit1, 10000000000);
         assertEq(finalDeposit2, 9994190000);
 
-        assertEq(withdrawAmount1, 10000490000);
+        assertEq(withdrawAmount1, 10000480000);
         assertEq(withdrawAmount2, 10000490000);
     }
 
@@ -247,6 +251,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         (, int24 currentTick,,,,,) = uniswapPool.slot0();
 
         assertEq(currentTick, 2107);
+
+        controller.reallocate(WETH_ASSET_ID);
 
         uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e20, false, getStrategyTradeParams());
 
@@ -287,9 +293,9 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertFalse(strategy.checkPriceHedge());
         assertTrue(strategy.checkTimeHedge());
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999973);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999975);
         strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
-        assertEq(reader.getDelta(2, strategy.vaultId()), -30);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -32);
 
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
@@ -311,14 +317,14 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertFalse(strategy.checkPriceHedge());
         assertTrue(strategy.checkTimeHedge());
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999973);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999975);
         strategy.execDeltaHedge(getStrategyTradeParams(), 5 * 1e17);
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -1200000002);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -1200000005);
 
         strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -16);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -18);
 
         assertFalse(strategy.checkTimeHedge());
     }
