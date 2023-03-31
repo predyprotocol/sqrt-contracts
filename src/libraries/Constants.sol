@@ -28,12 +28,12 @@ library Constants {
     uint256 internal constant BASE_MIN_COLLATERAL_WITH_DEBT = 5000;
     // 0.00005
     uint256 internal constant MIN_COLLATERAL_WITH_DEBT_SLOPE = 50;
-    // 1.6% scaled by 1e6
-    uint256 internal constant BASE_LIQ_SLIPPAGE_SQRT_TOLERANCE = 12649;
+    // 2.5% scaled by 1e6
+    uint256 internal constant BASE_LIQ_SLIPPAGE_SQRT_TOLERANCE = 12422;
     // 0.000022
     uint256 internal constant LIQ_SLIPPAGE_SQRT_SLOPE = 22;
     // 0.001
     uint256 internal constant LIQ_SLIPPAGE_SQRT_BASE = 1000;
-    // 2.4% scaled by 1e6
-    uint256 internal constant SLIPPAGE_SQRT_TOLERANCE = 15491;
+    // 2.5% scaled by 1e6
+    uint256 internal constant SLIPPAGE_SQRT_TOLERANCE = 12422;
 }
