@@ -66,6 +66,24 @@ contract TestControllerLiquidationCall is TestController {
         assertEq(usdc.balanceOf(liquidator), 400000);
     }
 
+    function testLiquidationCall_IsolatedVault() public {
+        (uint256 isolatedVaultId,) = controller.openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+
+        uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        vm.warp(block.timestamp + 1 hours);
+
+        vm.prank(liquidator);
+        controller.liquidationCall(isolatedVaultId, DEFAULT_CLOSE_RATIO);
+
+        DataType.Vault memory vault = controller.getVault(isolatedVaultId);
+
+        assertEq(vault.margin, 0);
+
+        // check liquidation reward
+        assertEq(usdc.balanceOf(liquidator), 400000);
+    }
+
     // liquidation call with interest paid
     function testLiquidationCallWithFee() public {
         vm.startPrank(user2);
@@ -145,5 +163,39 @@ contract TestControllerLiquidationCall is TestController {
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
     }
 
-    // TODO:liquidation partially
+    function testLiquidationCallPartially() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+
+        uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        vm.warp(block.timestamp + 1 hours);
+
+        vm.prank(liquidator);
+        controller.liquidationCall(vaultId, 5 * 1e17);
+
+        DataType.Vault memory vault = controller.getVault(vaultId);
+
+        assertEq(vault.margin, 79090000);
+
+        // check liquidation reward
+        assertEq(usdc.balanceOf(liquidator), 200000);
+    }
+
+    function testLiquidationCallPartially_IsolatedVault() public {
+        (uint256 isolatedVaultId,) = controller.openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+
+        uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        vm.warp(block.timestamp + 1 hours);
+
+        vm.prank(liquidator);
+        controller.liquidationCall(isolatedVaultId, 5 * 1e17);
+
+        DataType.Vault memory vault = controller.getVault(isolatedVaultId);
+
+        assertEq(vault.margin, 79090000);
+
+        // check liquidation reward
+        assertEq(usdc.balanceOf(liquidator), 200000);
+    }
 }

@@ -330,9 +330,12 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
 
-        uint256 penaltyAmount = LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
+        (uint256 penaltyAmount, bool isClosedAll) =
+            LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
 
-        VaultLib.removeIsolatedVaultId(ownVaultsMap[vault.owner], vault.id);
+        if (isClosedAll) {
+            VaultLib.removeIsolatedVaultId(ownVaultsMap[vault.owner], vault.id);
+        }
 
         if (penaltyAmount > 0) {
             TransferHelper.safeTransfer(assets[Constants.STABLE_ASSET_ID].token, msg.sender, penaltyAmount);

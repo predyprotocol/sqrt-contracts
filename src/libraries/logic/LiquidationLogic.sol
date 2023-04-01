@@ -35,7 +35,7 @@ library LiquidationLogic {
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
         uint256 _closeRatio
-    ) external returns (uint256 totalPenaltyAmount) {
+    ) external returns (uint256 totalPenaltyAmount, bool isClosedAll) {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         DataType.AssetStatus storage stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
@@ -53,15 +53,18 @@ library LiquidationLogic {
             totalPenaltyAmount += penaltyAmount;
         }
 
-        (_vault.margin, totalPenaltyAmount) = calculatePayableReward(_vault.margin, totalPenaltyAmount);
+        (_vault.margin, totalPenaltyAmount) =
+            calculatePayableReward(_vault.margin, totalPenaltyAmount * _closeRatio / Constants.ONE);
 
         // The vault must be safe after liquidation call
-        PositionCalculator.isSafe(_assets, _vault, true);
+        int256 minDeposit = PositionCalculator.isSafe(_assets, _vault, true);
+
+        isClosedAll = (minDeposit == 0);
 
         int256 withdrawnMarginAmount;
 
         // If the vault is isolated and margin is not negative, the contract moves vault's margin to the main vault.
-        if (_mainVault.id > 0 && _vault.id != _mainVault.id && _vault.margin > 0) {
+        if (isClosedAll && _mainVault.id > 0 && _vault.id != _mainVault.id && _vault.margin > 0) {
             withdrawnMarginAmount = _vault.margin;
 
             _mainVault.margin += _vault.margin;
