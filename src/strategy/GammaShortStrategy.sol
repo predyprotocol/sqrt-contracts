@@ -9,6 +9,7 @@ import "../interfaces/IStrategyVault.sol";
 import "../interfaces/IPredyTradeCallback.sol";
 import "./base/BaseStrategy.sol";
 import "../libraries/Constants.sol";
+import "../libraries/UniHelper.sol";
 import "../Reader.sol";
 
 /**
@@ -295,6 +296,12 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         require(finalDepositMargin <= _maxDepositAmount, "GSS2");
 
         _mint(_recepient, _strategyTokenAmount);
+
+        {
+            DataType.AssetStatus memory asset = controller.getAsset(assetId);
+
+            UniHelper.checkPriceByTWAP(asset.sqrtAssetStatus.uniswapPool);
+        }
 
         emit DepositedToStrategy(_recepient, _strategyTokenAmount, finalDepositMargin);
     }

@@ -78,6 +78,13 @@ library ScaledAsset {
         ScaledAsset.UserStatus storage userStatus,
         int256 _amount
     ) internal {
+        // Confirms fee has been settled before position updating.
+        if (userStatus.positionAmount > 0) {
+            require(userStatus.lastFeeGrowth == tokenStatus.assetGrowth, "S2");
+        } else if (userStatus.positionAmount < 0) {
+            require(userStatus.lastFeeGrowth == tokenStatus.debtGrowth, "S2");
+        }
+
         int256 openAmount;
         int256 closeAmount;
 

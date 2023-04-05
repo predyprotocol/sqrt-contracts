@@ -330,13 +330,31 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
 
-        uint256 penaltyAmount = LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
+        (uint256 penaltyAmount, bool isClosedAll) =
+            LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
 
-        VaultLib.removeIsolatedVaultId(ownVaultsMap[vault.owner], vault.id);
+        if (isClosedAll) {
+            VaultLib.removeIsolatedVaultId(ownVaultsMap[vault.owner], vault.id);
+        }
 
         if (penaltyAmount > 0) {
             TransferHelper.safeTransfer(assets[Constants.STABLE_ASSET_ID].token, msg.sender, penaltyAmount);
         }
+    }
+
+    /**
+     * @notice Settle user balance if the vault has rebalance position
+     * Anyone can call this function.
+     * @param _vaultId The id of vault
+     */
+    function settleUserBalance(uint256 _vaultId) external nonReentrant {
+        require(0 < _vaultId && _vaultId < vaultCount);
+
+        applyInterest();
+
+        (, bool isSettled) = settleUserFee(vaults[_vaultId]);
+
+        require(isSettled, "C6");
     }
 
     ///////////////////////
@@ -447,13 +465,16 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         ApplyInterestLogic.applyInterestForAssetGroup(assetGroup, assets);
     }
 
-    function settleUserFee(DataType.Vault storage _vault) internal returns (int256[] memory latestFees) {
+    function settleUserFee(DataType.Vault storage _vault)
+        internal
+        returns (int256[] memory latestFees, bool isSettled)
+    {
         return settleUserFee(_vault, 0);
     }
 
     function settleUserFee(DataType.Vault storage _vault, uint256 _excludeAssetId)
         internal
-        returns (int256[] memory latestFees)
+        returns (int256[] memory latestFees, bool isSettled)
     {
         return SettleUserFeeLogic.settleUserFee(assets, _vault, _excludeAssetId);
     }

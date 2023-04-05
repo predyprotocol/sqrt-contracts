@@ -39,6 +39,8 @@ contract TestControllerTradePerp is TestController {
     }
 
     function withdrawAll() internal {
+        vm.warp(block.timestamp + 1 hours);
+
         {
             DataType.Vault memory vault = controller.getVault(vaultId);
             for (uint256 i; i < vault.openPositions.length; i++) {
@@ -538,6 +540,21 @@ contract TestControllerTradePerp is TestController {
         withdrawAll();
     }
 
+    function testCannotTradeSqrt_IfOutOfRange() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
+
+        uniswapPool.swap(address(this), false, 7 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+        assertEq(currentTick, 1352);
+
+        TradeLogic.TradeParams memory tradeParams = getTradeParams(0, -100);
+
+        vm.expectRevert(bytes("P2"));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
+    }
+
     function testSqrtOutOfRange() public {
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
 
@@ -546,6 +563,8 @@ contract TestControllerTradePerp is TestController {
         (, int24 currentTick,,,,,) = uniswapPool.slot0();
 
         assertEq(currentTick, 1352);
+
+        controller.reallocate(WETH_ASSET_ID);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -100 * 1e6));
 
@@ -564,6 +583,8 @@ contract TestControllerTradePerp is TestController {
         (, int24 currentTick,,,,,) = uniswapPool.slot0();
 
         assertEq(currentTick, 1352);
+
+        controller.reallocate(WETH_ASSET_ID);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100 * 1e6, -100 * 1e6));
 
@@ -587,6 +608,8 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(currentTick, 1352);
 
+        controller.reallocate(WETH_ASSET_ID);
+
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
@@ -609,6 +632,8 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(currentTick, 1352);
 
+        controller.reallocate(WETH_ASSET_ID);
+
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 100 * 1e6));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
@@ -628,6 +653,8 @@ contract TestControllerTradePerp is TestController {
         assertEq(currentTick, 784);
 
         vm.warp(block.timestamp + 1 hours);
+
+        controller.reallocate(WETH_ASSET_ID);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 100 * 1e6));
 

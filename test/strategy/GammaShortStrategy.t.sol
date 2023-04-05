@@ -162,6 +162,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         vm.warp(block.timestamp + 1 days);
 
+        controller.reallocate(WETH_ASSET_ID);
+
         uint256 withdrawAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
@@ -171,7 +173,11 @@ contract TestGammaShortStrategy is TestBaseStrategy {
     function testDeposit4() public {
         uint256 finalDeposit1 = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
-        uniswapPool.swap(address(this), false, -50 * 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
+        uniswapPool.swap(address(this), false, -20 * 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        controller.reallocate(WETH_ASSET_ID);
+
+        vm.warp(block.timestamp + 1 hours);
 
         uint256 estimatedDepositAmount = quoter.quoteDeposit(1e10, address(this), 1e10, getStrategyTradeParams());
 
@@ -183,11 +189,11 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawAmount1 = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(finalDeposit1, 10000000000);
-        assertEq(finalDeposit2, 1377600000);
-        assertEq(estimatedDepositAmount, 1377600000);
+        assertEq(finalDeposit2, 8506350000);
+        assertEq(estimatedDepositAmount, 8506350000);
 
-        assertEq(withdrawAmount1, 1257550000);
-        assertEq(withdrawAmount2, 1257540000);
+        assertEq(withdrawAmount1, 8487570000);
+        assertEq(withdrawAmount2, 8487570000);
     }
 
     function testFrontrunnedDeposit() public {
@@ -248,14 +254,18 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         assertEq(currentTick, 2107);
 
+        controller.reallocate(WETH_ASSET_ID);
+
+        vm.warp(block.timestamp + 1 hours);
+
         uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e20, false, getStrategyTradeParams());
 
         vm.warp(block.timestamp + 1 days);
 
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
-        assertEq(depositMarginAmount, 9465460000);
-        assertEq(withdrawMarginAmount, 9457740000);
+        assertEq(depositMarginAmount, 9465440000);
+        assertEq(withdrawMarginAmount, 9457720000);
     }
 
     function testCannotDeltaHedge_IfCallerIsNotHedger() public {
@@ -282,14 +292,16 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
+        vm.warp(block.timestamp + 1 hours);
+
         uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         assertFalse(strategy.checkPriceHedge());
         assertTrue(strategy.checkTimeHedge());
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999973);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999972);
         strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
-        assertEq(reader.getDelta(2, strategy.vaultId()), -30);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -29);
 
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
@@ -297,8 +309,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         vm.warp(block.timestamp + 1 hours);
 
-        assertEq(depositMarginAmount, 9975920000);
-        assertEq(withdrawMarginAmount, 9974650000);
+        assertEq(depositMarginAmount, 9975910000);
+        assertEq(withdrawMarginAmount, 9974640000);
     }
 
     function testDeltaHedgeByTimePartially() public {
@@ -306,19 +318,21 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
+        vm.warp(block.timestamp + 1 hours);
+
         uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         assertFalse(strategy.checkPriceHedge());
         assertTrue(strategy.checkTimeHedge());
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999973);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999972);
         strategy.execDeltaHedge(getStrategyTradeParams(), 5 * 1e17);
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -1200000002);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -1200000000);
 
         strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -16);
+        assertEq(reader.getDelta(2, strategy.vaultId()), -15);
 
         assertFalse(strategy.checkTimeHedge());
     }
@@ -327,6 +341,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         strategy.updateHedgePriceThreshold(10120000000 * 1e8);
 
         uniswapPool.swap(address(this), false, -20 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        vm.warp(block.timestamp + 1 hours);
 
         strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
@@ -340,6 +356,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         strategy.updateHedgePriceThreshold(10120000000 * 1e8);
 
         uniswapPool.swap(address(this), true, 20 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        vm.warp(block.timestamp + 1 hours);
 
         strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 

@@ -36,6 +36,10 @@ library LPMath {
         uint256 _liquidityAmount,
         bool _isRoundUp
     ) internal pure returns (int256) {
+        if (_liquidityAmount == 0 || _sqrtRatioA == _sqrtRatioB) {
+            return 0;
+        }
+
         bool swaped = _sqrtRatioA > _sqrtRatioB;
 
         if (_sqrtRatioA > _sqrtRatioB) (_sqrtRatioA, _sqrtRatioB) = (_sqrtRatioB, _sqrtRatioA);
@@ -70,6 +74,10 @@ library LPMath {
         uint256 _liquidityAmount,
         bool _isRoundUp
     ) internal pure returns (int256) {
+        if (_liquidityAmount == 0 || _sqrtRatioA == _sqrtRatioB) {
+            return 0;
+        }
+
         bool swaped = _sqrtRatioA < _sqrtRatioB;
 
         if (_sqrtRatioA < _sqrtRatioB) (_sqrtRatioA, _sqrtRatioB) = (_sqrtRatioB, _sqrtRatioA);

@@ -83,4 +83,16 @@ library UniHelper {
 
         revert("e/empty-error");
     }
+
+    function checkPriceByTWAP(address _uniswapPool) internal view {
+        // reverts if price is out of slippage threshold
+        uint160 sqrtTwap = getSqrtTWAP(_uniswapPool);
+        uint256 sqrtPrice = getSqrtPrice(_uniswapPool);
+
+        require(
+            sqrtTwap * 1e6 / (1e6 + Constants.SLIPPAGE_SQRT_TOLERANCE) <= sqrtPrice
+                && sqrtPrice <= sqrtTwap * (1e6 + Constants.SLIPPAGE_SQRT_TOLERANCE) / 1e6,
+            "Slipped"
+        );
+    }
 }

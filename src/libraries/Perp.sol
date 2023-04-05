@@ -15,10 +15,12 @@ import "./Constants.sol";
 import "./UniHelper.sol";
 import "./math/LPMath.sol";
 import "./math/Math.sol";
+import "./Reallocation.sol";
 
 /*
  * Error Codes
  * P1: There is no enough SQRT liquidity.
+ * P2: Out of range
  */
 library Perp {
     using ScaledAsset for ScaledAsset.TokenStatus;
@@ -189,7 +191,8 @@ library Perp {
         );
 
         if (totalLiquidityAmount == 0) {
-            (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) = getNewRange(_assetStatusUnderlying, currentTick);
+            (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) =
+                Reallocation.getNewRange(_assetStatusUnderlying, _assetStatusStable, currentTick);
             return (false, 0);
         }
 
@@ -254,7 +257,8 @@ library Perp {
             receivedAmount1.safeCastTo128()
         );
 
-        (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) = getNewRange(_assetStatusUnderlying, _currentTick);
+        (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) =
+            Reallocation.getNewRange(_assetStatusUnderlying, _assetStatusStable, _currentTick);
 
         (uint256 requiredAmount0, uint256 requiredAmount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).mint(
             address(this), _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, _totalLiquidityAmount, ""
@@ -266,31 +270,6 @@ library Perp {
             int256(receivedAmount0) - int256(requiredAmount0),
             int256(receivedAmount1) - int256(requiredAmount1)
         );
-    }
-
-    function getNewRange(DataType.AssetStatus storage _assetStatusUnderlying, int24 _currentTick)
-        internal
-        view
-        returns (int24 lower, int24 upper)
-    {
-        int24 tickSpacing = IUniswapV3Pool(_assetStatusUnderlying.sqrtAssetStatus.uniswapPool).tickSpacing();
-
-        lower = calculateUsableTick(_currentTick - _assetStatusUnderlying.riskParams.rangeSize, tickSpacing);
-        upper = calculateUsableTick(_currentTick + _assetStatusUnderlying.riskParams.rangeSize, tickSpacing);
-    }
-
-    function calculateUsableTick(int24 _tick, int24 _tickSpacing) internal pure returns (int24 result) {
-        require(_tickSpacing > 0);
-
-        result = _tick;
-
-        if (result < TickMath.MIN_TICK) {
-            result = TickMath.MIN_TICK;
-        } else if (result > TickMath.MAX_TICK) {
-            result = TickMath.MAX_TICK;
-        }
-
-        result = (result / _tickSpacing) * _tickSpacing;
     }
 
     /**
@@ -357,18 +336,19 @@ library Perp {
         DataType.AssetStatus storage _underlyingAssetStatus,
         ScaledAsset.TokenStatus storage _stableAssetStatus,
         UserStatus storage _userStatus
-    ) internal {
+    ) internal returns (bool) {
         (int256 deltaPositionUnderlying, int256 deltaPositionStable) = updateRebalanceEntry(
             _underlyingAssetStatus.sqrtAssetStatus, _userStatus, _underlyingAssetStatus.isMarginZero
         );
+
+        if (deltaPositionUnderlying == 0 && deltaPositionStable == 0) {
+            return false;
+        }
 
         _userStatus.sqrtPerp.underlyingRebalanceEntryValue += deltaPositionUnderlying;
         _userStatus.sqrtPerp.stableRebalanceEntryValue += deltaPositionStable;
 
         // already settled fee
-
-        _underlyingAssetStatus.tokenStatus.updatePosition(_userStatus.underlying, deltaPositionUnderlying);
-        _stableAssetStatus.updatePosition(_userStatus.stable, deltaPositionStable);
 
         _underlyingAssetStatus.tokenStatus.updatePosition(
             _underlyingAssetStatus.sqrtAssetStatus.rebalancePositionUnderlying, -deltaPositionUnderlying
@@ -376,6 +356,11 @@ library Perp {
         _stableAssetStatus.updatePosition(
             _underlyingAssetStatus.sqrtAssetStatus.rebalancePositionStable, -deltaPositionStable
         );
+
+        _underlyingAssetStatus.tokenStatus.updatePosition(_userStatus.underlying, deltaPositionUnderlying);
+        _stableAssetStatus.updatePosition(_userStatus.stable, deltaPositionStable);
+
+        return true;
     }
 
     function updateFeeAndPremiumGrowth(
@@ -461,13 +446,15 @@ library Perp {
      * (L/sqrt{x}, L * sqrt{x})
      */
     function computeRequiredAmounts(
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        UserStatus storage _userStatus,
+        DataType.AssetStatus memory _underlyingAssetStatus,
+        UserStatus memory _userStatus,
         int256 _tradeSqrtAmount
     ) internal returns (int256 requiredAmountUnderlying, int256 requiredAmountStable) {
         if (_tradeSqrtAmount == 0) {
             return (0, 0);
         }
+
+        require(Reallocation.isInRange(_underlyingAssetStatus.sqrtAssetStatus), "P2");
 
         int256 requiredAmount0;
         int256 requiredAmount1;

@@ -34,4 +34,6 @@ library Constants {
     uint256 internal constant LIQ_SLIPPAGE_SQRT_SLOPE = 22;
     // 0.001
     uint256 internal constant LIQ_SLIPPAGE_SQRT_BASE = 1000;
+    // 2.5% scaled by 1e6
+    uint256 internal constant SLIPPAGE_SQRT_TOLERANCE = 12422;
 }
