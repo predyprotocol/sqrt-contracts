@@ -429,4 +429,10 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         vm.expectRevert();
         strategy.setOperator(address(0));
     }
+
+    function testCannotSetReader_IfCallerIsNotOperator() public {
+        vm.prank(user2);
+        vm.expectRevert(bytes("BaseStrategy: caller is not operator"));
+        strategy.setReader(address(reader));
+    }
 }

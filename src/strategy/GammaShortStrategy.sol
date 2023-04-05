@@ -25,7 +25,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     using SafeCast for uint256;
     using SafeCast for int256;
 
-    Reader internal reader;
+    Reader public reader;
 
     uint256 private constant SHARE_SCALER = 1e18;
 
@@ -44,6 +44,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     address public hedger;
 
     event HedgerUpdated(address newHedgerAddress);
+    event ReaderUpdated(address newReaderAddress);
     event DepositedToStrategy(address indexed account, uint256 strategyTokenAmount, uint256 depositedAmount);
     event WithdrawnFromStrategy(address indexed account, uint256 strategyTokenAmount, uint256 withdrawnAmount);
 
@@ -118,6 +119,14 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     ////////////////////////
     // Operator Functions //
     ////////////////////////
+
+    function setReader(address _reader) external onlyOperator {
+        require(_reader != address(0));
+
+        reader = Reader(_reader);
+
+        emit ReaderUpdated(_reader);
+    }
 
     /**
      * @notice Sets new hedger address
