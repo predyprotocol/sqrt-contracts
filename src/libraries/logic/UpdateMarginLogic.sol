@@ -12,6 +12,7 @@ library UpdateMarginLogic {
     event MarginUpdated(uint256 vaultId, int256 marginAmount);
 
     function updateMargin(
+        DataType.AssetGroup memory _assetGroup,
         mapping(uint256 => DataType.AssetStatus) storage _assets,
         DataType.Vault storage _vault,
         int256 _marginAmount
@@ -26,7 +27,7 @@ library UpdateMarginLogic {
 
         PositionCalculator.isSafe(_assets, _vault, false);
 
-        execMarginTransfer(_vault, getStableToken(_assets), _marginAmount);
+        execMarginTransfer(_vault, _assetGroup.stableTokenAddress, _marginAmount);
 
         emitEvent(_vault, _marginAmount);
     }
@@ -41,9 +42,5 @@ library UpdateMarginLogic {
 
     function emitEvent(DataType.Vault memory _vault, int256 _marginAmount) internal {
         emit MarginUpdated(_vault.id, _marginAmount);
-    }
-
-    function getStableToken(mapping(uint256 => DataType.AssetStatus) storage _assets) internal view returns (address) {
-        return _assets[Constants.STABLE_ASSET_ID].token;
     }
 }

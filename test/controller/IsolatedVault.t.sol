@@ -20,8 +20,8 @@ contract TestControllerIsolatedVault is TestController {
         vm.startPrank(user1);
         usdc.approve(address(controller), type(uint256).max);
         weth.approve(address(controller), type(uint256).max);
-        controller.supplyToken(1, 1e10);
-        controller.supplyToken(2, 1e10);
+        controller.supplyToken(1, 1e10, true);
+        controller.supplyToken(1, 1e10, false);
         vaultId1 = controller.updateMargin(1e10);
         vm.stopPrank();
 

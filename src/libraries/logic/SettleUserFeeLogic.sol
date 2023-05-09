@@ -26,12 +26,11 @@ library SettleUserFeeLogic {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             uint256 assetId = _vault.openPositions[i].assetId;
 
-            if (assetId == Constants.STABLE_ASSET_ID || assetId == _excludeAssetId) {
+            if (assetId == _excludeAssetId) {
                 continue;
             }
 
-            (int256 fee, bool isSettled) =
-                Trade.settleFee(_assets[assetId], _assets[Constants.STABLE_ASSET_ID], _vault.openPositions[i].perpTrade);
+            (int256 fee, bool isSettled) = Trade.settleFee(_assets[assetId], _vault.openPositions[i].perpTrade);
 
             isSettledTotal = isSettledTotal || isSettled;
 

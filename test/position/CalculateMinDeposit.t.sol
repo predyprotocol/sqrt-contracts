@@ -10,47 +10,9 @@ contract CalculateMinDepositTest is TestPositionCalculator {
     function setUp() public override {
         TestPositionCalculator.setUp();
 
-        assets[1] = DataType.AssetStatus(
-            1,
-            address(0),
-            address(0),
-            DataType.AssetRiskParams(0, 1000, 500),
-            ScaledAsset.createTokenStatus(),
-            Perp.createAssetStatus(address(0), -100, 100),
-            false,
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            block.timestamp,
-            0
-        );
-
-        assets[2] = DataType.AssetStatus(
-            2,
-            address(0),
-            address(0),
-            DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
-            ScaledAsset.createTokenStatus(),
-            Perp.createAssetStatus(address(uniswapPool), -100, 100),
-            false,
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            block.timestamp,
-            0
-        );
-
-        assets[3] = DataType.AssetStatus(
-            3,
-            address(0),
-            address(0),
-            DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
-            ScaledAsset.createTokenStatus(),
-            Perp.createAssetStatus(address(wbtcUniswapPool), -100, 100),
-            false,
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            block.timestamp,
-            0
-        );
+        assets[1] = createAssetStatus(1, address(0), address(0));
+        assets[2] = createAssetStatus(2, address(0), address(uniswapPool));
+        assets[3] = createAssetStatus(3, address(0), address(wbtcUniswapPool));
     }
 
     function getVault(int256 _amountStable, int256 _amountSquart, int256 _amountUnderlying, int256 _margin)

@@ -5,7 +5,7 @@ import "./ScaledAsset.sol";
 import "./DataType.sol";
 
 library AssetLib {
-    function checkUnderlyingAsset(uint256 _assetId, DataType.AssetStatus memory underlyingAsset) internal pure {
-        require(_assetId != Constants.STABLE_ASSET_ID && underlyingAsset.id > 0, "ASSETID");
+    function checkUnderlyingAsset(DataType.AssetStatus memory underlyingAsset) internal pure {
+        require(underlyingAsset.id > 0, "ASSETID");
     }
 }

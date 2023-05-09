@@ -4,34 +4,27 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "../src/libraries/Reallocation.sol";
 import "../src/libraries/InterestRateModel.sol";
+import "./helper/Helper.sol";
 
-contract ReallocationTest is Test {
+contract ReallocationTest is Test, Helper {
     DataType.AssetStatus underlyingAssetStatus;
-    ScaledAsset.TokenStatus stableAssetStatus;
+    ScaledAsset.TokenStatus stableScaledTokenStatus;
+    ScaledAsset.TokenStatus underlyingScaledTokenStatus;
 
     function setUp() public {
-        underlyingAssetStatus = DataType.AssetStatus(
-            1,
-            address(0),
-            address(0),
-            DataType.AssetRiskParams(0, 1000, 500),
-            ScaledAsset.createTokenStatus(),
-            Perp.createAssetStatus(address(0), -1000, 1000),
-            false,
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            block.timestamp,
-            0
-        );
+        underlyingAssetStatus = createAssetStatus(1, address(0), address(0));
+        underlyingAssetStatus.sqrtAssetStatus.tickLower = -1000;
+        underlyingAssetStatus.sqrtAssetStatus.tickUpper = 1000;
 
-        stableAssetStatus = ScaledAsset.createTokenStatus();
+        stableScaledTokenStatus = underlyingAssetStatus.stablePool.tokenStatus;
+        underlyingScaledTokenStatus = underlyingAssetStatus.underlyingPool.tokenStatus;
     }
 
     function testGetNewRange() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 0;
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, 0, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, 0, 10
         );
 
         assertEq(lower, -1000);
@@ -41,10 +34,10 @@ contract ReallocationTest is Test {
     function testGetNewRange_IfToken0() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 1e6;
 
-        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1e4);
+        ScaledAsset.addAsset(underlyingScaledTokenStatus, 1e4);
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, 500, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, 500, 10
         );
 
         assertEq(lower, -790);
@@ -54,10 +47,10 @@ contract ReallocationTest is Test {
     function testGetNewRange_IfToken0_Enough() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 1e6;
 
-        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1e6);
+        ScaledAsset.addAsset(underlyingScaledTokenStatus, 1e6);
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, 500, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, 500, 10
         );
 
         assertEq(lower, -500);
@@ -67,10 +60,10 @@ contract ReallocationTest is Test {
     function testGetNewRange_IfToken0_Min() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 1e6;
 
-        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1);
+        ScaledAsset.addAsset(underlyingScaledTokenStatus, 1);
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, 500, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, 500, 10
         );
 
         assertEq(lower, -990);
@@ -80,10 +73,10 @@ contract ReallocationTest is Test {
     function testGetNewRange_IfToken0_TooHigh() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 1e6;
 
-        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1);
+        ScaledAsset.addAsset(underlyingScaledTokenStatus, 1);
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, 1500, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, 1500, 10
         );
 
         assertEq(lower, 500);
@@ -93,10 +86,10 @@ contract ReallocationTest is Test {
     function testGetNewRange_IfToken1() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 1e6;
 
-        ScaledAsset.addAsset(stableAssetStatus, 1e4);
+        ScaledAsset.addAsset(stableScaledTokenStatus, 1e4);
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, -500, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, -500, 10
         );
 
         assertEq(lower, -1200);
@@ -106,10 +99,10 @@ contract ReallocationTest is Test {
     function testGetNewRange_IfToken1_Enough() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 1e6;
 
-        ScaledAsset.addAsset(stableAssetStatus, 1e6);
+        ScaledAsset.addAsset(stableScaledTokenStatus, 1e6);
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, -500, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, -500, 10
         );
 
         assertEq(lower, -1500);
@@ -119,10 +112,10 @@ contract ReallocationTest is Test {
     function testGetNewRange_IfToken1_TooLow() public {
         underlyingAssetStatus.sqrtAssetStatus.totalAmount = 1e6;
 
-        ScaledAsset.addAsset(stableAssetStatus, 1e4);
+        ScaledAsset.addAsset(stableScaledTokenStatus, 1e4);
 
         (int24 lower, int24 upper) = Reallocation._getNewRange(
-            underlyingAssetStatus, underlyingAssetStatus.tokenStatus, stableAssetStatus, -1500, 10
+            underlyingAssetStatus, underlyingScaledTokenStatus, stableScaledTokenStatus, -1500, 10
         );
 
         assertEq(lower, -2500);

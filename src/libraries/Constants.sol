@@ -2,8 +2,6 @@
 pragma solidity ^0.8.19;
 
 library Constants {
-    uint256 internal constant STABLE_ASSET_ID = 1;
-
     uint256 internal constant ONE = 1e18;
 
     // Reserve factor is 8%

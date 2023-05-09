@@ -14,16 +14,12 @@ contract TestControllerCallback is TestController {
         usdc.mint(user, type(uint128).max);
         weth.mint(user, type(uint128).max);
 
-        vm.prank(user);
+        vm.startPrank(user);
         usdc.approve(address(controller), type(uint256).max);
-
-        vm.prank(user);
         weth.approve(address(controller), type(uint256).max);
-
-        vm.prank(user);
-        controller.supplyToken(1, 1e10);
-        vm.prank(user);
-        controller.supplyToken(2, 1e10);
+        controller.supplyToken(1, 1e10, true);
+        controller.supplyToken(1, 1e10, false);
+        vm.stopPrank();
 
         vaultId = controller.updateMargin(1e8);
     }

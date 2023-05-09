@@ -8,10 +8,9 @@ import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/Transfer
 import "../../src/libraries/Perp.sol";
 import "../mocks/MockERC20.sol";
 import "../../src/libraries/InterestRateModel.sol";
+import "../helper/Helper.sol";
 
-contract TestPerp is Test {
-    uint256 internal constant RISK_RATIO = 109544511;
-
+contract TestPerp is Test, Helper {
     MockERC20 internal usdc;
     MockERC20 internal weth;
     address internal token0;
@@ -19,7 +18,6 @@ contract TestPerp is Test {
     IUniswapV3Pool internal uniswapPool;
 
     DataType.AssetStatus internal underlyingAssetStatus;
-    ScaledAsset.TokenStatus internal stableAssetStatus;
     Perp.UserStatus internal userStatus;
 
     function setUp() public virtual {
@@ -48,24 +46,12 @@ contract TestPerp is Test {
 
         uniswapPool.mint(address(this), -1000, 1000, 1000000, bytes(""));
 
-        underlyingAssetStatus = DataType.AssetStatus(
-            1,
-            address(weth),
-            address(0),
-            DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
-            ScaledAsset.createTokenStatus(),
-            Perp.createAssetStatus(address(uniswapPool), -100, 100),
-            !isTokenAToken0,
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-            block.timestamp,
-            0
-        );
-        stableAssetStatus = ScaledAsset.createTokenStatus();
+        underlyingAssetStatus = createAssetStatus(1, address(weth), address(uniswapPool));
+
         userStatus = Perp.createPerpUserStatus();
 
-        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1e8);
-        ScaledAsset.addAsset(stableAssetStatus, 1e8);
+        ScaledAsset.addAsset(underlyingAssetStatus.underlyingPool.tokenStatus, 1e8);
+        ScaledAsset.addAsset(underlyingAssetStatus.stablePool.tokenStatus, 1e8);
     }
 
     function uniswapV3MintCallback(uint256 amount0, uint256 amount1, bytes calldata) external {

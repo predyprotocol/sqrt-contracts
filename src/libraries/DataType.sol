@@ -7,8 +7,8 @@ import "./InterestRateModel.sol";
 
 library DataType {
     struct AssetGroup {
-        uint256 stableAssetId;
-        uint256[] assetIds;
+        address stableTokenAddress;
+        uint256 assetsCount;
     }
 
     struct OwnVaults {
@@ -19,7 +19,8 @@ library DataType {
     struct AddAssetParams {
         address uniswapPool;
         DataType.AssetRiskParams assetRiskParams;
-        InterestRateModel.IRMParams irmParams;
+        InterestRateModel.IRMParams stableIrmParams;
+        InterestRateModel.IRMParams underlyingIrmParams;
         InterestRateModel.IRMParams squartIRMParams;
     }
 
@@ -31,15 +32,20 @@ library DataType {
 
     struct AssetStatus {
         uint256 id;
-        address token;
-        address supplyTokenAddress;
+        AssetPoolStatus stablePool;
+        AssetPoolStatus underlyingPool;
         AssetRiskParams riskParams;
-        ScaledAsset.TokenStatus tokenStatus;
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
-        InterestRateModel.IRMParams irmParams;
         InterestRateModel.IRMParams squartIRMParams;
         uint256 lastUpdateTimestamp;
+    }
+
+    struct AssetPoolStatus {
+        address token;
+        address supplyTokenAddress;
+        ScaledAsset.TokenStatus tokenStatus;
+        InterestRateModel.IRMParams irmParams;
         uint256 accumulatedProtocolRevenue;
     }
 

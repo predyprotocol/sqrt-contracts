@@ -27,9 +27,9 @@ contract TestControllerLiquidationCall is TestController {
         weth.approve(address(controller), type(uint256).max);
 
         vm.prank(user2);
-        controller.supplyToken(1, 1e10);
+        controller.supplyToken(1, 1e10, true);
         vm.prank(user2);
-        controller.supplyToken(2, 1e10);
+        controller.supplyToken(1, 1e10, false);
 
         // create vault
         vaultId = controller.updateMargin(1e8);

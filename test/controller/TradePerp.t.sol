@@ -20,16 +20,13 @@ contract TestControllerTradePerp is TestController {
         usdc.mint(user2, type(uint128).max);
         weth.mint(user2, type(uint128).max);
 
-        vm.prank(user2);
+        vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-
-        vm.prank(user2);
         weth.approve(address(controller), type(uint256).max);
 
-        vm.prank(user2);
-        controller.supplyToken(1, 1e10);
-        vm.prank(user2);
-        controller.supplyToken(2, 1e10);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, false);
+        vm.stopPrank();
 
         // create vault
         vaultId = controller.updateMargin(1e10);
@@ -78,23 +75,18 @@ contract TestControllerTradePerp is TestController {
         }
 
         vm.prank(user2);
-        controller.withdrawToken(1, 1e18);
+        controller.withdrawToken(1, 1e18, true);
         vm.prank(user2);
-        controller.withdrawToken(2, 1e18);
+        controller.withdrawToken(1, 1e18, false);
 
         {
             DataType.AssetStatus memory asset = controller.getAsset(1);
 
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(1, asset.accumulatedProtocolRevenue);
-            }
-        }
-
-        {
-            DataType.AssetStatus memory asset = controller.getAsset(2);
-
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(2, asset.accumulatedProtocolRevenue);
+            if (asset.underlyingPool.accumulatedProtocolRevenue > 0 || asset.stablePool.accumulatedProtocolRevenue > 0)
+            {
+                controller.withdrawProtocolRevenue(
+                    1, asset.underlyingPool.accumulatedProtocolRevenue, asset.stablePool.accumulatedProtocolRevenue
+                );
             }
         }
 
@@ -168,11 +160,11 @@ contract TestControllerTradePerp is TestController {
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
     }
 
-    function testCannotTradePerp_IfAssetIdIsStable() public {
+    function testCannotTradePerp_IfAssetIdIsZero() public {
         TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
         vm.expectRevert(bytes("ASSETID"));
-        controller.tradePerp(vaultId, STABLE_ASSET_ID, tradeParams);
+        controller.tradePerp(vaultId, 0, tradeParams);
     }
 
     function testCannotTradePerp_IfAssetIdIsNotExisted() public {

@@ -15,8 +15,6 @@ library ReaderLogic {
         DataType.Vault storage _vault,
         uint256 _mainVaultId
     ) external view returns (DataType.VaultStatusResult memory) {
-        DataType.AssetStatus memory stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
-
         DataType.SubVaultStatusResult[] memory subVaults =
             new DataType.SubVaultStatusResult[](_vault.openPositions.length);
 
@@ -37,7 +35,7 @@ library ReaderLogic {
             }
 
             (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
-                PerpFee.computeUserFee(_assets[userStatus.assetId], stableAssetStatus.tokenStatus, userStatus.perpTrade);
+                PerpFee.computeUserFee(_assets[userStatus.assetId], userStatus.perpTrade);
 
             subVaults[i].unrealizedFee = PositionCalculator.calculateValue(
                 sqrtPrice, PositionCalculator.PositionParams(unrealizedFeeStable, 0, unrealizedFeeUnderlying)
@@ -61,7 +59,10 @@ library ReaderLogic {
      * @notice Gets utilization ratio
      */
     function getUtilizationRatio(DataType.AssetStatus memory _assetStatus) external pure returns (uint256, uint256) {
-        return (_assetStatus.sqrtAssetStatus.getUtilizationRatio(), _assetStatus.tokenStatus.getUtilizationRatio());
+        return (
+            _assetStatus.sqrtAssetStatus.getUtilizationRatio(),
+            _assetStatus.underlyingPool.tokenStatus.getUtilizationRatio()
+        );
     }
 
     // getInterest

@@ -23,21 +23,16 @@ contract TestControllerTradePerp is TestController {
         weth.mint(user2, type(uint128).max);
         wbtc.mint(user2, type(uint128).max);
 
-        vm.prank(user2);
+        vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-
-        vm.prank(user2);
         weth.approve(address(controller), type(uint256).max);
-
-        vm.prank(user2);
         wbtc.approve(address(controller), type(uint256).max);
 
-        vm.prank(user2);
-        controller.supplyToken(STABLE_ASSET_ID, 1e10);
-        vm.prank(user2);
-        controller.supplyToken(WETH_ASSET_ID, 1e10);
-        vm.prank(user2);
-        controller.supplyToken(WBTC_ASSET_ID, 1e10);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, false);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, true);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, false);
+        vm.stopPrank();
 
         // create vault
         vaultId = controller.updateMargin(1e10);
@@ -91,27 +86,24 @@ contract TestControllerTradePerp is TestController {
             controller.updateMargin(-margin);
         }
 
-        vm.prank(user2);
-        controller.withdrawToken(1, 1e18);
-        vm.prank(user2);
-        controller.withdrawToken(2, 1e18);
-
+        vm.startPrank(user2);
+        controller.withdrawToken(WETH_ASSET_ID, 1e18, true);
+        controller.withdrawToken(WETH_ASSET_ID, 1e18, false);
+        controller.withdrawToken(WBTC_ASSET_ID, 1e18, true);
+        controller.withdrawToken(WBTC_ASSET_ID, 1e18, false);
+        vm.stopPrank();
+        
         console.log(usdc.balanceOf(address(controller)));
         console.log(weth.balanceOf(address(controller)));
 
-        {
-            DataType.AssetStatus memory asset = controller.getAsset(1);
+        for (uint256 i = 1; i <= 2; i++) {
+            DataType.AssetStatus memory asset = controller.getAsset(i);
 
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(1, asset.accumulatedProtocolRevenue);
-            }
-        }
-
-        {
-            DataType.AssetStatus memory asset = controller.getAsset(2);
-
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(2, asset.accumulatedProtocolRevenue);
+            if (asset.underlyingPool.accumulatedProtocolRevenue > 0 || asset.stablePool.accumulatedProtocolRevenue > 0)
+            {
+                controller.withdrawProtocolRevenue(
+                    i, asset.underlyingPool.accumulatedProtocolRevenue, asset.stablePool.accumulatedProtocolRevenue
+                );
             }
         }
 
@@ -720,7 +712,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 125697303);
+        assertEq(vaultStatus.vaultValue, 125697330);
         assertEq(vaultStatus.minDeposit, 136761535);
 
         vm.prank(user2);
