@@ -22,8 +22,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         reader = new Reader(controller);
 
-        controller.supplyToken(1, 1e15);
-        controller.supplyToken(2, 1e15);
+        controller.supplyToken(WETH_ASSET_ID, 1e15, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e15, false);
 
         strategy = new GammaShortStrategy();
 
@@ -140,13 +140,13 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         }
 
         controller.tradePerp(
-            lpVaultId, 2, TradeLogic.TradeParams(1e8, -1e8, 0, type(uint160).max, block.timestamp, false, "")
+            lpVaultId, 1, TradeLogic.TradeParams(1e8, -1e8, 0, type(uint160).max, block.timestamp, false, "")
         );
 
         vm.warp(block.timestamp + 10 weeks);
 
         controller.tradePerp(
-            lpVaultId, 2, TradeLogic.TradeParams(-1e8, 1e8, 0, type(uint160).max, block.timestamp, false, "")
+            lpVaultId, 1, TradeLogic.TradeParams(-1e8, 1e8, 0, type(uint160).max, block.timestamp, false, "")
         );
 
         uint256 withdrawAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
@@ -299,9 +299,9 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertFalse(strategy.checkPriceHedge());
         assertTrue(strategy.checkTimeHedge());
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999972);
+        assertEq(reader.getDelta(WETH_ASSET_ID, strategy.vaultId()), -2399999972);
         strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
-        assertEq(reader.getDelta(2, strategy.vaultId()), -29);
+        assertEq(reader.getDelta(WETH_ASSET_ID, strategy.vaultId()), -29);
 
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
@@ -325,14 +325,14 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertFalse(strategy.checkPriceHedge());
         assertTrue(strategy.checkTimeHedge());
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -2399999972);
+        assertEq(reader.getDelta(WETH_ASSET_ID, strategy.vaultId()), -2399999972);
         strategy.execDeltaHedge(getStrategyTradeParams(), 5 * 1e17);
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -1200000000);
+        assertEq(reader.getDelta(WETH_ASSET_ID, strategy.vaultId()), -1200000000);
 
         strategy.execDeltaHedge(getStrategyTradeParams(), 1e18);
 
-        assertEq(reader.getDelta(2, strategy.vaultId()), -15);
+        assertEq(reader.getDelta(WETH_ASSET_ID, strategy.vaultId()), -15);
 
         assertFalse(strategy.checkTimeHedge());
     }

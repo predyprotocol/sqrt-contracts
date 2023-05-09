@@ -13,9 +13,8 @@ import "../mocks/MockERC20.sol";
 contract TestController is Test {
     uint256 internal constant RISK_RATIO = 109544511;
 
-    uint256 internal constant STABLE_ASSET_ID = 1;
-    uint256 internal constant WETH_ASSET_ID = 2;
-    uint256 internal constant WBTC_ASSET_ID = 3;
+    uint256 internal constant WETH_ASSET_ID = 1;
+    uint256 internal constant WBTC_ASSET_ID = 2;
 
     Controller internal controller;
     MockERC20 internal usdc;
@@ -117,13 +116,13 @@ contract TestController is Test {
         DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](2);
 
         addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
         );
         addAssetParams[1] = DataType.AddAssetParams(
-            address(wbtcUniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(wbtcUniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
         );
 
-        controller.initialize(address(usdc), irmParams, addAssetParams);
+        controller.initialize(address(usdc), addAssetParams);
     }
 
     function getTradeParamsWithTokenId(uint256 _tokenId, int256 _tradeAmount, int256 _tradeSqrtAmount)
@@ -161,6 +160,6 @@ contract TestController is Test {
     function getSupplyTokenAddress(uint256 _assetId) internal view returns (address supplyTokenAddress) {
         DataType.AssetStatus memory asset = controller.getAsset(_assetId);
 
-        return asset.supplyTokenAddress;
+        return asset.underlyingPool.supplyTokenAddress;
     }
 }

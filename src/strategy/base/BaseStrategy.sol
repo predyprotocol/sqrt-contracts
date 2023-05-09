@@ -48,9 +48,9 @@ contract BaseStrategy is ERC20Upgradeable {
 
         minPerValueLimit = _minPerValueLimit;
 
-        DataType.AssetStatus memory asset = controller.getAsset(Constants.STABLE_ASSET_ID);
+        DataType.AssetStatus memory asset = controller.getAsset(assetId);
 
-        usdc = asset.token;
+        usdc = asset.stablePool.token;
 
         operator = msg.sender;
     }

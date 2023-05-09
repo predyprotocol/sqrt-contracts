@@ -23,8 +23,8 @@ contract TestControllerUpdateMargin is TestController {
         vm.prank(user2);
         vaultId2 = controller.updateMargin(1000 * 1e6);
 
-        controller.supplyToken(1, 1e10);
-        controller.supplyToken(2, 1e10);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, false);
     }
 
     function testDepositMargin_IfAccountAlreadyHasMainVault() public {

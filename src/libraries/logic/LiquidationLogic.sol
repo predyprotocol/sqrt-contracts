@@ -38,8 +38,6 @@ library LiquidationLogic {
     ) external returns (uint256 totalPenaltyAmount, bool isClosedAll) {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
-        DataType.AssetStatus storage stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
-
         // The vault must be danger
         PositionCalculator.isDanger(_assets, _vault);
 
@@ -47,7 +45,7 @@ library LiquidationLogic {
             DataType.UserStatus storage userStatus = _vault.openPositions[i];
 
             (int256 totalPayoff, uint256 penaltyAmount) =
-                closePerp(_vault.id, _assets[userStatus.assetId], stableAssetStatus, userStatus.perpTrade, _closeRatio);
+                closePerp(_vault.id, _assets[userStatus.assetId], userStatus.perpTrade, _closeRatio);
 
             _vault.margin += totalPayoff;
             totalPenaltyAmount += penaltyAmount;
@@ -93,7 +91,6 @@ library LiquidationLogic {
     function closePerp(
         uint256 _vaultId,
         DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
         Perp.UserStatus storage _perpUserStatus,
         uint256 _closeRatio
     ) internal returns (int256 totalPayoff, uint256 penaltyAmount) {
@@ -104,7 +101,7 @@ library LiquidationLogic {
         uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
 
         DataType.TradeResult memory tradeResult =
-            TradeLogic.trade(_underlyingAssetStatus, _stableAssetStatus, _perpUserStatus, tradeAmount, tradeAmountSqrt);
+            TradeLogic.trade(_underlyingAssetStatus, _perpUserStatus, tradeAmount, tradeAmountSqrt);
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 

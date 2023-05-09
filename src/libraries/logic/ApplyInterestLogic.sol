@@ -25,10 +25,8 @@ library ApplyInterestLogic {
         DataType.AssetGroup storage _assetGroup,
         mapping(uint256 => DataType.AssetStatus) storage _assets
     ) external {
-        applyInterestForToken(_assets, Constants.STABLE_ASSET_ID);
-
-        for (uint256 i = 0; i < _assetGroup.assetIds.length; i++) {
-            applyInterestForToken(_assets, _assetGroup.assetIds[i]);
+        for (uint256 i = 1; i < _assetGroup.assetsCount; i++) {
+            applyInterestForToken(_assets, i);
         }
     }
 
@@ -41,33 +39,16 @@ library ApplyInterestLogic {
             return;
         }
 
-        if (_assetId != Constants.STABLE_ASSET_ID) {
-            _assets[Constants.STABLE_ASSET_ID].accumulatedProtocolRevenue += Perp.updateFeeAndPremiumGrowth(
-                assetStatus.sqrtAssetStatus,
-                assetStatus.squartIRMParams,
-                assetStatus.isMarginZero,
-                assetStatus.lastUpdateTimestamp
-            );
-        }
+        assetStatus.stablePool.accumulatedProtocolRevenue += Perp.updateFeeAndPremiumGrowth(
+            assetStatus.sqrtAssetStatus,
+            assetStatus.squartIRMParams,
+            assetStatus.isMarginZero,
+            assetStatus.lastUpdateTimestamp
+        );
 
-        // Gets utilization ratio
-        uint256 utilizationRatio = assetStatus.tokenStatus.getUtilizationRatio();
+        applyInterestForPoolStatus(assetStatus.underlyingPool, assetStatus.lastUpdateTimestamp);
 
-        if (utilizationRatio == 0) {
-            // Update last update timestamp
-            assetStatus.lastUpdateTimestamp = block.timestamp;
-
-            emitInterestGrowthEvent(assetStatus);
-
-            return;
-        }
-
-        // Calculates interest rate
-        uint256 interestRate = InterestRateModel.calculateInterestRate(assetStatus.irmParams, utilizationRatio)
-            * (block.timestamp - assetStatus.lastUpdateTimestamp) / 365 days;
-
-        // Update scaler
-        assetStatus.accumulatedProtocolRevenue += assetStatus.tokenStatus.updateScaler(interestRate);
+        applyInterestForPoolStatus(assetStatus.stablePool, assetStatus.lastUpdateTimestamp);
 
         // Update last update timestamp
         assetStatus.lastUpdateTimestamp = block.timestamp;
@@ -75,16 +56,34 @@ library ApplyInterestLogic {
         emitInterestGrowthEvent(assetStatus);
     }
 
+    function applyInterestForPoolStatus(DataType.AssetPoolStatus storage _poolStatus, uint256 _lastUpdateTimestamp)
+        internal
+    {
+        // Gets utilization ratio
+        uint256 utilizationRatio = _poolStatus.tokenStatus.getUtilizationRatio();
+
+        if (utilizationRatio == 0) {
+            return;
+        }
+
+        // Calculates interest rate
+        uint256 interestRate = InterestRateModel.calculateInterestRate(_poolStatus.irmParams, utilizationRatio)
+            * (block.timestamp - _lastUpdateTimestamp) / 365 days;
+
+        // Update scaler
+        _poolStatus.accumulatedProtocolRevenue += _poolStatus.tokenStatus.updateScaler(interestRate);
+    }
+
     function emitInterestGrowthEvent(DataType.AssetStatus memory _assetStatus) internal {
         emit InterestGrowthUpdated(
             _assetStatus.id,
-            _assetStatus.tokenStatus.assetGrowth,
-            _assetStatus.tokenStatus.debtGrowth,
+            _assetStatus.underlyingPool.tokenStatus.assetGrowth,
+            _assetStatus.underlyingPool.tokenStatus.debtGrowth,
             _assetStatus.sqrtAssetStatus.supplyPremiumGrowth,
             _assetStatus.sqrtAssetStatus.borrowPremiumGrowth,
             _assetStatus.sqrtAssetStatus.fee0Growth,
             _assetStatus.sqrtAssetStatus.fee1Growth,
-            _assetStatus.accumulatedProtocolRevenue
+            _assetStatus.underlyingPool.accumulatedProtocolRevenue
         );
     }
 
@@ -93,20 +92,18 @@ library ApplyInterestLogic {
         returns (bool reallocationHappened, int256 profit)
     {
         DataType.AssetStatus storage underlyingAsset = _assets[_assetId];
-        DataType.AssetStatus storage stableAsset = _assets[Constants.STABLE_ASSET_ID];
 
-        AssetLib.checkUnderlyingAsset(_assetId, underlyingAsset);
+        AssetLib.checkUnderlyingAsset(underlyingAsset);
 
-        (reallocationHappened, profit) =
-            Perp.reallocate(underlyingAsset, stableAsset.tokenStatus, underlyingAsset.sqrtAssetStatus, false);
+        (reallocationHappened, profit) = Perp.reallocate(underlyingAsset, underlyingAsset.sqrtAssetStatus, false);
 
         if (profit < 0) {
             address token;
 
             if (underlyingAsset.isMarginZero) {
-                token = underlyingAsset.token;
+                token = underlyingAsset.underlyingPool.token;
             } else {
-                token = stableAsset.token;
+                token = underlyingAsset.stablePool.token;
             }
 
             TransferHelper.safeTransferFrom(token, msg.sender, address(this), uint256(-profit));

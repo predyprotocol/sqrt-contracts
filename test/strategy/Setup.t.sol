@@ -13,8 +13,7 @@ import "../mocks/MockERC20.sol";
 contract TestBaseStrategy is Test {
     uint256 internal constant RISK_RATIO = 109544511;
 
-    uint256 internal constant STABLE_ASSET_ID = 1;
-    uint256 internal constant WETH_ASSET_ID = 2;
+    uint256 internal constant WETH_ASSET_ID = 1;
 
     Controller internal controller;
     MockERC20 internal usdc;
@@ -102,9 +101,9 @@ contract TestBaseStrategy is Test {
         DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](1);
 
         addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
         );
 
-        controller.initialize(address(usdc), irmParams, addAssetParams);
+        controller.initialize(address(usdc), addAssetParams);
     }
 }

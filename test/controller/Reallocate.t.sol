@@ -25,9 +25,10 @@ contract TestControllerReallocate is TestController {
         weth.approve(address(controller), type(uint256).max);
         wbtc.approve(address(controller), type(uint256).max);
 
-        controller.supplyToken(STABLE_ASSET_ID, 1e10);
-        controller.supplyToken(WETH_ASSET_ID, 1e10);
-        controller.supplyToken(WBTC_ASSET_ID, 1e10);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, false);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, true);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, false);
         vm.stopPrank();
 
         // create vault
@@ -57,7 +58,7 @@ contract TestControllerReallocate is TestController {
 
     function testCannotReallocateStableAsset() public {
         vm.expectRevert(bytes("ASSETID"));
-        controller.reallocate(STABLE_ASSET_ID);
+        controller.reallocate(0);
     }
 
     function testCannotReallocateInvalidAssetId() public {

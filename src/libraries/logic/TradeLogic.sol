@@ -39,19 +39,13 @@ library TradeLogic {
         TradeParams memory _tradeParams
     ) public returns (DataType.TradeResult memory tradeResult) {
         DataType.AssetStatus storage underlyingAssetStatus = _assets[_assetId];
-        DataType.AssetStatus storage stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
 
-        AssetLib.checkUnderlyingAsset(_assetId, underlyingAssetStatus);
+        AssetLib.checkUnderlyingAsset(underlyingAssetStatus);
 
         checkDeadline(_tradeParams.deadline);
 
-        tradeResult = trade(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            _userStatus.perpTrade,
-            _tradeParams.tradeAmount,
-            _tradeParams.tradeAmountSqrt
-        );
+        tradeResult =
+            trade(underlyingAssetStatus, _userStatus.perpTrade, _tradeParams.tradeAmount, _tradeParams.tradeAmountSqrt);
 
         _vault.margin += tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
@@ -67,7 +61,7 @@ library TradeLogic {
 
             _vault.margin += marginAmount;
 
-            UpdateMarginLogic.execMarginTransfer(_vault, stableAssetStatus.token, marginAmount);
+            UpdateMarginLogic.execMarginTransfer(_vault, underlyingAssetStatus.stablePool.token, marginAmount);
 
             UpdateMarginLogic.emitEvent(_vault, marginAmount);
         }
@@ -86,12 +80,11 @@ library TradeLogic {
 
     function trade(
         DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
     ) public returns (DataType.TradeResult memory) {
-        return Trade.trade(_underlyingAssetStatus, _stableAssetStatus, _perpUserStatus, _tradeAmount, _tradeAmountSqrt);
+        return Trade.trade(_underlyingAssetStatus, _perpUserStatus, _tradeAmount, _tradeAmountSqrt);
     }
 
     function checkDeadline(uint256 _deadline) internal view {

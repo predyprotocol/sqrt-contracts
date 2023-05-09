@@ -56,12 +56,17 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     event OperatorUpdated(address operator);
     event PairAdded(uint256 assetId, address _uniswapPool);
-    event AssetGroupInitialized(uint256 stableAssetId, uint256[] assetIds);
+    event AssetGroupInitialized(address stableAsset, uint256[] assetIds);
     event VaultCreated(uint256 vaultId, address owner, bool isMainVault);
-    event ProtocolRevenueWithdrawn(uint256 assetId, uint256 withdrawnProtocolFee);
+    event ProtocolRevenueWithdrawn(
+        uint256 assetId, uint256 withdrawnProtocolFeeStable, uint256 withdrawnProtocolFeeUnderlying
+    );
     event AssetRiskParamsUpdated(uint256 assetId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
-        uint256 assetId, InterestRateModel.IRMParams irmParams, InterestRateModel.IRMParams squartIRMParams
+        uint256 assetId,
+        InterestRateModel.IRMParams stableIrmParams,
+        InterestRateModel.IRMParams underlyingIrmParams,
+        InterestRateModel.IRMParams squartIRMParams
     );
 
     modifier onlyOperator() {
@@ -99,16 +104,15 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
     }
 
-    function initialize(
-        address _stableAssetAddress,
-        InterestRateModel.IRMParams memory _irmParams,
-        DataType.AddAssetParams[] memory _addAssetParams
-    ) public initializer {
+    function initialize(address _stableAssetAddress, DataType.AddAssetParams[] memory _addAssetParams)
+        public
+        initializer
+    {
         vaultCount = 1;
 
         operator = msg.sender;
 
-        initializeAssetGroup(_stableAssetAddress, _irmParams, _addAssetParams);
+        initializeAssetGroup(_stableAssetAddress, _addAssetParams);
     }
 
     /**
@@ -124,20 +128,42 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     }
 
     /**
+     * @notice Addes token pair
+     */
+    function addPair(DataType.AddAssetParams memory _addAssetParam) external onlyOperator returns (uint256) {
+        return _addPair(_addAssetParam);
+    }
+
+    /**
      * @notice Withdraws accumulated protocol revenue.
      * @dev Only operator can call this function.
-     * @param _amount amount of stable token to withdraw
+     * @param _underlyingAmount amount of underlying token to withdraw
+     * @param _stableAmount amount of stable token to withdraw
      */
-    function withdrawProtocolRevenue(uint256 _assetId, uint256 _amount) external onlyOperator {
-        require(_amount > 0 && assets[_assetId].accumulatedProtocolRevenue >= _amount, "C8");
+    function withdrawProtocolRevenue(uint256 _assetId, uint256 _underlyingAmount, uint256 _stableAmount)
+        external
+        onlyOperator
+    {
+        DataType.AssetStatus storage asset = assets[_assetId];
 
-        assets[_assetId].accumulatedProtocolRevenue -= _amount;
+        require(
+            asset.stablePool.accumulatedProtocolRevenue >= _stableAmount
+                && asset.underlyingPool.accumulatedProtocolRevenue >= _underlyingAmount,
+            "C8"
+        );
 
-        if (_amount > 0) {
-            TransferHelper.safeTransfer(assets[_assetId].token, msg.sender, _amount);
+        asset.stablePool.accumulatedProtocolRevenue -= _stableAmount;
+        asset.underlyingPool.accumulatedProtocolRevenue -= _underlyingAmount;
+
+        if (_stableAmount > 0) {
+            TransferHelper.safeTransfer(asset.stablePool.token, msg.sender, _stableAmount);
         }
 
-        emit ProtocolRevenueWithdrawn(_assetId, _amount);
+        if (_underlyingAmount > 0) {
+            TransferHelper.safeTransfer(asset.underlyingPool.token, msg.sender, _underlyingAmount);
+        }
+
+        emit ProtocolRevenueWithdrawn(_assetId, _stableAmount, _underlyingAmount);
     }
 
     /**
@@ -165,23 +191,27 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @notice Updates interest rate model parameters.
      * @dev The function can be called by operator.
      * @param _assetId The id of asset to update params.
-     * @param _irmParams Asset interest-rate parameters.
+     * @param _stableIrmParams Asset interest-rate parameters for stable.
+     * @param _underlyingIrmParams Asset interest-rate parameters for underlying.
      * @param _squartIRMParams Squart interest-rate parameters.
      */
     function updateIRMParams(
         uint256 _assetId,
-        InterestRateModel.IRMParams memory _irmParams,
+        InterestRateModel.IRMParams memory _stableIrmParams,
+        InterestRateModel.IRMParams memory _underlyingIrmParams,
         InterestRateModel.IRMParams memory _squartIRMParams
     ) external onlyOperator {
-        validateIRMParams(_irmParams);
+        validateIRMParams(_stableIrmParams);
+        validateIRMParams(_underlyingIrmParams);
         validateIRMParams(_squartIRMParams);
 
         DataType.AssetStatus storage asset = assets[_assetId];
 
-        asset.irmParams = _irmParams;
+        asset.stablePool.irmParams = _stableIrmParams;
+        asset.underlyingPool.irmParams = _underlyingIrmParams;
         asset.squartIRMParams = _squartIRMParams;
 
-        emit IRMParamsUpdated(_assetId, _irmParams, _squartIRMParams);
+        emit IRMParamsUpdated(_assetId, _stableIrmParams, _underlyingIrmParams, _squartIRMParams);
     }
 
     /**
@@ -198,29 +228,35 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @notice Supplys token and mints claim token
      * @param _assetId Asset id of the asset being supplied to the pool
      * @param _amount The amount of asset being supplied
+     * @param _isStable If true supplys to stable pool, if false supplys to underlying pool
      * @return finalMintAmount The amount of claim token being minted
      */
-    function supplyToken(uint256 _assetId, uint256 _amount) external nonReentrant returns (uint256 finalMintAmount) {
+    function supplyToken(uint256 _assetId, uint256 _amount, bool _isStable)
+        external
+        nonReentrant
+        returns (uint256 finalMintAmount)
+    {
         ApplyInterestLogic.applyInterestForToken(assets, _assetId);
 
-        return SupplyLogic.supply(assets[_assetId], _amount);
+        return SupplyLogic.supply(assets[_assetId], _amount, _isStable);
     }
 
     /**
      * @notice Withdraws token and burns claim token
      * @param _assetId Asset id of the asset being withdrawn from the pool
      * @param _amount The amount of asset being withdrawn
+     * @param _isStable If true supplys to stable pool, if false supplys to underlying pool
      * @return finalBurnAmount The amount of claim token being burned
      * @return finalWithdrawAmount The amount of token being withdrawn
      */
-    function withdrawToken(uint256 _assetId, uint256 _amount)
+    function withdrawToken(uint256 _assetId, uint256 _amount, bool _isStable)
         external
         nonReentrant
         returns (uint256 finalBurnAmount, uint256 finalWithdrawAmount)
     {
         ApplyInterestLogic.applyInterestForToken(assets, _assetId);
 
-        return SupplyLogic.withdraw(assets[_assetId], _amount);
+        return SupplyLogic.withdraw(assets[_assetId], _amount, _isStable);
     }
 
     /**
@@ -235,7 +271,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         DataType.Vault storage vault = vaults[vaultId];
 
-        UpdateMarginLogic.updateMargin(assets, vault, _marginAmount);
+        UpdateMarginLogic.updateMargin(assetGroup, assets, vault, _marginAmount);
     }
 
     /**
@@ -338,7 +374,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
 
         if (penaltyAmount > 0) {
-            TransferHelper.safeTransfer(assets[Constants.STABLE_ASSET_ID].token, msg.sender, penaltyAmount);
+            TransferHelper.safeTransfer(assetGroup.stableTokenAddress, msg.sender, penaltyAmount);
         }
     }
 
@@ -364,76 +400,63 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice Sets an asset group
      * @param _stableAssetAddress The address of stable asset
-     * @param _irmParams Interest rate model params for stable asset
      * @param _addAssetParams The list of asset parameters
-     * @return stableAssetId  New stable asset id
      * @return assetIds underlying asset ids
      */
-    function initializeAssetGroup(
-        address _stableAssetAddress,
-        InterestRateModel.IRMParams memory _irmParams,
-        DataType.AddAssetParams[] memory _addAssetParams
-    ) internal returns (uint256 stableAssetId, uint256[] memory assetIds) {
-        // add stable token
-        stableAssetId = Constants.STABLE_ASSET_ID;
-
-        _addPair(
-            stableAssetId,
-            _stableAssetAddress,
-            false,
-            address(0),
-            DataType.AssetRiskParams(0, 0, 0),
-            _irmParams,
-            InterestRateModel.IRMParams(0, 0, 0, 0)
-        );
-
-        assetGroup.setStableAssetId(stableAssetId);
+    function initializeAssetGroup(address _stableAssetAddress, DataType.AddAssetParams[] memory _addAssetParams)
+        internal
+        returns (uint256[] memory assetIds)
+    {
+        assetGroup.stableTokenAddress = _stableAssetAddress;
+        assetGroup.assetsCount = 1;
 
         assetIds = new uint256[](_addAssetParams.length);
 
         for (uint256 i; i < _addAssetParams.length; i++) {
-            assetIds[i] = addPair(i + 2, _addAssetParams[i]);
+            assetIds[i] = _addPair(_addAssetParams[i]);
         }
 
-        emit AssetGroupInitialized(stableAssetId, assetIds);
+        emit AssetGroupInitialized(_stableAssetAddress, assetIds);
     }
 
     /**
      * @notice add token pair
      */
-    function addPair(uint256 _assetId, DataType.AddAssetParams memory _addAssetParam) internal returns (uint256) {
+    function _addPair(DataType.AddAssetParams memory _addAssetParam) internal returns (uint256 assetId) {
+        assetId = assetGroup.assetsCount;
+
         IUniswapV3Pool uniswapPool = IUniswapV3Pool(_addAssetParam.uniswapPool);
 
-        address stableTokenAddress = assets[Constants.STABLE_ASSET_ID].token;
+        address stableTokenAddress = assetGroup.stableTokenAddress;
 
         require(uniswapPool.token0() == stableTokenAddress || uniswapPool.token1() == stableTokenAddress, "C3");
 
         bool isMarginZero = uniswapPool.token0() == stableTokenAddress;
 
-        _addPair(
-            _assetId,
+        _storePairStatus(
+            assetId,
             isMarginZero ? uniswapPool.token1() : uniswapPool.token0(),
             isMarginZero,
             _addAssetParam.uniswapPool,
             _addAssetParam.assetRiskParams,
-            _addAssetParam.irmParams,
+            _addAssetParam.stableIrmParams,
+            _addAssetParam.underlyingIrmParams,
             _addAssetParam.squartIRMParams
         );
 
-        assetGroup.appendTokenId(_assetId);
+        assetGroup.assetsCount++;
 
-        emit PairAdded(_assetId, _addAssetParam.uniswapPool);
-
-        return _assetId;
+        emit PairAdded(assetId, _addAssetParam.uniswapPool);
     }
 
-    function _addPair(
+    function _storePairStatus(
         uint256 _assetId,
         address _tokenAddress,
         bool _isMarginZero,
         address _uniswapPool,
         DataType.AssetRiskParams memory _assetRiskParams,
-        InterestRateModel.IRMParams memory _irmParams,
+        InterestRateModel.IRMParams memory _stableIrmParams,
+        InterestRateModel.IRMParams memory _underlyingIrmParams,
         InterestRateModel.IRMParams memory _squartIRMParams
     ) internal {
         if (_uniswapPool != address(0)) {
@@ -444,16 +467,25 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         assets[_assetId] = DataType.AssetStatus(
             _assetId,
-            _tokenAddress,
-            SupplyLogic.deploySupplyToken(_tokenAddress),
+            DataType.AssetPoolStatus(
+                assetGroup.stableTokenAddress,
+                SupplyLogic.deploySupplyToken(assetGroup.stableTokenAddress),
+                ScaledAsset.createTokenStatus(),
+                _stableIrmParams,
+                0
+            ),
+            DataType.AssetPoolStatus(
+                _tokenAddress,
+                SupplyLogic.deploySupplyToken(_tokenAddress),
+                ScaledAsset.createTokenStatus(),
+                _underlyingIrmParams,
+                0
+            ),
             _assetRiskParams,
-            ScaledAsset.createTokenStatus(),
             Perp.createAssetStatus(_uniswapPool, -_assetRiskParams.rangeSize, _assetRiskParams.rangeSize),
             _isMarginZero,
-            _irmParams,
             _squartIRMParams,
-            block.timestamp,
-            0
+            block.timestamp
         );
 
         if (_uniswapPool != address(0)) {

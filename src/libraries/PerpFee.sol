@@ -6,52 +6,51 @@ import "./Perp.sol";
 library PerpFee {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function computeUserFee(
-        DataType.AssetStatus memory _underlyingAssetStatus,
-        ScaledAsset.TokenStatus memory _stableAssetStatus,
-        Perp.UserStatus memory _userStatus
-    ) internal pure returns (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) {
-        unrealizedFeeUnderlying = _underlyingAssetStatus.tokenStatus.computeUserFee(_userStatus.underlying);
-        unrealizedFeeStable = _stableAssetStatus.computeUserFee(_userStatus.stable);
+    function computeUserFee(DataType.AssetStatus memory _assetStatus, Perp.UserStatus memory _userStatus)
+        internal
+        pure
+        returns (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable)
+    {
+        unrealizedFeeUnderlying = _assetStatus.underlyingPool.tokenStatus.computeUserFee(_userStatus.underlying);
+        unrealizedFeeStable = _assetStatus.stablePool.tokenStatus.computeUserFee(_userStatus.stable);
 
         {
             (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) =
-                computeRebalanceEntryFee(_underlyingAssetStatus.sqrtAssetStatus, _userStatus);
+                computeRebalanceEntryFee(_assetStatus.sqrtAssetStatus, _userStatus);
             unrealizedFeeUnderlying += rebalanceFeeUnderlying;
             unrealizedFeeStable += rebalanceFeeStable;
         }
 
         // settle premium
         {
-            int256 premium = computePremium(_underlyingAssetStatus, _userStatus.sqrtPerp);
+            int256 premium = computePremium(_assetStatus, _userStatus.sqrtPerp);
             unrealizedFeeStable += premium;
         }
 
         {
-            (int256 feeUnderlying, int256 feeStable) = computeTradeFee(_underlyingAssetStatus, _userStatus.sqrtPerp);
+            (int256 feeUnderlying, int256 feeStable) = computeTradeFee(_assetStatus, _userStatus.sqrtPerp);
             unrealizedFeeUnderlying += feeUnderlying;
             unrealizedFeeStable += feeStable;
         }
     }
 
-    function settleUserFee(
-        DataType.AssetStatus memory _underlyingAssetStatus,
-        ScaledAsset.TokenStatus memory _stableAssetStatus,
-        Perp.UserStatus storage _userStatus
-    ) internal returns (int256 totalFeeUnderlying, int256 totalFeeStable) {
+    function settleUserFee(DataType.AssetStatus memory _assetStatus, Perp.UserStatus storage _userStatus)
+        internal
+        returns (int256 totalFeeUnderlying, int256 totalFeeStable)
+    {
         // settle asset interest
-        totalFeeUnderlying = _underlyingAssetStatus.tokenStatus.settleUserFee(_userStatus.underlying);
-        totalFeeStable = _stableAssetStatus.settleUserFee(_userStatus.stable);
+        totalFeeUnderlying = _assetStatus.underlyingPool.tokenStatus.settleUserFee(_userStatus.underlying);
+        totalFeeStable = _assetStatus.stablePool.tokenStatus.settleUserFee(_userStatus.stable);
 
         // settle rebalance interest
         (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) =
-            settleRebalanceEntryFee(_underlyingAssetStatus.sqrtAssetStatus, _userStatus);
+            settleRebalanceEntryFee(_assetStatus.sqrtAssetStatus, _userStatus);
 
         // settle premium
-        int256 premium = settlePremium(_underlyingAssetStatus, _userStatus.sqrtPerp);
+        int256 premium = settlePremium(_assetStatus, _userStatus.sqrtPerp);
 
         // settle trade fee
-        (int256 feeUnderlying, int256 feeStable) = settleTradeFee(_underlyingAssetStatus, _userStatus.sqrtPerp);
+        (int256 feeUnderlying, int256 feeStable) = settleTradeFee(_assetStatus, _userStatus.sqrtPerp);
 
         totalFeeStable += feeStable + premium + rebalanceFeeStable;
         totalFeeUnderlying += feeUnderlying + rebalanceFeeUnderlying;

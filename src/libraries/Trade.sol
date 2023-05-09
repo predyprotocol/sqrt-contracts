@@ -12,20 +12,16 @@ import "./ScaledAsset.sol";
 library Trade {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function settleFee(
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
-        Perp.UserStatus storage _perpUserStatus
-    ) internal returns (int256 fee, bool isSettled) {
-        Perp.updateRebalanceFeeGrowth(
-            _underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus
-        );
+    function settleFee(DataType.AssetStatus storage _underlyingAssetStatus, Perp.UserStatus storage _perpUserStatus)
+        internal
+        returns (int256 fee, bool isSettled)
+    {
+        Perp.updateRebalanceFeeGrowth(_underlyingAssetStatus, _underlyingAssetStatus.sqrtAssetStatus);
 
         int256 underlyingFee;
         int256 stableFee;
 
-        (underlyingFee, stableFee, isSettled) =
-            settleUserBalanceAndFee(_underlyingAssetStatus, _stableAssetStatus.tokenStatus, _perpUserStatus);
+        (underlyingFee, stableFee, isSettled) = settleUserBalanceAndFee(_underlyingAssetStatus, _perpUserStatus);
 
         // swap
         SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
@@ -34,25 +30,21 @@ library Trade {
             _underlyingAssetStatus.isMarginZero
         );
 
-        fee = roundAndAddProtocolFee(_stableAssetStatus, stableFee + swapResult.fee);
+        fee = roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, stableFee + swapResult.fee);
     }
 
     function trade(
         DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
     ) internal returns (DataType.TradeResult memory tradeResult) {
-        Perp.updateRebalanceFeeGrowth(
-            _underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus
-        );
+        Perp.updateRebalanceFeeGrowth(_underlyingAssetStatus, _underlyingAssetStatus.sqrtAssetStatus);
 
         int256 underlyingFee;
         int256 stableFee;
 
-        (underlyingFee, stableFee,) =
-            settleUserBalanceAndFee(_underlyingAssetStatus, _stableAssetStatus.tokenStatus, _perpUserStatus);
+        (underlyingFee, stableFee,) = settleUserBalanceAndFee(_underlyingAssetStatus, _perpUserStatus);
 
         (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) =
             Perp.computeRequiredAmounts(_underlyingAssetStatus, _perpUserStatus, _tradeAmountSqrt);
@@ -67,35 +59,35 @@ library Trade {
         // update position
         tradeResult.payoff = Perp.updatePosition(
             _underlyingAssetStatus,
-            _stableAssetStatus.tokenStatus,
             _perpUserStatus,
             Perp.UpdatePerpParams(_tradeAmount, swapResult.amountPerp),
             Perp.UpdateSqrtPerpParams(_tradeAmountSqrt, swapResult.amountSqrtPerp + stableAmountForSqrt)
         );
 
-        tradeResult.payoff.perpPayoff = roundAndAddProtocolFee(_stableAssetStatus, tradeResult.payoff.perpPayoff);
-        tradeResult.payoff.sqrtPayoff = roundAndAddProtocolFee(_stableAssetStatus, tradeResult.payoff.sqrtPayoff);
+        tradeResult.payoff.perpPayoff =
+            roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, tradeResult.payoff.perpPayoff);
+        tradeResult.payoff.sqrtPayoff =
+            roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, tradeResult.payoff.sqrtPayoff);
 
-        tradeResult.fee = roundAndAddProtocolFee(_stableAssetStatus, stableFee + swapResult.fee);
+        tradeResult.fee = roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, stableFee + swapResult.fee);
     }
 
     function settleUserBalanceAndFee(
         DataType.AssetStatus storage _underlyingAssetStatus,
-        ScaledAsset.TokenStatus storage _stableAssetStatus,
         Perp.UserStatus storage _userStatus
     ) internal returns (int256 underlyingFee, int256 stableFee, bool isSettled) {
-        (underlyingFee, stableFee) = PerpFee.settleUserFee(_underlyingAssetStatus, _stableAssetStatus, _userStatus);
+        (underlyingFee, stableFee) = PerpFee.settleUserFee(_underlyingAssetStatus, _userStatus);
 
-        isSettled = Perp.settleUserBalance(_underlyingAssetStatus, _stableAssetStatus, _userStatus);
+        isSettled = Perp.settleUserBalance(_underlyingAssetStatus, _userStatus);
     }
 
-    function roundAndAddProtocolFee(DataType.AssetStatus storage _stableAssetStatus, int256 _amount)
+    function roundAndAddProtocolFee(DataType.AssetPoolStatus storage _stablePoolStatus, int256 _amount)
         internal
         returns (int256)
     {
         int256 rounded = roundMargin(_amount, Constants.MARGIN_ROUNDED_DECIMALS);
         if (_amount > rounded) {
-            _stableAssetStatus.accumulatedProtocolRevenue += uint256(_amount - rounded);
+            _stablePoolStatus.accumulatedProtocolRevenue += uint256(_amount - rounded);
         }
         return rounded;
     }

@@ -104,9 +104,7 @@ library PositionCalculator {
 
                 PositionParams memory positionParams;
                 if (_enableUnrealizedFeeCalculation) {
-                    positionParams = getPositionWithUnrealizedFee(
-                        _assets[Constants.STABLE_ASSET_ID], _assets[assetId], userStatus.perpTrade
-                    );
+                    positionParams = getPositionWithUnrealizedFee(_assets[assetId], userStatus.perpTrade);
                 } else {
                     positionParams = getPosition(userStatus.perpTrade);
                 }
@@ -130,12 +128,11 @@ library PositionCalculator {
     }
 
     function getPositionWithUnrealizedFee(
-        DataType.AssetStatus memory _stableAsset,
         DataType.AssetStatus memory _underlyingAsset,
         Perp.UserStatus memory _perpUserStatus
     ) internal pure returns (PositionParams memory positionParams) {
         (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
-            PerpFee.computeUserFee(_underlyingAsset, _stableAsset.tokenStatus, _perpUserStatus);
+            PerpFee.computeUserFee(_underlyingAsset, _perpUserStatus);
 
         return PositionParams(
             _perpUserStatus.perp.entryValue + _perpUserStatus.sqrtPerp.entryValue + unrealizedFeeStable,
