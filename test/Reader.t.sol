@@ -64,11 +64,23 @@ contract TestReader is TestController {
         assertEq(vaultStatus.minDeposit, 8000000);
     }
 
-    function testGetDelta() public {
-        vm.startPrank(user2);
-        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(100, 0));
+    function testGetDelta1() public {
+        vm.startPrank(user1);
+        controller.tradePerp(vaultId1, WETH_ASSET_ID, getTradeParams(-1000 * 1e6, 1000 * 1e6));
         vm.stopPrank();
 
-        assertEq(reader.getDelta(WETH_ASSET_ID, vaultId2), 100);
+        vm.startPrank(user2);
+        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(1000, -2000));
+        vm.stopPrank();
+
+        assertEq(reader.getDelta(WETH_ASSET_ID, vaultId2), -1000);
+    }
+
+    function testGetDelta2() public {
+        vm.startPrank(user2);
+        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(-1000, 2000));
+        vm.stopPrank();
+
+        assertEq(reader.getDelta(WETH_ASSET_ID, vaultId2), 999);
     }
 }

@@ -23,15 +23,9 @@ contract Reader {
     /**
      * @notice Gets vault delta.
      */
-    function getDelta(uint256 _tokenId, uint256 _vaultId) external view returns (int256 _delta) {
-        DataType.AssetStatus memory asset = controller.getAsset(_tokenId);
+    function getDelta(uint256 _assetId, uint256 _vaultId) external view returns (int256 _delta) {
+        DataType.AssetStatus memory asset = controller.getAsset(_assetId);
 
-        return ReaderLogic.getDelta(
-            asset.id,
-            asset.sqrtAssetStatus,
-            asset.isMarginZero,
-            controller.getVault(_vaultId),
-            controller.getSqrtPrice(_tokenId)
-        );
+        return ReaderLogic.getDelta(asset.id, controller.getVault(_vaultId), controller.getSqrtPrice(_assetId));
     }
 }

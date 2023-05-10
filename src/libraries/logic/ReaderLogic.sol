@@ -32,11 +32,8 @@ library ReaderLogic {
             subVaults[i].position = userStatus.perpTrade;
 
             {
-                (uint256 assetAmountUnderlying,, uint256 debtAmountUnderlying,) = Perp.getAmounts(
-                    _assets[userStatus.assetId].sqrtAssetStatus, userStatus.perpTrade, isMarginZero, sqrtPrice
-                );
-
-                subVaults[i].delta = int256(assetAmountUnderlying) - int256(debtAmountUnderlying);
+                subVaults[i].delta =
+                    calculateDelta(sqrtPrice, userStatus.perpTrade.sqrtPerp.amount, userStatus.perpTrade.perp.amount);
             }
 
             (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
@@ -69,22 +66,25 @@ library ReaderLogic {
 
     // getInterest
 
-    function getDelta(
-        uint256 _tokenId,
-        Perp.SqrtPerpAssetStatus memory _sqrtAssetStatus,
-        bool _isMarginZero,
-        DataType.Vault memory _vault,
-        uint160 _sqrtPrice
-    ) internal pure returns (int256 _delta) {
+    function getDelta(uint256 _assetId, DataType.Vault memory _vault, uint160 _sqrtPrice)
+        internal
+        pure
+        returns (int256 _delta)
+    {
         for (uint256 i; i < _vault.openPositions.length; i++) {
-            if (_tokenId != _vault.openPositions[i].assetId) {
+            if (_assetId != _vault.openPositions[i].assetId) {
                 continue;
             }
 
-            (uint256 assetAmountUnderlying,, uint256 debtAmountUnderlying,) =
-                Perp.getAmounts(_sqrtAssetStatus, _vault.openPositions[i].perpTrade, _isMarginZero, _sqrtPrice);
-
-            _delta += int256(assetAmountUnderlying) - int256(debtAmountUnderlying);
+            _delta += calculateDelta(
+                _sqrtPrice,
+                _vault.openPositions[i].perpTrade.sqrtPerp.amount,
+                _vault.openPositions[i].perpTrade.perp.amount
+            );
         }
+    }
+
+    function calculateDelta(uint256 _sqrtPrice, int256 _sqrtAmount, int256 perpAmount) internal pure returns (int256) {
+        return perpAmount + _sqrtAmount * int256(Constants.Q96) / int256(_sqrtPrice);
     }
 }
