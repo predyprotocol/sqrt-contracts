@@ -18,37 +18,42 @@ library IsolatedVaultLogic {
     event IsolatedVaultClosed(uint256 vaultId, uint256 isolatedVaultId, uint256 marginAmount);
 
     function openIsolatedVault(
-        DataType.PairGroup storage _assetGroup,
+        DataType.PairGroup storage _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         DataType.Vault storage _isolatedVault,
         uint256 _depositAmount,
         uint256 _pairId,
         TradeLogic.TradeParams memory _tradeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_assetGroup, _isolatedVault, _pairId);
+        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
 
         _vault.margin -= int256(_depositAmount);
         _isolatedVault.margin += int256(_depositAmount);
 
-        PositionCalculator.isSafe(_assets, _vault, false);
+        PositionCalculator.isSafe(_assets, _rebalanceFeeGrowthCache, _vault, false);
 
-        tradeResult = TradeLogic.execTrade(_assets, _isolatedVault, _pairId, perpUserStatus, _tradeParams);
+        tradeResult = TradeLogic.execTrade(
+            _assets, _rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _tradeParams
+        );
 
         emit IsolatedVaultOpened(_vault.id, _isolatedVault.id, _depositAmount);
     }
 
     function closeIsolatedVault(
-        DataType.PairGroup storage _assetGroup,
+        DataType.PairGroup storage _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         DataType.Vault storage _isolatedVault,
         uint256 _pairId,
         CloseParams memory _closeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_assetGroup, _isolatedVault, _pairId);
+        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
 
-        tradeResult = closeVault(_assets, _isolatedVault, _pairId, perpUserStatus, _closeParams);
+        tradeResult =
+            closeVault(_assets, rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _closeParams);
 
         // _isolatedVault.margin must be greater than 0
 
@@ -63,6 +68,7 @@ library IsolatedVaultLogic {
 
     function closeVault(
         mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint256 _pairId,
         DataType.UserStatus storage _userStatus,
@@ -73,6 +79,7 @@ library IsolatedVaultLogic {
 
         return TradeLogic.execTrade(
             _assets,
+            _rebalanceFeeGrowthCache,
             _vault,
             _pairId,
             _userStatus,

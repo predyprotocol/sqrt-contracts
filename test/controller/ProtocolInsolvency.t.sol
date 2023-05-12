@@ -86,7 +86,10 @@ contract TestControllerTradePerp is TestController {
             controller.updateMargin(-margin);
         }
 
-        DataType.PairStatus memory asset = controller.getAsset(2);
+        console.log(usdc.balanceOf(address(controller)));
+        console.log(weth.balanceOf(address(controller)));
+
+        DataType.PairStatus memory asset = controller.getAsset(1);
 
         vm.startPrank(user2);
         controller.withdrawToken(WETH_ASSET_ID, 1e18, true);
@@ -215,7 +218,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999280000);
+        assertEq(vault.margin, 9999260000);
 
         withdrawAll();
     }
@@ -723,23 +726,18 @@ contract TestControllerTradePerp is TestController {
         withdrawAll();
     }
 
-    function testCannotSettleUserBalance() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 200 * 1e6));
+    function testContinuousReallocation() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-15 * 1e6, 15 * 1e6));
 
-        uniswapPool.swap(address(this), false, 4 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+        for (uint256 i = 0; i < 2; i++) {
+            uniswapPool.swap(address(this), false, 37 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        {
             (bool reallocationHappened,) = controller.reallocate(WETH_ASSET_ID);
             assertTrue(reallocationHappened);
+
+            vm.warp(block.timestamp + 1 days);
         }
 
-        vm.warp(block.timestamp + 1 hours);
-
-        controller.settleUserBalance(vaultId);
-
-        vm.warp(block.timestamp + 1 hours);
-
-        vm.expectRevert(bytes("C6"));
-        controller.settleUserBalance(vaultId);
+        withdrawAll();
     }
 }

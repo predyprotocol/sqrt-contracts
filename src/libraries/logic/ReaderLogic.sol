@@ -12,6 +12,7 @@ library ReaderLogic {
 
     function getVaultStatus(
         mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint256 _mainVaultId
     ) external view returns (DataType.VaultStatusResult memory) {
@@ -35,14 +36,15 @@ library ReaderLogic {
             }
 
             (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
-                PerpFee.computeUserFee(_assets[userStatus.assetId], userStatus.perpTrade);
+                PerpFee.computeUserFee(_assets[userStatus.assetId], _rebalanceFeeGrowthCache, userStatus.perpTrade);
 
             subVaults[i].unrealizedFee = PositionCalculator.calculateValue(
                 sqrtPrice, PositionCalculator.PositionParams(unrealizedFeeStable, 0, unrealizedFeeUnderlying)
             );
         }
 
-        (int256 minDeposit, int256 vaultValue,) = PositionCalculator.calculateMinDeposit(_assets, _vault, true);
+        (int256 minDeposit, int256 vaultValue,) =
+            PositionCalculator.calculateMinDeposit(_assets, _rebalanceFeeGrowthCache, _vault, true);
 
         return DataType.VaultStatusResult(
             _vault.id,

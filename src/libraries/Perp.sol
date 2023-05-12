@@ -76,6 +76,8 @@ library Perp {
         ScaledAsset.UserStatus rebalancePositionStable;
         int256 rebalanceFeeGrowthUnderlying;
         int256 rebalanceFeeGrowthStable;
+        uint256 lastRebalanceTotalSquartAmount;
+        uint64 numRebalance;
     }
 
     struct UserStatus {
@@ -85,8 +87,7 @@ library Perp {
         ScaledAsset.UserStatus stable;
         int24 rebalanceLastTickLower;
         int24 rebalanceLastTickUpper;
-        int256 rebalanceEntryFeeUnderlying;
-        int256 rebalanceEntryFeeStable;
+        uint64 lastNumRebalance;
     }
 
     event Rebalanced(uint256 assetId, int24 tickLower, int24 tickUpper, int256 profit);
@@ -109,6 +110,8 @@ library Perp {
             ScaledAsset.createUserStatus(),
             ScaledAsset.createUserStatus(),
             0,
+            0,
+            0,
             0
         );
     }
@@ -121,7 +124,6 @@ library Perp {
             ScaledAsset.createUserStatus(),
             0,
             0,
-            0,
             0
         );
     }
@@ -131,15 +133,16 @@ library Perp {
         SqrtPerpAssetStatus storage _sqrtAssetStatus
     ) internal {
         // settle fee for rebalance position
-        if (_sqrtAssetStatus.totalAmount > 0) {
+        if (_sqrtAssetStatus.lastRebalanceTotalSquartAmount > 0) {
             _sqrtAssetStatus.rebalanceFeeGrowthUnderlying += _assetStatusUnderlying
                 .underlyingPool
                 .tokenStatus
-                .settleUserFee(_sqrtAssetStatus.rebalancePositionUnderlying) * 1e18 / int256(_sqrtAssetStatus.totalAmount);
+                .settleUserFee(_sqrtAssetStatus.rebalancePositionUnderlying) * 1e18
+                / int256(_sqrtAssetStatus.lastRebalanceTotalSquartAmount);
 
             _sqrtAssetStatus.rebalanceFeeGrowthStable += _assetStatusUnderlying.stablePool.tokenStatus.settleUserFee(
                 _sqrtAssetStatus.rebalancePositionStable
-            ) * 1e18 / int256(_sqrtAssetStatus.totalAmount);
+            ) * 1e18 / int256(_sqrtAssetStatus.lastRebalanceTotalSquartAmount);
         }
     }
 
@@ -174,7 +177,7 @@ library Perp {
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         bool _enableRevert
     ) internal returns (bool, int256 profit) {
-        updateRebalanceFeeGrowth(_assetStatusUnderlying, _sqrtAssetStatus);
+        // updateRebalanceFeeGrowth(_assetStatusUnderlying, _sqrtAssetStatus);
 
         (uint160 currentSqrtPrice, int24 currentTick,,,,,) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).slot0();
 

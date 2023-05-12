@@ -103,15 +103,30 @@ library ApplyInterestLogic {
         );
     }
 
-    function reallocate(mapping(uint256 => DataType.PairStatus) storage _assets, uint256 _pairId)
-        external
-        returns (bool reallocationHappened, int256 profit)
-    {
-        DataType.PairStatus storage underlyingAsset = _assets[_pairId];
+    function reallocate(
+        mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        uint256 _assetId
+    ) external returns (bool reallocationHappened, int256 profit) {
+        DataType.PairStatus storage underlyingAsset = _assets[_assetId];
 
         AssetLib.checkUnderlyingAsset(underlyingAsset);
 
+        // TODO
+        Perp.updateRebalanceFeeGrowth(underlyingAsset, underlyingAsset.sqrtAssetStatus);
+
         (reallocationHappened, profit) = Perp.reallocate(underlyingAsset, underlyingAsset.sqrtAssetStatus, false);
+
+        if (reallocationHappened) {
+            _rebalanceFeeGrowthCache[AssetLib.getRebalanceCacheId(
+                _assetId, underlyingAsset.sqrtAssetStatus.numRebalance
+            )] = DataType.RebalanceFeeGrowthCache(
+                underlyingAsset.sqrtAssetStatus.rebalanceFeeGrowthStable,
+                underlyingAsset.sqrtAssetStatus.rebalanceFeeGrowthUnderlying
+            );
+            underlyingAsset.sqrtAssetStatus.lastRebalanceTotalSquartAmount = underlyingAsset.sqrtAssetStatus.totalAmount;
+            underlyingAsset.sqrtAssetStatus.numRebalance++;
+        }
 
         if (profit < 0) {
             address token;

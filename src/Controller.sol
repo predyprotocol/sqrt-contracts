@@ -43,6 +43,8 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     mapping(uint256 => DataType.PairStatus) internal assets;
 
+    mapping(uint256 => DataType.RebalanceFeeGrowthCache) internal rebalanceFeeGrowthCache;
+
     mapping(uint256 => DataType.Vault) internal vaults;
 
     /// @dev account -> vaultId
@@ -224,7 +226,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     function reallocate(uint256 _pairId) external returns (bool, int256) {
         applyInterest();
 
-        return ApplyInterestLogic.reallocate(assets, _pairId);
+        return ApplyInterestLogic.reallocate(assets, rebalanceFeeGrowthCache, _pairId);
     }
 
     /**
@@ -274,7 +276,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         DataType.Vault storage vault = vaults[vaultId];
 
-        UpdateMarginLogic.updateMargin(assetGroup, assets, vault, _marginAmount);
+        UpdateMarginLogic.updateMargin(assetGroup, assets, rebalanceFeeGrowthCache, vault, _marginAmount);
     }
 
     /**
@@ -302,7 +304,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         isolatedVaultId = createVaultIfNeeded(0, msg.sender, false);
 
         tradeResult = IsolatedVaultLogic.openIsolatedVault(
-            assetGroup, assets, vault, vaults[isolatedVaultId], _depositAmount, _pairId, _tradeParams
+            assetGroup,
+            assets,
+            rebalanceFeeGrowthCache,
+            vault,
+            vaults[isolatedVaultId],
+            _depositAmount,
+            _pairId,
+            _tradeParams
         );
     }
 
@@ -327,8 +336,9 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         applyInterest();
 
-        tradeResult =
-            IsolatedVaultLogic.closeIsolatedVault(assetGroup, assets, vault, isolatedVault, _pairId, _closeParams);
+        tradeResult = IsolatedVaultLogic.closeIsolatedVault(
+            assetGroup, assets, rebalanceFeeGrowthCache, vault, isolatedVault, _pairId, _closeParams
+        );
 
         VaultLib.removeIsolatedVaultId(ownVaultsMap[msg.sender], isolatedVault.id);
     }
@@ -351,7 +361,9 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         applyInterest();
         settleUserFee(vaults[_vaultId], _pairId);
 
-        return TradeLogic.execTrade(assets, vaults[_vaultId], _pairId, perpUserStatus, _tradeParams);
+        return TradeLogic.execTrade(
+            assets, rebalanceFeeGrowthCache, vaults[_vaultId], _pairId, perpUserStatus, _tradeParams
+        );
     }
 
     /**
@@ -369,8 +381,9 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
 
-        (uint256 penaltyAmount, bool isClosedAll) =
-            LiquidationLogic.execLiquidationCall(assets, vault, vaults[mainVaultId], _closeRatio);
+        (uint256 penaltyAmount, bool isClosedAll) = LiquidationLogic.execLiquidationCall(
+            assets, rebalanceFeeGrowthCache, vault, vaults[mainVaultId], _closeRatio
+        );
 
         if (isClosedAll) {
             VaultLib.removeIsolatedVaultId(ownVaultsMap[vault.owner], vault.id);
@@ -379,21 +392,6 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         if (penaltyAmount > 0) {
             TransferHelper.safeTransfer(assetGroup.stableTokenAddress, msg.sender, penaltyAmount);
         }
-    }
-
-    /**
-     * @notice Settle user balance if the vault has rebalance position
-     * Anyone can call this function.
-     * @param _vaultId The id of vault
-     */
-    function settleUserBalance(uint256 _vaultId) external nonReentrant {
-        require(0 < _vaultId && _vaultId < vaultCount);
-
-        applyInterest();
-
-        (, bool isSettled) = settleUserFee(vaults[_vaultId]);
-
-        require(isSettled, "C6");
     }
 
     ///////////////////////
@@ -500,18 +498,15 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         ApplyInterestLogic.applyInterestForAssetGroup(assetGroup, assets);
     }
 
-    function settleUserFee(DataType.Vault storage _vault)
-        internal
-        returns (int256[] memory latestFees, bool isSettled)
-    {
+    function settleUserFee(DataType.Vault storage _vault) internal returns (int256[] memory latestFees) {
         return settleUserFee(_vault, 0);
     }
 
     function settleUserFee(DataType.Vault storage _vault, uint256 _excludeAssetId)
         internal
-        returns (int256[] memory latestFees, bool isSettled)
+        returns (int256[] memory latestFees)
     {
-        return SettleUserFeeLogic.settleUserFee(assets, _vault, _excludeAssetId);
+        return SettleUserFeeLogic.settleUserFee(assets, rebalanceFeeGrowthCache, _vault, _excludeAssetId);
     }
 
     function createVaultIfNeeded(uint256 _vaultId, address _caller, bool _isMainVault)
@@ -579,7 +574,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         DataType.Vault storage vault = vaults[_vaultId];
 
-        return ReaderLogic.getVaultStatus(assets, vault, ownVaultsMap[vault.owner].mainVaultId);
+        return ReaderLogic.getVaultStatus(assets, rebalanceFeeGrowthCache, vault, ownVaultsMap[vault.owner].mainVaultId);
     }
 
     /**
@@ -598,12 +593,16 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             new DataType.VaultStatusResult[](ownVaults.isolatedVaultIds.length);
 
         for (uint256 i; i < ownVaults.isolatedVaultIds.length; i++) {
-            vaultStatusResults[i] =
-                ReaderLogic.getVaultStatus(assets, vaults[ownVaults.isolatedVaultIds[i]], ownVaults.mainVaultId);
+            vaultStatusResults[i] = ReaderLogic.getVaultStatus(
+                assets, rebalanceFeeGrowthCache, vaults[ownVaults.isolatedVaultIds[i]], ownVaults.mainVaultId
+            );
         }
 
         return (
-            ReaderLogic.getVaultStatus(assets, vaults[ownVaults.mainVaultId], ownVaults.mainVaultId), vaultStatusResults
+            ReaderLogic.getVaultStatus(
+                assets, rebalanceFeeGrowthCache, vaults[ownVaults.mainVaultId], ownVaults.mainVaultId
+                ),
+            vaultStatusResults
         );
     }
 

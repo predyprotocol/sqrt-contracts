@@ -12,16 +12,18 @@ import "./ScaledAsset.sol";
 library Trade {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function settleFee(DataType.PairStatus storage _underlyingAssetStatus, Perp.UserStatus storage _perpUserStatus)
-        internal
-        returns (int256 fee, bool isSettled)
-    {
+    function settleFee(
+        DataType.PairStatus storage _underlyingAssetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        Perp.UserStatus storage _perpUserStatus
+    ) internal returns (int256 fee) {
         Perp.updateRebalanceFeeGrowth(_underlyingAssetStatus, _underlyingAssetStatus.sqrtAssetStatus);
 
         int256 underlyingFee;
         int256 stableFee;
 
-        (underlyingFee, stableFee, isSettled) = settleUserBalanceAndFee(_underlyingAssetStatus, _perpUserStatus);
+        (underlyingFee, stableFee) =
+            settleUserBalanceAndFee(_underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
 
         // swap
         SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
@@ -35,6 +37,7 @@ library Trade {
 
     function trade(
         DataType.PairStatus storage _underlyingAssetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
@@ -44,7 +47,8 @@ library Trade {
         int256 underlyingFee;
         int256 stableFee;
 
-        (underlyingFee, stableFee,) = settleUserBalanceAndFee(_underlyingAssetStatus, _perpUserStatus);
+        (underlyingFee, stableFee) =
+            settleUserBalanceAndFee(_underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
 
         (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) =
             Perp.computeRequiredAmounts(_underlyingAssetStatus, _perpUserStatus, _tradeAmountSqrt);
@@ -74,11 +78,13 @@ library Trade {
 
     function settleUserBalanceAndFee(
         DataType.PairStatus storage _underlyingAssetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         Perp.UserStatus storage _userStatus
-    ) internal returns (int256 underlyingFee, int256 stableFee, bool isSettled) {
-        (underlyingFee, stableFee) = PerpFee.settleUserFee(_underlyingAssetStatus, _userStatus);
+    ) internal returns (int256 underlyingFee, int256 stableFee) {
+        // settle rebalance fee if settle balance happens
+        (underlyingFee, stableFee) = PerpFee.settleUserFee(_underlyingAssetStatus, rebalanceFeeGrowthCache, _userStatus);
 
-        isSettled = Perp.settleUserBalance(_underlyingAssetStatus, _userStatus);
+        Perp.settleUserBalance(_underlyingAssetStatus, _userStatus);
     }
 
     function roundAndAddProtocolFee(DataType.AssetPoolStatus storage _stablePoolStatus, int256 _amount)

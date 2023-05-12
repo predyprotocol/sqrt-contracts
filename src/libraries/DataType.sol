@@ -61,6 +61,11 @@ library DataType {
         Perp.UserStatus perpTrade;
     }
 
+    struct RebalanceFeeGrowthCache {
+        int256 stableGrowth;
+        int256 underlyingGrowth;
+    }
+
     struct AssetParams {
         uint256 assetGroupId;
         uint256 assetId;
