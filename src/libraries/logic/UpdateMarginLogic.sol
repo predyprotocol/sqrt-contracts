@@ -14,18 +14,19 @@ library UpdateMarginLogic {
     function updateMargin(
         DataType.PairGroup memory _assetGroup,
         mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         int256 _marginAmount
     ) external {
         VaultLib.checkVault(_vault, msg.sender);
         // settle user fee and balance
         if (_marginAmount < 0) {
-            SettleUserFeeLogic.settleUserFee(_assets, _vault);
+            SettleUserFeeLogic.settleUserFee(_assets, _rebalanceFeeGrowthCache, _vault);
         }
 
         _vault.margin += _marginAmount;
 
-        PositionCalculator.isSafe(_assets, _vault, false);
+        PositionCalculator.isSafe(_assets, _rebalanceFeeGrowthCache, _vault, false);
 
         execMarginTransfer(_vault, _assetGroup.stableTokenAddress, _marginAmount);
 

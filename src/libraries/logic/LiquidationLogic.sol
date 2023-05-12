@@ -32,6 +32,7 @@ library LiquidationLogic {
 
     function execLiquidationCall(
         mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
         uint256 _closeRatio
@@ -39,13 +40,14 @@ library LiquidationLogic {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         // The vault must be danger
-        PositionCalculator.isDanger(_assets, _vault);
+        PositionCalculator.isDanger(_assets, _rebalanceFeeGrowthCache, _vault);
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             DataType.UserStatus storage userStatus = _vault.openPositions[i];
 
-            (int256 totalPayoff, uint256 penaltyAmount) =
-                closePerp(_vault.id, _assets[userStatus.assetId], userStatus.perpTrade, _closeRatio);
+            (int256 totalPayoff, uint256 penaltyAmount) = closePerp(
+                _vault.id, _assets[userStatus.assetId], _rebalanceFeeGrowthCache, userStatus.perpTrade, _closeRatio
+            );
 
             _vault.margin += totalPayoff;
             totalPenaltyAmount += penaltyAmount;
@@ -55,7 +57,7 @@ library LiquidationLogic {
             calculatePayableReward(_vault.margin, totalPenaltyAmount * _closeRatio / Constants.ONE);
 
         // The vault must be safe after liquidation call
-        int256 minDeposit = PositionCalculator.isSafe(_assets, _vault, true);
+        int256 minDeposit = PositionCalculator.isSafe(_assets, _rebalanceFeeGrowthCache, _vault, true);
 
         isClosedAll = (minDeposit == 0);
 
@@ -91,6 +93,7 @@ library LiquidationLogic {
     function closePerp(
         uint256 _vaultId,
         DataType.PairStatus storage _underlyingAssetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
         uint256 _closeRatio
     ) internal returns (int256 totalPayoff, uint256 penaltyAmount) {
@@ -100,8 +103,9 @@ library LiquidationLogic {
         uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
         uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
 
-        DataType.TradeResult memory tradeResult =
-            TradeLogic.trade(_underlyingAssetStatus, _perpUserStatus, tradeAmount, tradeAmountSqrt);
+        DataType.TradeResult memory tradeResult = TradeLogic.trade(
+            _underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt
+        );
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 

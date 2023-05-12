@@ -8,18 +8,20 @@ import "../UniHelper.sol";
 library SettleUserFeeLogic {
     event FeeCollected(uint256 vaultId, uint256 assetId, int256 feeCollected);
 
-    function settleUserFee(mapping(uint256 => DataType.PairStatus) storage _assets, DataType.Vault storage _vault)
-        external
-        returns (int256[] memory latestFees, bool isSettled)
-    {
-        return settleUserFee(_assets, _vault, 0);
+    function settleUserFee(
+        mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault storage _vault
+    ) external returns (int256[] memory latestFees) {
+        return settleUserFee(_assets, _rebalanceFeeGrowthCache, _vault, 0);
     }
 
     function settleUserFee(
         mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint256 _excludeAssetId
-    ) public returns (int256[] memory latestFees, bool isSettledTotal) {
+    ) public returns (int256[] memory latestFees) {
         latestFees = new int256[](_vault.openPositions.length);
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
@@ -29,9 +31,7 @@ library SettleUserFeeLogic {
                 continue;
             }
 
-            (int256 fee, bool isSettled) = Trade.settleFee(_assets[assetId], _vault.openPositions[i].perpTrade);
-
-            isSettledTotal = isSettledTotal || isSettled;
+            int256 fee = Trade.settleFee(_assets[assetId], _rebalanceFeeGrowthCache, _vault.openPositions[i].perpTrade);
 
             latestFees[i] = fee;
 

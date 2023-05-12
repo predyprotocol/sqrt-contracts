@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
+import "./AssetLib.sol";
 import "./Perp.sol";
 
 library PerpFee {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function computeUserFee(DataType.PairStatus memory _assetStatus, Perp.UserStatus memory _userStatus)
-        internal
-        pure
-        returns (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable)
-    {
+    function computeUserFee(
+        DataType.PairStatus memory _assetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        Perp.UserStatus memory _userStatus
+    ) internal view returns (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) {
         unrealizedFeeUnderlying = _assetStatus.underlyingPool.tokenStatus.computeUserFee(_userStatus.underlying);
         unrealizedFeeStable = _assetStatus.stablePool.tokenStatus.computeUserFee(_userStatus.stable);
 
         {
-            (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) =
-                computeRebalanceEntryFee(_assetStatus.sqrtAssetStatus, _userStatus);
+            (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) = computeRebalanceEntryFee(
+                _assetStatus.id, _assetStatus.sqrtAssetStatus, _rebalanceFeeGrowthCache, _userStatus
+            );
             unrealizedFeeUnderlying += rebalanceFeeUnderlying;
             unrealizedFeeStable += rebalanceFeeStable;
         }
@@ -34,17 +36,19 @@ library PerpFee {
         }
     }
 
-    function settleUserFee(DataType.PairStatus memory _assetStatus, Perp.UserStatus storage _userStatus)
-        internal
-        returns (int256 totalFeeUnderlying, int256 totalFeeStable)
-    {
+    function settleUserFee(
+        DataType.PairStatus memory _assetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        Perp.UserStatus storage _userStatus
+    ) internal returns (int256 totalFeeUnderlying, int256 totalFeeStable) {
         // settle asset interest
         totalFeeUnderlying = _assetStatus.underlyingPool.tokenStatus.settleUserFee(_userStatus.underlying);
         totalFeeStable = _assetStatus.stablePool.tokenStatus.settleUserFee(_userStatus.stable);
 
         // settle rebalance interest
-        (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) =
-            settleRebalanceEntryFee(_assetStatus.sqrtAssetStatus, _userStatus);
+        (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) = settleRebalanceEntryFee(
+            _assetStatus.id, _assetStatus.sqrtAssetStatus, _rebalanceFeeGrowthCache, _userStatus
+        );
 
         // settle premium
         int256 premium = settlePremium(_assetStatus, _userStatus.sqrtPerp);
@@ -126,29 +130,41 @@ library PerpFee {
 
     // Rebalance fee
 
-    function computeRebalanceEntryFee(Perp.SqrtPerpAssetStatus memory _assetStatus, Perp.UserStatus memory _userStatus)
-        internal
-        pure
-        returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable)
-    {
-        if (_userStatus.sqrtPerp.amount > 0) {
-            rebalanceFeeUnderlying = (
-                _assetStatus.rebalanceFeeGrowthUnderlying - _userStatus.rebalanceEntryFeeUnderlying
-            ) * _userStatus.sqrtPerp.amount / int256(Constants.ONE);
+    function computeRebalanceEntryFee(
+        uint256 _assetId,
+        Perp.SqrtPerpAssetStatus memory _assetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        Perp.UserStatus memory _userStatus
+    ) internal view returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) {
+        if (_userStatus.sqrtPerp.amount > 0 && _userStatus.lastNumRebalance < _assetStatus.numRebalance) {
+            uint256 rebalanceId = AssetLib.getRebalanceCacheId(_assetId, _userStatus.lastNumRebalance);
 
-            rebalanceFeeStable = (_assetStatus.rebalanceFeeGrowthStable - _userStatus.rebalanceEntryFeeStable)
-                * _userStatus.sqrtPerp.amount / int256(Constants.ONE);
+            rebalanceFeeUnderlying = Math.mulDivDownInt256(
+                _assetStatus.rebalanceFeeGrowthUnderlying - _rebalanceFeeGrowthCache[rebalanceId].underlyingGrowth,
+                _userStatus.sqrtPerp.amount,
+                Constants.ONE
+            );
+            rebalanceFeeStable = Math.mulDivDownInt256(
+                _assetStatus.rebalanceFeeGrowthStable - _rebalanceFeeGrowthCache[rebalanceId].stableGrowth,
+                _userStatus.sqrtPerp.amount,
+                Constants.ONE
+            );
         }
     }
 
-    function settleRebalanceEntryFee(Perp.SqrtPerpAssetStatus memory _assetStatus, Perp.UserStatus storage _userStatus)
-        internal
-        returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable)
-    {
-        (rebalanceFeeUnderlying, rebalanceFeeStable) = computeRebalanceEntryFee(_assetStatus, _userStatus);
+    function settleRebalanceEntryFee(
+        uint256 _assetId,
+        Perp.SqrtPerpAssetStatus memory _assetStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        Perp.UserStatus storage _userStatus
+    ) internal returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) {
+        if (_userStatus.sqrtPerp.amount > 0 && _userStatus.lastNumRebalance < _assetStatus.numRebalance) {
+            (rebalanceFeeUnderlying, rebalanceFeeStable) =
+                computeRebalanceEntryFee(_assetId, _assetStatus, _rebalanceFeeGrowthCache, _userStatus);
 
-        _userStatus.rebalanceEntryFeeUnderlying = _assetStatus.rebalanceFeeGrowthUnderlying;
-        _userStatus.rebalanceEntryFeeStable = _assetStatus.rebalanceFeeGrowthStable;
+            _userStatus.lastNumRebalance = _assetStatus.numRebalance;
+            _assetStatus.lastRebalanceTotalSquartAmount -= uint256(_userStatus.sqrtPerp.amount);
+        }
     }
 
     function mulDivToInt256(uint256 x, int256 y) internal pure returns (int256) {
