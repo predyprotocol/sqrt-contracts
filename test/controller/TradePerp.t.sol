@@ -256,7 +256,7 @@ contract TestControllerTradePerp is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -1 * 1e6));
 
-        (uint256 ur,) = controller.getUtilizationRatio(WETH_ASSET_ID);
+        (uint256 ur,,) = controller.getUtilizationRatio(WETH_ASSET_ID);
 
         assertEq(ur, 1e18);
 
@@ -673,7 +673,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(tradeResult.minDeposit, 1000000);
 
-        (uint256 ur,) = controller.getUtilizationRatio(WETH_ASSET_ID);
+        (uint256 ur,,) = controller.getUtilizationRatio(WETH_ASSET_ID);
 
         assertEq(ur, 5 * 1e17);
 

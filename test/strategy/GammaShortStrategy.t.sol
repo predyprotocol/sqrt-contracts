@@ -320,7 +320,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         vm.warp(block.timestamp + 1 hours);
 
-        uint256 depositMarginAmount = strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
+        strategy.deposit(1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         assertFalse(strategy.checkPriceHedge());
         assertTrue(strategy.checkTimeHedge());
