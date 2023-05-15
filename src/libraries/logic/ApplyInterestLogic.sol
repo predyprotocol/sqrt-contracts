@@ -12,13 +12,20 @@ library ApplyInterestLogic {
 
     event InterestGrowthUpdated(
         uint256 assetId,
-        uint256 assetGrowth,
-        uint256 debtGrowth,
-        uint256 supplyPremiumGrowth,
-        uint256 borrowPremiumGrowth,
+        uint256 underlyingAssetGrowth,
+        uint256 underlyingDebtGrowth,
+        uint256 stableAssetGrowth,
+        uint256 stableDebtGrowth,
+        uint256 underlyingAccumulatedProtocolRevenue,
+        uint256 stableAccumulatedProtocolRevenue
+    );
+
+    event PremiumGrowthUpdated(
+        uint256 assetId,
+        uint256 borrowPremium0Growth,
+        uint256 borrowPremium1Growth,
         uint256 fee0Growth,
-        uint256 fee1Growth,
-        uint256 accumulatedProtocolRevenue
+        uint256 fee1Growth
     );
 
     function applyInterestForAssetGroup(
@@ -54,6 +61,7 @@ library ApplyInterestLogic {
         assetStatus.lastUpdateTimestamp = block.timestamp;
 
         emitInterestGrowthEvent(assetStatus);
+        emitPremiumGrowthEvent(assetStatus);
     }
 
     function applyInterestForPoolStatus(DataType.AssetPoolStatus storage _poolStatus, uint256 _lastUpdateTimestamp)
@@ -79,11 +87,20 @@ library ApplyInterestLogic {
             _assetStatus.id,
             _assetStatus.underlyingPool.tokenStatus.assetGrowth,
             _assetStatus.underlyingPool.tokenStatus.debtGrowth,
+            _assetStatus.stablePool.tokenStatus.assetGrowth,
+            _assetStatus.stablePool.tokenStatus.debtGrowth,
+            _assetStatus.underlyingPool.accumulatedProtocolRevenue,
+            _assetStatus.stablePool.accumulatedProtocolRevenue
+        );
+    }
+
+    function emitPremiumGrowthEvent(DataType.AssetStatus memory _assetStatus) internal {
+        emit PremiumGrowthUpdated(
+            _assetStatus.id,
             _assetStatus.sqrtAssetStatus.supplyPremiumGrowth,
             _assetStatus.sqrtAssetStatus.borrowPremiumGrowth,
             _assetStatus.sqrtAssetStatus.fee0Growth,
-            _assetStatus.sqrtAssetStatus.fee1Growth,
-            _assetStatus.underlyingPool.accumulatedProtocolRevenue
+            _assetStatus.sqrtAssetStatus.fee1Growth
         );
     }
 
