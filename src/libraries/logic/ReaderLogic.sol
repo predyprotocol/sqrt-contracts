@@ -58,9 +58,14 @@ library ReaderLogic {
     /**
      * @notice Gets utilization ratio
      */
-    function getUtilizationRatio(DataType.AssetStatus memory _assetStatus) external pure returns (uint256, uint256) {
+    function getUtilizationRatio(DataType.AssetStatus memory _assetStatus)
+        external
+        pure
+        returns (uint256, uint256, uint256)
+    {
         return (
             _assetStatus.sqrtAssetStatus.getUtilizationRatio(),
+            _assetStatus.stablePool.tokenStatus.getUtilizationRatio(),
             _assetStatus.underlyingPool.tokenStatus.getUtilizationRatio()
         );
     }

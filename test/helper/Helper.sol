@@ -8,6 +8,7 @@ contract Helper {
 
     function createAssetStatus(uint256 _assetId, address _weth, address _uniswapPool)
         internal
+        view
         returns (DataType.AssetStatus memory assetStatus)
     {
         assetStatus = DataType.AssetStatus(

@@ -604,8 +604,19 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         );
     }
 
-    function getUtilizationRatio(uint256 _tokenId) external view returns (uint256, uint256) {
-        return ReaderLogic.getUtilizationRatio(assets[_tokenId]);
+    /**
+     * @notice Gets asset utilization ratios
+     * @param _assetId The id of asset pair
+     * @return sqrtAsset The utilization of sqrt asset
+     * @return stableAsset The utilization of stable asset
+     * @return underlyingAsset The utilization of underlying asset
+     */
+    function getUtilizationRatio(uint256 _assetId)
+        external
+        view
+        returns (uint256 sqrtAsset, uint256 stableAsset, uint256 underlyingAsset)
+    {
+        return ReaderLogic.getUtilizationRatio(assets[_assetId]);
     }
 
     function validateIRMParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {
