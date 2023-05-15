@@ -80,7 +80,7 @@ contract TestControllerTradePerp is TestController {
         controller.withdrawToken(1, 1e18, false);
 
         {
-            DataType.AssetStatus memory asset = controller.getAsset(1);
+            DataType.PairStatus memory asset = controller.getAsset(1);
 
             if (asset.underlyingPool.accumulatedProtocolRevenue > 0 || asset.stablePool.accumulatedProtocolRevenue > 0)
             {

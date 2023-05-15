@@ -16,7 +16,7 @@ library Reallocation {
     /**
      * @notice Gets new available range
      */
-    function getNewRange(DataType.AssetStatus memory _assetStatusUnderlying, int24 _currentTick)
+    function getNewRange(DataType.PairStatus memory _assetStatusUnderlying, int24 _currentTick)
         internal
         view
         returns (int24 lower, int24 upper)
@@ -38,7 +38,7 @@ library Reallocation {
     }
 
     function _getNewRange(
-        DataType.AssetStatus memory _assetStatusUnderlying,
+        DataType.PairStatus memory _assetStatusUnderlying,
         ScaledAsset.TokenStatus memory _token0Status,
         ScaledAsset.TokenStatus memory _token1Status,
         int24 _currentTick,

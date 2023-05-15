@@ -11,7 +11,7 @@ library ReaderLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
     function getVaultStatus(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault storage _vault,
         uint256 _mainVaultId
     ) external view returns (DataType.VaultStatusResult memory) {
@@ -58,7 +58,7 @@ library ReaderLogic {
     /**
      * @notice Gets utilization ratio
      */
-    function getUtilizationRatio(DataType.AssetStatus memory _assetStatus)
+    function getUtilizationRatio(DataType.PairStatus memory _assetStatus)
         external
         pure
         returns (uint256, uint256, uint256)
@@ -72,13 +72,13 @@ library ReaderLogic {
 
     // getInterest
 
-    function getDelta(uint256 _assetId, DataType.Vault memory _vault, uint160 _sqrtPrice)
+    function getDelta(uint256 _pairId, DataType.Vault memory _vault, uint160 _sqrtPrice)
         internal
         pure
         returns (int256 _delta)
     {
         for (uint256 i; i < _vault.openPositions.length; i++) {
-            if (_assetId != _vault.openPositions[i].assetId) {
+            if (_pairId != _vault.openPositions[i].assetId) {
                 continue;
             }
 

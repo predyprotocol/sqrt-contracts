@@ -127,7 +127,7 @@ library Perp {
     }
 
     function updateRebalanceFeeGrowth(
-        DataType.AssetStatus memory _assetStatusUnderlying,
+        DataType.PairStatus memory _assetStatusUnderlying,
         SqrtPerpAssetStatus storage _sqrtAssetStatus
     ) internal {
         // settle fee for rebalance position
@@ -170,7 +170,7 @@ library Perp {
      *       sqrt(a2) - sqrt(x)
      */
     function reallocate(
-        DataType.AssetStatus storage _assetStatusUnderlying,
+        DataType.PairStatus storage _assetStatusUnderlying,
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         bool _enableRevert
     ) internal returns (bool, int256 profit) {
@@ -231,7 +231,7 @@ library Perp {
     }
 
     function rebalanceForInRange(
-        DataType.AssetStatus storage _assetStatusUnderlying,
+        DataType.PairStatus storage _assetStatusUnderlying,
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         int24 _currentTick,
         uint128 _totalLiquidityAmount
@@ -277,7 +277,7 @@ library Perp {
      *       sqrt(x) - sqrt(a1)
      */
     function swapForOutOfRange(
-        DataType.AssetStatus storage _assetStatusUnderlying,
+        DataType.PairStatus storage _assetStatusUnderlying,
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         uint160 _currentSqrtPrice,
         int24 _tick,
@@ -321,7 +321,7 @@ library Perp {
         return liquidity;
     }
 
-    function settleUserBalance(DataType.AssetStatus storage _underlyingAssetStatus, UserStatus storage _userStatus)
+    function settleUserBalance(DataType.PairStatus storage _underlyingAssetStatus, UserStatus storage _userStatus)
         internal
         returns (bool)
     {
@@ -436,7 +436,7 @@ library Perp {
      * (L/sqrt{x}, L * sqrt{x})
      */
     function computeRequiredAmounts(
-        DataType.AssetStatus memory _underlyingAssetStatus,
+        DataType.PairStatus memory _underlyingAssetStatus,
         UserStatus memory _userStatus,
         int256 _tradeSqrtAmount
     ) internal returns (int256 requiredAmountUnderlying, int256 requiredAmountStable) {
@@ -478,7 +478,7 @@ library Perp {
     }
 
     function updatePosition(
-        DataType.AssetStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _underlyingAssetStatus,
         UserStatus storage _userStatus,
         UpdatePerpParams memory _updatePerpParams,
         UpdateSqrtPerpParams memory _updateSqrtPerpParams
@@ -816,7 +816,7 @@ library Perp {
     }
 
     function updateRebalancePosition(
-        DataType.AssetStatus storage _assetStatusUnderlying,
+        DataType.PairStatus storage _assetStatusUnderlying,
         int256 _updateAmount0,
         int256 _updateAmount1
     ) internal {

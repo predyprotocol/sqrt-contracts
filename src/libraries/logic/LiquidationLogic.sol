@@ -31,7 +31,7 @@ library LiquidationLogic {
     );
 
     function execLiquidationCall(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
         uint256 _closeRatio
@@ -90,7 +90,7 @@ library LiquidationLogic {
 
     function closePerp(
         uint256 _vaultId,
-        DataType.AssetStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _underlyingAssetStatus,
         Perp.UserStatus storage _perpUserStatus,
         uint256 _closeRatio
     ) internal returns (int256 totalPayoff, uint256 penaltyAmount) {

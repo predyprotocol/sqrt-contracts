@@ -63,12 +63,12 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     function initialize(
         address _controller,
         address _reader,
-        uint256 _assetId,
+        uint256 _pairId,
         MinPerValueLimit memory _minPerValueLimit,
         string memory _name,
         string memory _symbol
     ) public initializer {
-        BaseStrategy.initialize(_controller, _assetId, _minPerValueLimit, _name, _symbol);
+        BaseStrategy.initialize(_controller, _pairId, _minPerValueLimit, _name, _symbol);
         reader = Reader(_reader);
 
         // square root of 7.5% scaled by 1e18
@@ -77,7 +77,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         hedgeInterval = 2 days;
 
         // initialize last sqrt price and timestamp
-        lastHedgePrice = controller.getSqrtPrice(_assetId);
+        lastHedgePrice = controller.getSqrtPrice(_pairId);
         lastHedgeTimestamp = block.timestamp;
     }
 
@@ -307,7 +307,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         _mint(_recepient, _strategyTokenAmount);
 
         {
-            DataType.AssetStatus memory asset = controller.getAsset(assetId);
+            DataType.PairStatus memory asset = controller.getAsset(assetId);
 
             UniHelper.checkPriceByTWAP(asset.sqrtAssetStatus.uniswapPool);
         }

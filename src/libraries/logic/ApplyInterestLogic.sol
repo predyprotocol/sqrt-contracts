@@ -29,16 +29,16 @@ library ApplyInterestLogic {
     );
 
     function applyInterestForAssetGroup(
-        DataType.AssetGroup storage _assetGroup,
-        mapping(uint256 => DataType.AssetStatus) storage _assets
+        DataType.PairGroup storage _assetGroup,
+        mapping(uint256 => DataType.PairStatus) storage _assets
     ) external {
         for (uint256 i = 1; i < _assetGroup.assetsCount; i++) {
             applyInterestForToken(_assets, i);
         }
     }
 
-    function applyInterestForToken(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _assetId) public {
-        DataType.AssetStatus storage assetStatus = _assets[_assetId];
+    function applyInterestForToken(mapping(uint256 => DataType.PairStatus) storage _assets, uint256 _pairId) public {
+        DataType.PairStatus storage assetStatus = _assets[_pairId];
 
         require(assetStatus.id > 0, "A0");
 
@@ -82,7 +82,7 @@ library ApplyInterestLogic {
         _poolStatus.accumulatedProtocolRevenue += _poolStatus.tokenStatus.updateScaler(interestRate);
     }
 
-    function emitInterestGrowthEvent(DataType.AssetStatus memory _assetStatus) internal {
+    function emitInterestGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
         emit InterestGrowthUpdated(
             _assetStatus.id,
             _assetStatus.underlyingPool.tokenStatus.assetGrowth,
@@ -94,7 +94,7 @@ library ApplyInterestLogic {
         );
     }
 
-    function emitPremiumGrowthEvent(DataType.AssetStatus memory _assetStatus) internal {
+    function emitPremiumGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
         emit PremiumGrowthUpdated(
             _assetStatus.id,
             _assetStatus.sqrtAssetStatus.supplyPremiumGrowth,
@@ -104,11 +104,11 @@ library ApplyInterestLogic {
         );
     }
 
-    function reallocate(mapping(uint256 => DataType.AssetStatus) storage _assets, uint256 _assetId)
+    function reallocate(mapping(uint256 => DataType.PairStatus) storage _assets, uint256 _pairId)
         external
         returns (bool reallocationHappened, int256 profit)
     {
-        DataType.AssetStatus storage underlyingAsset = _assets[_assetId];
+        DataType.PairStatus storage underlyingAsset = _assets[_pairId];
 
         AssetLib.checkUnderlyingAsset(underlyingAsset);
 

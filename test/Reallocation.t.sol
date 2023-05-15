@@ -7,7 +7,7 @@ import "../src/libraries/InterestRateModel.sol";
 import "./helper/Helper.sol";
 
 contract ReallocationTest is Test, Helper {
-    DataType.AssetStatus underlyingAssetStatus;
+    DataType.PairStatus underlyingAssetStatus;
     ScaledAsset.TokenStatus stableScaledTokenStatus;
     ScaledAsset.TokenStatus underlyingScaledTokenStatus;
 

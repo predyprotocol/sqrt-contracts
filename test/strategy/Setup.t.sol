@@ -23,7 +23,7 @@ contract TestBaseStrategy is Test {
     IUniswapV3Pool internal uniswapPool;
     InterestRateModel.IRMParams internal irmParams;
 
-    DataType.AssetStatus internal underlyingAssetStatus;
+    DataType.PairStatus internal underlyingAssetStatus;
 
     function setUp() public virtual {
         irmParams = InterestRateModel.IRMParams(1e16, 9 * 1e17, 5 * 1e17, 1e18);

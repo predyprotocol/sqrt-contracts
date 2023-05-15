@@ -12,7 +12,7 @@ import "./ScaledAsset.sol";
 library Trade {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function settleFee(DataType.AssetStatus storage _underlyingAssetStatus, Perp.UserStatus storage _perpUserStatus)
+    function settleFee(DataType.PairStatus storage _underlyingAssetStatus, Perp.UserStatus storage _perpUserStatus)
         internal
         returns (int256 fee, bool isSettled)
     {
@@ -34,7 +34,7 @@ library Trade {
     }
 
     function trade(
-        DataType.AssetStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _underlyingAssetStatus,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
@@ -73,7 +73,7 @@ library Trade {
     }
 
     function settleUserBalanceAndFee(
-        DataType.AssetStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _underlyingAssetStatus,
         Perp.UserStatus storage _userStatus
     ) internal returns (int256 underlyingFee, int256 stableFee, bool isSettled) {
         (underlyingFee, stableFee) = PerpFee.settleUserFee(_underlyingAssetStatus, _userStatus);

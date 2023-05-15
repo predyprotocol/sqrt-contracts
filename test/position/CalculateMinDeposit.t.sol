@@ -5,7 +5,7 @@ import "./Setup.t.sol";
 import "../../src/libraries/PositionCalculator.sol";
 
 contract CalculateMinDepositTest is TestPositionCalculator {
-    mapping(uint256 => DataType.AssetStatus) assets;
+    mapping(uint256 => DataType.PairStatus) assets;
 
     function setUp() public override {
         TestPositionCalculator.setUp();

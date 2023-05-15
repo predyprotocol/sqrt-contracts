@@ -86,7 +86,7 @@ contract TestControllerTradePerp is TestController {
             controller.updateMargin(-margin);
         }
 
-        DataType.AssetStatus memory asset = controller.getAsset(2);
+        DataType.PairStatus memory asset = controller.getAsset(2);
 
         vm.startPrank(user2);
         controller.withdrawToken(WETH_ASSET_ID, 1e18, true);
@@ -99,7 +99,7 @@ contract TestControllerTradePerp is TestController {
         console.log(weth.balanceOf(address(controller)));
 
         for (uint256 i = 1; i <= 2; i++) {
-            DataType.AssetStatus memory asset = controller.getAsset(i);
+            DataType.PairStatus memory asset = controller.getAsset(i);
 
             if (asset.underlyingPool.accumulatedProtocolRevenue > 0 || asset.stablePool.accumulatedProtocolRevenue > 0)
             {

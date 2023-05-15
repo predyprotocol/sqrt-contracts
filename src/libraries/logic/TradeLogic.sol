@@ -32,13 +32,13 @@ library TradeLogic {
     );
 
     function execTrade(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault storage _vault,
-        uint256 _assetId,
+        uint256 _pairId,
         DataType.UserStatus storage _userStatus,
         TradeParams memory _tradeParams
     ) public returns (DataType.TradeResult memory tradeResult) {
-        DataType.AssetStatus storage underlyingAssetStatus = _assets[_assetId];
+        DataType.PairStatus storage underlyingAssetStatus = _assets[_pairId];
 
         AssetLib.checkUnderlyingAsset(underlyingAssetStatus);
 
@@ -79,7 +79,7 @@ library TradeLogic {
     }
 
     function trade(
-        DataType.AssetStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _underlyingAssetStatus,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt

@@ -157,8 +157,8 @@ contract TestController is Test {
         return (controller.getSqrtPrice(_tokenId) * 120) / 100;
     }
 
-    function getSupplyTokenAddress(uint256 _assetId) internal view returns (address supplyTokenAddress) {
-        DataType.AssetStatus memory asset = controller.getAsset(_assetId);
+    function getSupplyTokenAddress(uint256 _pairId) internal view returns (address supplyTokenAddress) {
+        DataType.PairStatus memory asset = controller.getAsset(_pairId);
 
         return asset.underlyingPool.supplyTokenAddress;
     }
