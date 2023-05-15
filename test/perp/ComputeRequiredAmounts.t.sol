@@ -10,8 +10,9 @@ contract TestPerpComputeRequiredAmounts is TestPerp {
     }
 
     function testEmpty() public {
-        (int256 requiredAmountUnderlying, int256 requiredAmountStable) =
-            Perp.computeRequiredAmounts(underlyingAssetStatus, userStatus, 0);
+        (int256 requiredAmountUnderlying, int256 requiredAmountStable) = Perp.computeRequiredAmounts(
+            underlyingAssetStatus.sqrtAssetStatus, underlyingAssetStatus.isMarginZero, userStatus, 0
+        );
 
         assertEq(requiredAmountUnderlying, 0);
         assertEq(requiredAmountStable, 0);
@@ -21,19 +22,23 @@ contract TestPerpComputeRequiredAmounts is TestPerp {
     // u = L / sqrt(x) = 10000 / 1
     // s = L * (sqrt(x) - sqrt(-100)) = 10000 * (1 - 0.995)
     function testOpenLong() public {
-        (int256 requiredAmountUnderlying, int256 requiredAmountStable) =
-            Perp.computeRequiredAmounts(underlyingAssetStatus, userStatus, 10000);
+        (int256 requiredAmountUnderlying, int256 requiredAmountStable) = Perp.computeRequiredAmounts(
+            underlyingAssetStatus.sqrtAssetStatus, underlyingAssetStatus.isMarginZero, userStatus, 10000
+        );
 
         assertEq(requiredAmountUnderlying, -10000);
         assertEq(requiredAmountStable, -10000);
     }
 
     function testOpenShort() public {
-        Perp.computeRequiredAmounts(underlyingAssetStatus, userStatus, 20000);
+        Perp.computeRequiredAmounts(
+            underlyingAssetStatus.sqrtAssetStatus, underlyingAssetStatus.isMarginZero, userStatus, 20000
+        );
         underlyingAssetStatus.sqrtAssetStatus.totalAmount += 20000;
 
-        (int256 requiredAmountUnderlying, int256 requiredAmountStable) =
-            Perp.computeRequiredAmounts(underlyingAssetStatus, userStatus, -10000);
+        (int256 requiredAmountUnderlying, int256 requiredAmountStable) = Perp.computeRequiredAmounts(
+            underlyingAssetStatus.sqrtAssetStatus, underlyingAssetStatus.isMarginZero, userStatus, -10000
+        );
 
         assertEq(requiredAmountUnderlying, 10000);
         assertEq(requiredAmountStable, 10000);

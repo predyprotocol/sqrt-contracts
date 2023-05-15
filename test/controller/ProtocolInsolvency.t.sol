@@ -174,7 +174,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999930000);
+        assertEq(vault.margin, 9999900000);
 
         withdrawAll();
     }
@@ -224,6 +224,8 @@ contract TestControllerTradePerp is TestController {
     }
 
     function testCase3() public {
+        controller.reallocate(WETH_ASSET_ID);
+
         vm.startPrank(user2);
         controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
         vm.stopPrank();
@@ -248,7 +250,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000750000);
+        assertEq(vault.margin, 10000740000);
 
         withdrawAll();
     }
@@ -688,7 +690,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000070000);
+        assertEq(vault.margin, 10000140000);
 
         withdrawAll();
     }
@@ -737,6 +739,30 @@ contract TestControllerTradePerp is TestController {
 
             vm.warp(block.timestamp + 1 days);
         }
+
+        withdrawAll();
+    }
+
+    function testFeeGrowthReturnZero() public {
+        vm.startPrank(user2);
+        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(0, 1000 * 1e6));
+        vm.stopPrank();
+
+        {
+            uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+            (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+            assertEq(currentTick, 975);
+        }
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -1000 * 1e6));
+
+        uniswapPool.swap(address(this), true, -5 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e6, 21 * 1e6));
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -11 * 1e6));
 
         withdrawAll();
     }

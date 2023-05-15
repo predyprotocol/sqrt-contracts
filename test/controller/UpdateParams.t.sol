@@ -18,7 +18,7 @@ contract TestControllerUpdateParams is TestController {
         DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](1);
 
         addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
+            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
         vm.expectRevert(bytes("Initializable: contract is already initialized"));
@@ -27,7 +27,7 @@ contract TestControllerUpdateParams is TestController {
 
     function testAddPair() public {
         DataType.AddAssetParams memory addPairParams = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
+            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
         uint256 assetId = controller.addPair(addPairParams);
@@ -61,21 +61,18 @@ contract TestControllerUpdateParams is TestController {
     function testCannotUpdateIRMParams_IfCallerIsNotOperator() public {
         vm.prank(user);
         vm.expectRevert(bytes("C1"));
-        controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams, newIrmParams);
+        controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams);
     }
 
     function testCannotUpdateIRMParams_IfAParamIsInvalid() public {
         vm.expectRevert(bytes("C4"));
         controller.updateIRMParams(
-            WETH_ASSET_ID,
-            InterestRateModel.IRMParams(1e18 + 1, 10 * 1e17, 10 * 1e17, 2 * 1e18),
-            newIrmParams,
-            newIrmParams
+            WETH_ASSET_ID, InterestRateModel.IRMParams(1e18 + 1, 10 * 1e17, 10 * 1e17, 2 * 1e18), newIrmParams
         );
     }
 
     function testUpdateAssetIRMParams() public {
-        controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams, newIrmParams);
+        controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams);
 
         DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
 
@@ -83,9 +80,9 @@ contract TestControllerUpdateParams is TestController {
         assertEq(asset.stablePool.irmParams.kinkRate, 10 * 1e17);
         assertEq(asset.stablePool.irmParams.slope1, 10 * 1e17);
         assertEq(asset.stablePool.irmParams.slope2, 2 * 1e18);
-        assertEq(asset.squartIRMParams.baseRate, 2 * 1e16);
-        assertEq(asset.squartIRMParams.kinkRate, 10 * 1e17);
-        assertEq(asset.squartIRMParams.slope1, 10 * 1e17);
-        assertEq(asset.squartIRMParams.slope2, 2 * 1e18);
+        assertEq(asset.underlyingPool.irmParams.baseRate, 2 * 1e16);
+        assertEq(asset.underlyingPool.irmParams.kinkRate, 10 * 1e17);
+        assertEq(asset.underlyingPool.irmParams.slope1, 10 * 1e17);
+        assertEq(asset.underlyingPool.irmParams.slope2, 2 * 1e18);
     }
 }

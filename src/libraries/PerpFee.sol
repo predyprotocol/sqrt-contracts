@@ -3,9 +3,11 @@ pragma solidity ^0.8.19;
 
 import "./AssetLib.sol";
 import "./Perp.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 library PerpFee {
     using ScaledAsset for ScaledAsset.TokenStatus;
+    using SafeCast for uint256;
 
     function computeUserFee(
         DataType.PairStatus memory _assetStatus,
@@ -23,14 +25,8 @@ library PerpFee {
             unrealizedFeeStable += rebalanceFeeStable;
         }
 
-        // settle premium
         {
-            int256 premium = computePremium(_assetStatus, _userStatus.sqrtPerp);
-            unrealizedFeeStable += premium;
-        }
-
-        {
-            (int256 feeUnderlying, int256 feeStable) = computeTradeFee(_assetStatus, _userStatus.sqrtPerp);
+            (int256 feeUnderlying, int256 feeStable) = computePremium(_assetStatus, _userStatus.sqrtPerp);
             unrealizedFeeUnderlying += feeUnderlying;
             unrealizedFeeStable += feeStable;
         }
@@ -50,33 +46,35 @@ library PerpFee {
             _assetStatus.id, _assetStatus.sqrtAssetStatus, _rebalanceFeeGrowthCache, _userStatus
         );
 
-        // settle premium
-        int256 premium = settlePremium(_assetStatus, _userStatus.sqrtPerp);
-
         // settle trade fee
-        (int256 feeUnderlying, int256 feeStable) = settleTradeFee(_assetStatus, _userStatus.sqrtPerp);
+        (int256 feeUnderlying, int256 feeStable) = settlePremium(_assetStatus, _userStatus.sqrtPerp);
 
-        totalFeeStable += feeStable + premium + rebalanceFeeStable;
+        totalFeeStable += feeStable + rebalanceFeeStable;
         totalFeeUnderlying += feeUnderlying + rebalanceFeeUnderlying;
     }
 
-    // Trade fee
+    // Trade fee and premium
 
-    function computeTradeFee(
-        DataType.PairStatus memory _underlyingAssetStatus,
-        Perp.SqrtPositionStatus memory _sqrtPerp
-    ) internal pure returns (int256 feeUnderlying, int256 feeStable) {
-        int256 fee0;
-        int256 fee1;
+    function computePremium(DataType.PairStatus memory _underlyingAssetStatus, Perp.SqrtPositionStatus memory _sqrtPerp)
+        internal
+        pure
+        returns (int256 feeUnderlying, int256 feeStable)
+    {
+        uint256 growthDiff0;
+        uint256 growthDiff1;
 
         if (_sqrtPerp.amount > 0) {
-            fee0 = mulDivToInt256(
-                _underlyingAssetStatus.sqrtAssetStatus.fee0Growth - _sqrtPerp.entryTradeFee0, _sqrtPerp.amount
-            );
-            fee1 = mulDivToInt256(
-                _underlyingAssetStatus.sqrtAssetStatus.fee1Growth - _sqrtPerp.entryTradeFee1, _sqrtPerp.amount
-            );
+            growthDiff0 = _underlyingAssetStatus.sqrtAssetStatus.fee0Growth - _sqrtPerp.entryTradeFee0;
+            growthDiff1 = _underlyingAssetStatus.sqrtAssetStatus.fee1Growth - _sqrtPerp.entryTradeFee1;
+        } else if (_sqrtPerp.amount < 0) {
+            growthDiff0 = _underlyingAssetStatus.sqrtAssetStatus.borrowPremium0Growth - _sqrtPerp.entryTradeFee0;
+            growthDiff1 = _underlyingAssetStatus.sqrtAssetStatus.borrowPremium1Growth - _sqrtPerp.entryTradeFee1;
+        } else {
+            return (feeUnderlying, feeStable);
         }
+
+        int256 fee0 = Math.mulDivDownInt256(_sqrtPerp.amount, growthDiff0, Constants.Q128);
+        int256 fee1 = Math.mulDivDownInt256(_sqrtPerp.amount, growthDiff1, Constants.Q128);
 
         if (_underlyingAssetStatus.isMarginZero) {
             feeStable = fee0;
@@ -87,44 +85,18 @@ library PerpFee {
         }
     }
 
-    function settleTradeFee(
-        DataType.PairStatus memory _underlyingAssetStatus,
-        Perp.SqrtPositionStatus storage _sqrtPerp
-    ) internal returns (int256 feeUnderlying, int256 feeStable) {
-        (feeUnderlying, feeStable) = computeTradeFee(_underlyingAssetStatus, _sqrtPerp);
-
-        _sqrtPerp.entryTradeFee0 = _underlyingAssetStatus.sqrtAssetStatus.fee0Growth;
-        _sqrtPerp.entryTradeFee1 = _underlyingAssetStatus.sqrtAssetStatus.fee1Growth;
-    }
-
-    // Premium
-
-    function computePremium(DataType.PairStatus memory _underlyingAssetStatus, Perp.SqrtPositionStatus memory _sqrtPerp)
-        internal
-        pure
-        returns (int256 premium)
-    {
-        if (_sqrtPerp.amount > 0) {
-            premium = mulDivToInt256(
-                _underlyingAssetStatus.sqrtAssetStatus.supplyPremiumGrowth - _sqrtPerp.entryPremium, _sqrtPerp.amount
-            );
-        } else if (_sqrtPerp.amount < 0) {
-            premium = mulDivToInt256(
-                _underlyingAssetStatus.sqrtAssetStatus.borrowPremiumGrowth - _sqrtPerp.entryPremium, _sqrtPerp.amount
-            );
-        }
-    }
-
     function settlePremium(DataType.PairStatus memory _underlyingAssetStatus, Perp.SqrtPositionStatus storage _sqrtPerp)
         internal
-        returns (int256 premium)
+        returns (int256 feeUnderlying, int256 feeStable)
     {
-        premium = computePremium(_underlyingAssetStatus, _sqrtPerp);
+        (feeUnderlying, feeStable) = computePremium(_underlyingAssetStatus, _sqrtPerp);
 
         if (_sqrtPerp.amount > 0) {
-            _sqrtPerp.entryPremium = _underlyingAssetStatus.sqrtAssetStatus.supplyPremiumGrowth;
+            _sqrtPerp.entryTradeFee0 = _underlyingAssetStatus.sqrtAssetStatus.fee0Growth;
+            _sqrtPerp.entryTradeFee1 = _underlyingAssetStatus.sqrtAssetStatus.fee1Growth;
         } else if (_sqrtPerp.amount < 0) {
-            _sqrtPerp.entryPremium = _underlyingAssetStatus.sqrtAssetStatus.borrowPremiumGrowth;
+            _sqrtPerp.entryTradeFee0 = _underlyingAssetStatus.sqrtAssetStatus.borrowPremium0Growth;
+            _sqrtPerp.entryTradeFee1 = _underlyingAssetStatus.sqrtAssetStatus.borrowPremium1Growth;
         }
     }
 
@@ -141,12 +113,12 @@ library PerpFee {
 
             rebalanceFeeUnderlying = Math.mulDivDownInt256(
                 _assetStatus.rebalanceFeeGrowthUnderlying - _rebalanceFeeGrowthCache[rebalanceId].underlyingGrowth,
-                _userStatus.sqrtPerp.amount,
+                uint256(_userStatus.sqrtPerp.amount),
                 Constants.ONE
             );
             rebalanceFeeStable = Math.mulDivDownInt256(
                 _assetStatus.rebalanceFeeGrowthStable - _rebalanceFeeGrowthCache[rebalanceId].stableGrowth,
-                _userStatus.sqrtPerp.amount,
+                uint256(_userStatus.sqrtPerp.amount),
                 Constants.ONE
             );
         }
@@ -165,9 +137,5 @@ library PerpFee {
             _userStatus.lastNumRebalance = _assetStatus.numRebalance;
             _assetStatus.lastRebalanceTotalSquartAmount -= uint256(_userStatus.sqrtPerp.amount);
         }
-    }
-
-    function mulDivToInt256(uint256 x, int256 y) internal pure returns (int256) {
-        return SafeCast.toInt256(x) * y / int256(Constants.ONE);
     }
 }

@@ -116,10 +116,10 @@ contract TestController is Test {
         DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](2);
 
         addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
+            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
         addAssetParams[1] = DataType.AddAssetParams(
-            address(wbtcUniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
+            address(wbtcUniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
         controller.initialize(address(usdc), addAssetParams);
@@ -161,5 +161,12 @@ contract TestController is Test {
         DataType.PairStatus memory asset = controller.getAsset(_pairId);
 
         return asset.underlyingPool.supplyTokenAddress;
+    }
+
+    function manipulateVol(uint256 _num) internal {
+        for (uint256 i; i < _num; i++) {
+            uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+            uniswapPool.swap(address(this), true, -5 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+        }
     }
 }

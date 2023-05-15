@@ -7,9 +7,6 @@ library Constants {
     // Reserve factor is 8%
     uint256 internal constant RESERVE_FACTOR = 8 * 1e16;
 
-    // Reserve factor of LPToken is 4%
-    uint256 internal constant LPT_RESERVE_FACTOR = 4 * 1e16;
-
     // Margin option
     int256 internal constant MIN_MARGIN_AMOUNT = 1e6;
     uint256 internal constant MARGIN_ROUNDED_DECIMALS = 1e4;
@@ -21,6 +18,7 @@ library Constants {
 
     uint8 internal constant RESOLUTION = 96;
     uint256 internal constant Q96 = 0x1000000000000000000000000;
+    uint256 internal constant Q128 = 0x100000000000000000000000000000000;
 
     // 0.5%
     uint256 internal constant BASE_MIN_COLLATERAL_WITH_DEBT = 5000;
@@ -34,4 +32,7 @@ library Constants {
     uint256 internal constant LIQ_SLIPPAGE_SQRT_BASE = 1000;
     // 2.5% scaled by 1e6
     uint256 internal constant SLIPPAGE_SQRT_TOLERANCE = 12422;
+
+    // 30%
+    uint256 internal constant SQUART_KINK_UR = 30 * 1e16;
 }

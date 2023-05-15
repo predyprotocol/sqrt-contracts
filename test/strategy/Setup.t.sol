@@ -101,7 +101,7 @@ contract TestBaseStrategy is Test {
         DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](1);
 
         addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams, irmParams
+            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
         controller.initialize(address(usdc), addAssetParams);

@@ -20,77 +20,41 @@ contract PerpFeeTest is Test, Helper {
         perpUserStatus.sqrtPerp.amount = 10000000000;
 
         (int256 feeUnderlying, int256 feeStable) =
-            PerpFee.computeTradeFee(underlyingAssetStatus, perpUserStatus.sqrtPerp);
+            PerpFee.computePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
 
-        assertEq(feeUnderlying, 2000000);
-        assertEq(feeStable, 50000);
+        assertEq(feeUnderlying, 1999999);
+        assertEq(feeStable, 49999);
     }
 
     function testComputeTradeFeeForShort() public {
         perpUserStatus.sqrtPerp.amount = -10000000000;
 
         (int256 feeUnderlying, int256 feeStable) =
-            PerpFee.computeTradeFee(underlyingAssetStatus, perpUserStatus.sqrtPerp);
+            PerpFee.computePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
 
-        assertEq(feeUnderlying, 0);
-        assertEq(feeStable, 0);
+        assertEq(feeUnderlying, -100000000);
+        assertEq(feeStable, -200000000);
     }
 
     function testSettleTradeFeeForLong() public {
         perpUserStatus.sqrtPerp.amount = 10000000000;
 
-        (int256 feeUnderlying, int256 feeStable) =
-            PerpFee.settleTradeFee(underlyingAssetStatus, perpUserStatus.sqrtPerp);
+        (int256 feeUnderlying, int256 feeStable) = PerpFee.settlePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
 
-        assertEq(feeUnderlying, 2000000);
-        assertEq(feeStable, 50000);
-        assertEq(perpUserStatus.sqrtPerp.entryTradeFee0, 200 * 1e12);
-        assertEq(perpUserStatus.sqrtPerp.entryTradeFee1, 5 * 1e12);
+        assertEq(feeUnderlying, 1999999);
+        assertEq(feeStable, 49999);
+        assertEq(perpUserStatus.sqrtPerp.entryTradeFee0, underlyingAssetStatus.sqrtAssetStatus.fee0Growth);
+        assertEq(perpUserStatus.sqrtPerp.entryTradeFee1, underlyingAssetStatus.sqrtAssetStatus.fee1Growth);
     }
 
     function testSettleTradeFeeForShort() public {
         perpUserStatus.sqrtPerp.amount = -10000000000;
 
-        (int256 feeUnderlying, int256 feeStable) =
-            PerpFee.settleTradeFee(underlyingAssetStatus, perpUserStatus.sqrtPerp);
+        (int256 feeUnderlying, int256 feeStable) = PerpFee.settlePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
 
-        assertEq(feeUnderlying, 0);
-        assertEq(feeStable, 0);
-        assertEq(perpUserStatus.sqrtPerp.entryTradeFee0, 200 * 1e12);
-        assertEq(perpUserStatus.sqrtPerp.entryTradeFee1, 5 * 1e12);
-    }
-
-    function testComputePremiumForLong() public {
-        perpUserStatus.sqrtPerp.amount = 10000000000;
-
-        int256 premium = PerpFee.computePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
-
-        assertEq(premium, 100000000);
-    }
-
-    function testComputePremiumForShort() public {
-        perpUserStatus.sqrtPerp.amount = -10000000000;
-
-        int256 premium = PerpFee.computePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
-
-        assertEq(premium, -200000000);
-    }
-
-    function testSettlePremiumForLong() public {
-        perpUserStatus.sqrtPerp.amount = 10000000000;
-
-        int256 premium = PerpFee.settlePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
-
-        assertEq(premium, 100000000);
-        assertEq(perpUserStatus.sqrtPerp.entryPremium, 1 * 1e16);
-    }
-
-    function testSettlePremiumForShort() public {
-        perpUserStatus.sqrtPerp.amount = -10000000000;
-
-        int256 premium = PerpFee.settlePremium(underlyingAssetStatus, perpUserStatus.sqrtPerp);
-
-        assertEq(premium, -200000000);
-        assertEq(perpUserStatus.sqrtPerp.entryPremium, 2 * 1e16);
+        assertEq(feeUnderlying, -100000000);
+        assertEq(feeStable, -200000000);
+        assertEq(perpUserStatus.sqrtPerp.entryTradeFee0, underlyingAssetStatus.sqrtAssetStatus.borrowPremium0Growth);
+        assertEq(perpUserStatus.sqrtPerp.entryTradeFee1, underlyingAssetStatus.sqrtAssetStatus.borrowPremium1Growth);
     }
 }

@@ -264,7 +264,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999980000);
     }
 
     // cannot open short sqrt if there is no enough liquidity
@@ -315,15 +315,34 @@ contract TestControllerTradePerp is TestController {
         vm.startPrank(user2);
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
         vm.stopPrank();
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -50 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(50 * 1e6, -50 * 1e6));
 
-        vm.warp(block.timestamp + 1 weeks);
+        manipulateVol(50);
+        vm.warp(block.timestamp + 1 hours);
 
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 50 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-50 * 1e6, 50 * 1e6));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999670000);
+        assertEq(vault.margin, 9999860000);
+
+        withdrawAll();
+    }
+
+    function testPayPremiumWithFullUtilization() public {
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
+        vm.stopPrank();
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100 * 1e6, -100 * 1e6));
+
+        manipulateVol(50);
+        vm.warp(block.timestamp + 1 hours);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 100 * 1e6));
+
+        DataType.Vault memory vault = controller.getVault(vaultId);
+
+        assertEq(vault.margin, 9999550000);
 
         withdrawAll();
     }
@@ -427,7 +446,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999870000);
+        assertEq(vault.margin, 9999860000);
     }
 
     function testShortGammaAndPriceBecomesHigh() public {
@@ -606,7 +625,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9985900000);
+        assertEq(vault.margin, 9985890000);
 
         withdrawAll();
     }
@@ -630,7 +649,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000480000);
+        assertEq(vault.margin, 10000470000);
 
         withdrawAll();
     }
@@ -681,6 +700,6 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999980000);
     }
 }
