@@ -128,7 +128,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     }
 
     /**
-     * @notice Addes token pair
+     * @notice Adds token pair to the contract
+     * @dev Only operator can call this function.
+     * @param _addAssetParam parameters to define asset risk and interest rate model
+     * @return assetId The id of pair
      */
     function addPair(DataType.AddAssetParams memory _addAssetParam) external onlyOperator returns (uint256) {
         return _addPair(_addAssetParam);
