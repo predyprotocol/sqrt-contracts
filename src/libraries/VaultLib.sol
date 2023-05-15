@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./AssetGroupLib.sol";
+import "./PairGroupLib.sol";
 import "./DataType.sol";
 import "./ScaledAsset.sol";
 
 library VaultLib {
-    using AssetGroupLib for DataType.PairGroup;
+    using PairGroupLib for DataType.PairGroup;
 
     uint256 internal constant MAX_VAULTS = 100;
 

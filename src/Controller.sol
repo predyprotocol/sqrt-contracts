@@ -10,7 +10,7 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./libraries/DataType.sol";
 import "./libraries/VaultLib.sol";
-import "./libraries/AssetGroupLib.sol";
+import "./libraries/PairGroupLib.sol";
 import "./libraries/PositionCalculator.sol";
 import "./libraries/Perp.sol";
 import "./libraries/ScaledAsset.sol";
@@ -36,7 +36,7 @@ import "./interfaces/IController.sol";
  * C5: invalid vault creation
  */
 contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback, IController {
-    using AssetGroupLib for DataType.PairGroup;
+    using PairGroupLib for DataType.PairGroup;
     using ScaledAsset for ScaledAsset.TokenStatus;
 
     DataType.PairGroup internal assetGroup;
