@@ -10,7 +10,7 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./libraries/DataType.sol";
 import "./libraries/VaultLib.sol";
-import "./libraries/AssetGroupLib.sol";
+import "./libraries/PairGroupLib.sol";
 import "./libraries/PositionCalculator.sol";
 import "./libraries/Perp.sol";
 import "./libraries/ScaledAsset.sol";
@@ -36,10 +36,10 @@ import "./interfaces/IController.sol";
  * C5: invalid vault creation
  */
 contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback, IController {
-    using AssetGroupLib for DataType.PairGroup;
+    using PairGroupLib for DataType.PairGroup;
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    DataType.PairGroup internal assetGroup;
+    DataType.PairGroup internal pairGroup;
 
     mapping(uint256 => DataType.PairStatus) internal assets;
 
@@ -193,7 +193,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice Updates interest rate model parameters.
      * @dev The function can be called by operator.
-     * @param _pairId The id of asset to update params.
+     * @param _pairId The id of pair to update params.
      * @param _stableIrmParams Asset interest-rate parameters for stable.
      * @param _underlyingIrmParams Asset interest-rate parameters for underlying.
      * @param _squartIRMParams Squart interest-rate parameters.
@@ -219,7 +219,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Reallocates range of Uniswap LP position.
-     * @param _pairId The id of asset to reallocate.
+     * @param _pairId The id of pair to reallocate.
      */
     function reallocate(uint256 _pairId) external returns (bool, int256) {
         applyInterest();
@@ -229,7 +229,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Supplys token and mints claim token
-     * @param _pairId Asset id of the asset being supplied to the pool
+     * @param _pairId The id of pair being supplied to the pool
      * @param _amount The amount of asset being supplied
      * @param _isStable If true supplys to stable pool, if false supplys to underlying pool
      * @return finalMintAmount The amount of claim token being minted
@@ -246,7 +246,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Withdraws token and burns claim token
-     * @param _pairId Asset id of the asset being withdrawn from the pool
+     * @param _pairId The id of pair being withdrawn from the pool
      * @param _amount The amount of asset being withdrawn
      * @param _isStable If true supplys to stable pool, if false supplys to underlying pool
      * @return finalBurnAmount The amount of claim token being burned
@@ -274,13 +274,13 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         DataType.Vault storage vault = vaults[vaultId];
 
-        UpdateMarginLogic.updateMargin(assetGroup, assets, vault, _marginAmount);
+        UpdateMarginLogic.updateMargin(pairGroup, assets, vault, _marginAmount);
     }
 
     /**
      * @notice Creates new isolated vault and open perp positions.
      * @param _depositAmount The amount of margin to deposit from main vault.
-     * @param _pairId Asset id of the asset
+     * @param _pairId The id of asset pair
      * @param _tradeParams The trade parameters
      * @return isolatedVaultId The id of isolated vault
      * @return tradeResult The result of perp trade
@@ -302,14 +302,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         isolatedVaultId = createVaultIfNeeded(0, msg.sender, false);
 
         tradeResult = IsolatedVaultLogic.openIsolatedVault(
-            assetGroup, assets, vault, vaults[isolatedVaultId], _depositAmount, _pairId, _tradeParams
+            pairGroup, assets, vault, vaults[isolatedVaultId], _depositAmount, _pairId, _tradeParams
         );
     }
 
     /**
      * @notice Close positions in the isolated vault and move margin to main vault.
      * @param _isolatedVaultId The id of isolated vault
-     * @param _pairId Asset id of the asset
+     * @param _pairId The id of asset pair
      * @param _closeParams The close parameters
      * @return tradeResult The result of perp trade
      */
@@ -328,7 +328,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         applyInterest();
 
         tradeResult =
-            IsolatedVaultLogic.closeIsolatedVault(assetGroup, assets, vault, isolatedVault, _pairId, _closeParams);
+            IsolatedVaultLogic.closeIsolatedVault(pairGroup, assets, vault, isolatedVault, _pairId, _closeParams);
 
         VaultLib.removeIsolatedVaultId(ownVaultsMap[msg.sender], isolatedVault.id);
     }
@@ -336,7 +336,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice Trades perps of x and sqrt(x)
      * @param _vaultId The id of vault
-     * @param _pairId Asset id of the asset
+     * @param _pairId The id of asset pair
      * @param _tradeParams The trade parameters
      * @return TradeResult The result of perp trade
      */
@@ -346,7 +346,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         nonReentrant
         returns (DataType.TradeResult memory)
     {
-        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(assetGroup, vaults[_vaultId], _pairId);
+        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(pairGroup, vaults[_vaultId], _pairId);
 
         applyInterest();
         settleUserFee(vaults[_vaultId], _pairId);
@@ -377,7 +377,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
 
         if (penaltyAmount > 0) {
-            TransferHelper.safeTransfer(assetGroup.stableTokenAddress, msg.sender, penaltyAmount);
+            TransferHelper.safeTransfer(pairGroup.stableTokenAddress, msg.sender, penaltyAmount);
         }
     }
 
@@ -410,8 +410,8 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         internal
         returns (uint256[] memory assetIds)
     {
-        assetGroup.stableTokenAddress = _stableAssetAddress;
-        assetGroup.assetsCount = 1;
+        pairGroup.stableTokenAddress = _stableAssetAddress;
+        pairGroup.assetsCount = 1;
 
         assetIds = new uint256[](_addAssetParams.length);
 
@@ -426,11 +426,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @notice add token pair
      */
     function _addPair(DataType.AddAssetParams memory _addAssetParam) internal returns (uint256 pairId) {
-        pairId = assetGroup.assetsCount;
+        pairId = pairGroup.assetsCount;
 
         IUniswapV3Pool uniswapPool = IUniswapV3Pool(_addAssetParam.uniswapPool);
 
-        address stableTokenAddress = assetGroup.stableTokenAddress;
+        address stableTokenAddress = pairGroup.stableTokenAddress;
 
         require(uniswapPool.token0() == stableTokenAddress || uniswapPool.token1() == stableTokenAddress, "C3");
 
@@ -447,7 +447,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             _addAssetParam.squartIRMParams
         );
 
-        assetGroup.assetsCount++;
+        pairGroup.assetsCount++;
 
         emit PairAdded(pairId, _addAssetParam.uniswapPool);
     }
@@ -471,8 +471,8 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         assets[_pairId] = DataType.PairStatus(
             _pairId,
             DataType.AssetPoolStatus(
-                assetGroup.stableTokenAddress,
-                SupplyLogic.deploySupplyToken(assetGroup.stableTokenAddress),
+                pairGroup.stableTokenAddress,
+                SupplyLogic.deploySupplyToken(pairGroup.stableTokenAddress),
                 ScaledAsset.createTokenStatus(),
                 _stableIrmParams,
                 0
@@ -497,7 +497,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     }
 
     function applyInterest() internal {
-        ApplyInterestLogic.applyInterestForAssetGroup(assetGroup, assets);
+        ApplyInterestLogic.applyInterestForAssetGroup(pairGroup, assets);
     }
 
     function settleUserFee(DataType.Vault storage _vault)
@@ -557,8 +557,8 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         );
     }
 
-    function getAssetGroup() external view override(IController) returns (DataType.PairGroup memory) {
-        return assetGroup;
+    function getPairGroup() external view override(IController) returns (DataType.PairGroup memory) {
+        return pairGroup;
     }
 
     function getAsset(uint256 _id) external view override(IController) returns (DataType.PairStatus memory) {

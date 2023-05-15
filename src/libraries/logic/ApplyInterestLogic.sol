@@ -2,7 +2,6 @@
 pragma solidity ^0.8.19;
 
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "../AssetGroupLib.sol";
 import "../Perp.sol";
 import "../ScaledAsset.sol";
 import "../AssetLib.sol";

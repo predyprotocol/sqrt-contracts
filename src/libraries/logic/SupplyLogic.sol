@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../../interfaces/ISupplyToken.sol";
-import "../AssetGroupLib.sol";
 import "../DataType.sol";
 import "../PositionCalculator.sol";
 import "../ScaledAsset.sol";

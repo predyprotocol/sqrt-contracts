@@ -15,7 +15,7 @@ interface IController {
 
     function getVault(uint256 _id) external view returns (DataType.Vault memory);
 
-    function getAssetGroup() external view returns (DataType.PairGroup memory);
+    function getPairGroup() external view returns (DataType.PairGroup memory);
 
     function getAsset(uint256 _id) external view returns (DataType.PairStatus memory);
 
