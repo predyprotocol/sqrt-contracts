@@ -13,7 +13,9 @@ contract TestPerpReallocate is TestPerp {
     }
 
     function testReallocate() public {
-        Perp.computeRequiredAmounts(underlyingAssetStatus, userStatus, 1000000);
+        Perp.computeRequiredAmounts(
+            underlyingAssetStatus.sqrtAssetStatus, underlyingAssetStatus.isMarginZero, userStatus, 1000000
+        );
         Perp.updatePosition(
             underlyingAssetStatus,
             userStatus,

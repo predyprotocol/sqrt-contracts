@@ -41,16 +41,7 @@ library ApplyInterestLogic {
 
         require(assetStatus.id > 0, "A0");
 
-        if (block.timestamp <= assetStatus.lastUpdateTimestamp) {
-            return;
-        }
-
-        assetStatus.stablePool.accumulatedProtocolRevenue += Perp.updateFeeAndPremiumGrowth(
-            assetStatus.sqrtAssetStatus,
-            assetStatus.squartIRMParams,
-            assetStatus.isMarginZero,
-            assetStatus.lastUpdateTimestamp
-        );
+        Perp.updateFeeAndPremiumGrowth(assetStatus.sqrtAssetStatus);
 
         applyInterestForPoolStatus(assetStatus.underlyingPool, assetStatus.lastUpdateTimestamp);
 
@@ -66,6 +57,10 @@ library ApplyInterestLogic {
     function applyInterestForPoolStatus(DataType.AssetPoolStatus storage _poolStatus, uint256 _lastUpdateTimestamp)
         internal
     {
+        if (block.timestamp <= _lastUpdateTimestamp) {
+            return;
+        }
+
         // Gets utilization ratio
         uint256 utilizationRatio = _poolStatus.tokenStatus.getUtilizationRatio();
 
@@ -96,8 +91,8 @@ library ApplyInterestLogic {
     function emitPremiumGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
         emit PremiumGrowthUpdated(
             _assetStatus.id,
-            _assetStatus.sqrtAssetStatus.supplyPremiumGrowth,
-            _assetStatus.sqrtAssetStatus.borrowPremiumGrowth,
+            _assetStatus.sqrtAssetStatus.borrowPremium0Growth,
+            _assetStatus.sqrtAssetStatus.borrowPremium1Growth,
             _assetStatus.sqrtAssetStatus.fee0Growth,
             _assetStatus.sqrtAssetStatus.fee1Growth
         );
@@ -112,7 +107,6 @@ library ApplyInterestLogic {
 
         AssetLib.checkUnderlyingAsset(underlyingAsset);
 
-        // TODO
         Perp.updateRebalanceFeeGrowth(underlyingAsset, underlyingAsset.sqrtAssetStatus);
 
         (reallocationHappened, profit) = Perp.reallocate(underlyingAsset, underlyingAsset.sqrtAssetStatus, false);

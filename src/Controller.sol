@@ -65,10 +65,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     );
     event AssetRiskParamsUpdated(uint256 pairId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
-        uint256 pairId,
-        InterestRateModel.IRMParams stableIrmParams,
-        InterestRateModel.IRMParams underlyingIrmParams,
-        InterestRateModel.IRMParams squartIRMParams
+        uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
     );
 
     modifier onlyOperator() {
@@ -198,25 +195,21 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _pairId The id of pair to update params.
      * @param _stableIrmParams Asset interest-rate parameters for stable.
      * @param _underlyingIrmParams Asset interest-rate parameters for underlying.
-     * @param _squartIRMParams Squart interest-rate parameters.
      */
     function updateIRMParams(
         uint256 _pairId,
         InterestRateModel.IRMParams memory _stableIrmParams,
-        InterestRateModel.IRMParams memory _underlyingIrmParams,
-        InterestRateModel.IRMParams memory _squartIRMParams
+        InterestRateModel.IRMParams memory _underlyingIrmParams
     ) external onlyOperator {
         validateIRMParams(_stableIrmParams);
         validateIRMParams(_underlyingIrmParams);
-        validateIRMParams(_squartIRMParams);
 
         DataType.PairStatus storage asset = assets[_pairId];
 
         asset.stablePool.irmParams = _stableIrmParams;
         asset.underlyingPool.irmParams = _underlyingIrmParams;
-        asset.squartIRMParams = _squartIRMParams;
 
-        emit IRMParamsUpdated(_pairId, _stableIrmParams, _underlyingIrmParams, _squartIRMParams);
+        emit IRMParamsUpdated(_pairId, _stableIrmParams, _underlyingIrmParams);
     }
 
     /**
@@ -441,8 +434,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             _addAssetParam.uniswapPool,
             _addAssetParam.assetRiskParams,
             _addAssetParam.stableIrmParams,
-            _addAssetParam.underlyingIrmParams,
-            _addAssetParam.squartIRMParams
+            _addAssetParam.underlyingIrmParams
         );
 
         pairGroup.assetsCount++;
@@ -457,8 +449,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         address _uniswapPool,
         DataType.AssetRiskParams memory _assetRiskParams,
         InterestRateModel.IRMParams memory _stableIrmParams,
-        InterestRateModel.IRMParams memory _underlyingIrmParams,
-        InterestRateModel.IRMParams memory _squartIRMParams
+        InterestRateModel.IRMParams memory _underlyingIrmParams
     ) internal {
         if (_uniswapPool != address(0)) {
             validateIRMParams(_assetRiskParams);
@@ -485,7 +476,6 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             _assetRiskParams,
             Perp.createAssetStatus(_uniswapPool, -_assetRiskParams.rangeSize, _assetRiskParams.rangeSize),
             _isMarginZero,
-            _squartIRMParams,
             block.timestamp
         );
 

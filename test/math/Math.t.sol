@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 import "../../src/libraries/math/Math.sol";
 
 contract MathTest is Test {
+    uint256 internal constant Q128 = 0x100000000000000000000000000000000;
+
     function testAbs(uint256 _x) public {
         uint256 expected = bound(_x, 0, uint256(type(int256).max));
 
@@ -21,5 +23,15 @@ contract MathTest is Test {
 
     function testMax(uint256 _x) public {
         assertGe(Math.max(100, _x), 100);
+    }
+
+    function testMulDivDownInt256() public {
+        assertEq(Math.mulDivDownInt256(111, 111, 2), 6160);
+        assertEq(Math.mulDivDownInt256(-111, 111, 2), -6161);
+    }
+
+    function testMulDivDownInt256Fuzz(uint256 _x) public {
+        assertGe(Math.mulDivDownInt256(111, _x, Q128), 0);
+        assertLe(Math.mulDivDownInt256(-111, _x, Q128), 0);
     }
 }

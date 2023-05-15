@@ -21,7 +21,6 @@ library DataType {
         DataType.AssetRiskParams assetRiskParams;
         InterestRateModel.IRMParams stableIrmParams;
         InterestRateModel.IRMParams underlyingIrmParams;
-        InterestRateModel.IRMParams squartIRMParams;
     }
 
     struct AssetRiskParams {
@@ -37,7 +36,6 @@ library DataType {
         AssetRiskParams riskParams;
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
-        InterestRateModel.IRMParams squartIRMParams;
         uint256 lastUpdateTimestamp;
     }
 

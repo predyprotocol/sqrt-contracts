@@ -152,7 +152,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawAmount, 10049200000);
+        assertEq(withdrawAmount, 10049100000);
     }
 
     function testDeposit3() public {
@@ -189,11 +189,11 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawAmount1 = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(finalDeposit1, 10000000000);
-        assertEq(finalDeposit2, 8506350000);
-        assertEq(estimatedDepositAmount, 8506350000);
+        assertEq(finalDeposit2, 8507890000);
+        assertEq(estimatedDepositAmount, 8507890000);
 
-        assertEq(withdrawAmount1, 8487570000);
-        assertEq(withdrawAmount2, 8487570000);
+        assertEq(withdrawAmount1, 8489110000);
+        assertEq(withdrawAmount2, 8489110000);
     }
 
     function testFrontrunnedDeposit() public {
@@ -215,10 +215,10 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         // user1's deposit price and withdrawal price is almost same
         // user2's deposit price is low
         assertEq(finalDeposit1, 10000000000);
-        assertEq(finalDeposit2, 9994190000);
+        assertEq(finalDeposit2, 9994490000);
 
-        assertEq(withdrawAmount1, 10000490000);
-        assertEq(withdrawAmount2, 10000490000);
+        assertEq(withdrawAmount1, 10000590000);
+        assertEq(withdrawAmount2, 10000580000);
     }
 
     function testFrontrunnedWithdraw() public {
@@ -243,8 +243,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(finalDeposit1, 10000000000);
         assertEq(finalDeposit2, 10000000000);
 
-        assertEq(withdrawAmount1, 10000740000);
-        assertEq(withdrawAmount2, 9993550000);
+        assertEq(withdrawAmount1, 10000590000);
+        assertEq(withdrawAmount2, 9993850000);
     }
 
     function testDepositAfterRebalance() public {
@@ -264,8 +264,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         uint256 withdrawMarginAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());
 
-        assertEq(depositMarginAmount, 9465440000);
-        assertEq(withdrawMarginAmount, 9457720000);
+        assertEq(depositMarginAmount, 9466980000);
+        assertEq(withdrawMarginAmount, 9459260000);
     }
 
     function testCannotDeltaHedge_IfCallerIsNotHedger() public {

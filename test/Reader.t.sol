@@ -54,14 +54,15 @@ contract TestReader is TestController {
         controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(800 * 1e6, -800 * 1e6));
         vm.stopPrank();
 
-        vm.warp(block.timestamp + 11 weeks);
+        manipulateVol(10);
+        vm.warp(block.timestamp + 1 weeks);
 
         vm.startPrank(user2);
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId2);
         vm.stopPrank();
 
-        assertEq(vaultStatus.vaultValue, 9930806394);
-        assertEq(vaultStatus.minDeposit, 8000000);
+        assertEq(vaultStatus.vaultValue, 9999453442);
+        assertEq(vaultStatus.minDeposit, 7997921);
     }
 
     function testGetDelta1() public {

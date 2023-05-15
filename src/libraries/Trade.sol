@@ -50,8 +50,12 @@ library Trade {
         (underlyingFee, stableFee) =
             settleUserBalanceAndFee(_underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
 
-        (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) =
-            Perp.computeRequiredAmounts(_underlyingAssetStatus, _perpUserStatus, _tradeAmountSqrt);
+        (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) = Perp.computeRequiredAmounts(
+            _underlyingAssetStatus.sqrtAssetStatus,
+            _underlyingAssetStatus.isMarginZero,
+            _perpUserStatus,
+            _tradeAmountSqrt
+        );
 
         // swap
         SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
