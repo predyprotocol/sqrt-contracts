@@ -17,7 +17,7 @@ contract TestPerp is Test, Helper {
     address internal token1;
     IUniswapV3Pool internal uniswapPool;
 
-    DataType.AssetStatus internal underlyingAssetStatus;
+    DataType.PairStatus internal underlyingAssetStatus;
     Perp.UserStatus internal userStatus;
 
     function setUp() public virtual {

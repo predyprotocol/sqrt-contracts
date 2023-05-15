@@ -5,7 +5,7 @@ import "./ScaledAsset.sol";
 import "./DataType.sol";
 
 library AssetGroupLib {
-    function isAllow(DataType.AssetGroup memory _assetGroup, uint256 _assetId) internal pure returns (bool) {
-        return _assetId < _assetGroup.assetsCount;
+    function isAllow(DataType.PairGroup memory _assetGroup, uint256 _pairId) internal pure returns (bool) {
+        return _pairId < _assetGroup.assetsCount;
     }
 }

@@ -30,7 +30,7 @@ library SupplyLogic {
         );
     }
 
-    function supply(DataType.AssetStatus storage _asset, uint256 _amount, bool _isStable)
+    function supply(DataType.PairStatus storage _asset, uint256 _amount, bool _isStable)
         external
         returns (uint256 mintAmount)
     {
@@ -51,7 +51,7 @@ library SupplyLogic {
         ISupplyToken(_pool.supplyTokenAddress).mint(msg.sender, mintAmount);
     }
 
-    function withdraw(DataType.AssetStatus storage _asset, uint256 _amount, bool _isStable)
+    function withdraw(DataType.PairStatus storage _asset, uint256 _amount, bool _isStable)
         external
         returns (uint256 finalburntAmount, uint256 finalWithdrawalAmount)
     {

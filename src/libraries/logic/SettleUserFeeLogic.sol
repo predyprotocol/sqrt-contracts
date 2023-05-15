@@ -9,7 +9,7 @@ import "../UniHelper.sol";
 library SettleUserFeeLogic {
     event FeeCollected(uint256 vaultId, uint256 assetId, int256 feeCollected);
 
-    function settleUserFee(mapping(uint256 => DataType.AssetStatus) storage _assets, DataType.Vault storage _vault)
+    function settleUserFee(mapping(uint256 => DataType.PairStatus) storage _assets, DataType.Vault storage _vault)
         external
         returns (int256[] memory latestFees, bool isSettled)
     {
@@ -17,7 +17,7 @@ library SettleUserFeeLogic {
     }
 
     function settleUserFee(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault storage _vault,
         uint256 _excludeAssetId
     ) public returns (int256[] memory latestFees, bool isSettledTotal) {

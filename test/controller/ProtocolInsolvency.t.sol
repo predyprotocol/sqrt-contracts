@@ -92,12 +92,12 @@ contract TestControllerTradePerp is TestController {
         controller.withdrawToken(WBTC_ASSET_ID, 1e18, true);
         controller.withdrawToken(WBTC_ASSET_ID, 1e18, false);
         vm.stopPrank();
-        
+
         console.log(usdc.balanceOf(address(controller)));
         console.log(weth.balanceOf(address(controller)));
 
         for (uint256 i = 1; i <= 2; i++) {
-            DataType.AssetStatus memory asset = controller.getAsset(i);
+            DataType.PairStatus memory asset = controller.getAsset(i);
 
             if (asset.underlyingPool.accumulatedProtocolRevenue > 0 || asset.stablePool.accumulatedProtocolRevenue > 0)
             {

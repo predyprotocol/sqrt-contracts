@@ -25,7 +25,7 @@ library PositionCalculator {
         int256 amountUnderlying;
     }
 
-    function isDanger(mapping(uint256 => DataType.AssetStatus) storage _assets, DataType.Vault memory _vault)
+    function isDanger(mapping(uint256 => DataType.PairStatus) storage _assets, DataType.Vault memory _vault)
         internal
         view
     {
@@ -39,7 +39,7 @@ library PositionCalculator {
     }
 
     function isSafe(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault memory _vault,
         bool _isLiquidationCall
     ) internal view returns (int256 minDeposit) {
@@ -59,7 +59,7 @@ library PositionCalculator {
     }
 
     function calculateMinDeposit(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault memory _vault,
         bool _enableUnrealizedFeeCalculation
     ) internal view returns (int256 minDeposit, int256 vaultValue, bool hasPosition) {
@@ -89,7 +89,7 @@ library PositionCalculator {
      * @param _enableUnrealizedFeeCalculation If true calculation count unrealized fee.
      */
     function calculateMinValue(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault memory _vault,
         bool _enableUnrealizedFeeCalculation
     ) internal view returns (int256 minValue, int256 vaultValue, uint256 debtValue, bool hasPosition) {
@@ -128,7 +128,7 @@ library PositionCalculator {
     }
 
     function getPositionWithUnrealizedFee(
-        DataType.AssetStatus memory _underlyingAsset,
+        DataType.PairStatus memory _underlyingAsset,
         Perp.UserStatus memory _perpUserStatus
     ) internal pure returns (PositionParams memory positionParams) {
         (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =

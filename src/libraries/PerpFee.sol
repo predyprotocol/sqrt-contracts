@@ -6,7 +6,7 @@ import "./Perp.sol";
 library PerpFee {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function computeUserFee(DataType.AssetStatus memory _assetStatus, Perp.UserStatus memory _userStatus)
+    function computeUserFee(DataType.PairStatus memory _assetStatus, Perp.UserStatus memory _userStatus)
         internal
         pure
         returns (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable)
@@ -34,7 +34,7 @@ library PerpFee {
         }
     }
 
-    function settleUserFee(DataType.AssetStatus memory _assetStatus, Perp.UserStatus storage _userStatus)
+    function settleUserFee(DataType.PairStatus memory _assetStatus, Perp.UserStatus storage _userStatus)
         internal
         returns (int256 totalFeeUnderlying, int256 totalFeeStable)
     {
@@ -59,7 +59,7 @@ library PerpFee {
     // Trade fee
 
     function computeTradeFee(
-        DataType.AssetStatus memory _underlyingAssetStatus,
+        DataType.PairStatus memory _underlyingAssetStatus,
         Perp.SqrtPositionStatus memory _sqrtPerp
     ) internal pure returns (int256 feeUnderlying, int256 feeStable) {
         int256 fee0;
@@ -84,7 +84,7 @@ library PerpFee {
     }
 
     function settleTradeFee(
-        DataType.AssetStatus memory _underlyingAssetStatus,
+        DataType.PairStatus memory _underlyingAssetStatus,
         Perp.SqrtPositionStatus storage _sqrtPerp
     ) internal returns (int256 feeUnderlying, int256 feeStable) {
         (feeUnderlying, feeStable) = computeTradeFee(_underlyingAssetStatus, _sqrtPerp);
@@ -95,10 +95,11 @@ library PerpFee {
 
     // Premium
 
-    function computePremium(
-        DataType.AssetStatus memory _underlyingAssetStatus,
-        Perp.SqrtPositionStatus memory _sqrtPerp
-    ) internal pure returns (int256 premium) {
+    function computePremium(DataType.PairStatus memory _underlyingAssetStatus, Perp.SqrtPositionStatus memory _sqrtPerp)
+        internal
+        pure
+        returns (int256 premium)
+    {
         if (_sqrtPerp.amount > 0) {
             premium = mulDivToInt256(
                 _underlyingAssetStatus.sqrtAssetStatus.supplyPremiumGrowth - _sqrtPerp.entryPremium, _sqrtPerp.amount
@@ -110,10 +111,10 @@ library PerpFee {
         }
     }
 
-    function settlePremium(
-        DataType.AssetStatus memory _underlyingAssetStatus,
-        Perp.SqrtPositionStatus storage _sqrtPerp
-    ) internal returns (int256 premium) {
+    function settlePremium(DataType.PairStatus memory _underlyingAssetStatus, Perp.SqrtPositionStatus storage _sqrtPerp)
+        internal
+        returns (int256 premium)
+    {
         premium = computePremium(_underlyingAssetStatus, _sqrtPerp);
 
         if (_sqrtPerp.amount > 0) {

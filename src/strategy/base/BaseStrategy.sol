@@ -35,7 +35,7 @@ contract BaseStrategy is ERC20Upgradeable {
 
     function initialize(
         address _controller,
-        uint256 _assetId,
+        uint256 _pairId,
         MinPerValueLimit memory _minPerValueLimit,
         string memory _name,
         string memory _symbol
@@ -44,11 +44,11 @@ contract BaseStrategy is ERC20Upgradeable {
 
         controller = IController(_controller);
 
-        assetId = _assetId;
+        assetId = _pairId;
 
         minPerValueLimit = _minPerValueLimit;
 
-        DataType.AssetStatus memory asset = controller.getAsset(assetId);
+        DataType.PairStatus memory asset = controller.getAsset(assetId);
 
         usdc = asset.stablePool.token;
 

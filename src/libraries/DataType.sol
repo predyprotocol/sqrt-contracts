@@ -6,7 +6,7 @@ import "./Perp.sol";
 import "./InterestRateModel.sol";
 
 library DataType {
-    struct AssetGroup {
+    struct PairGroup {
         address stableTokenAddress;
         uint256 assetsCount;
     }
@@ -30,7 +30,7 @@ library DataType {
         int24 rebalanceThreshold;
     }
 
-    struct AssetStatus {
+    struct PairStatus {
         uint256 id;
         AssetPoolStatus stablePool;
         AssetPoolStatus underlyingPool;

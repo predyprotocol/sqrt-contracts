@@ -6,13 +6,13 @@ import "../../src/Controller.sol";
 contract Helper {
     uint256 internal constant RISK_RATIO = 109544511;
 
-    function createAssetStatus(uint256 _assetId, address _weth, address _uniswapPool)
+    function createAssetStatus(uint256 _pairId, address _weth, address _uniswapPool)
         internal
         view
-        returns (DataType.AssetStatus memory assetStatus)
+        returns (DataType.PairStatus memory assetStatus)
     {
-        assetStatus = DataType.AssetStatus(
-            _assetId,
+        assetStatus = DataType.PairStatus(
+            _pairId,
             DataType.AssetPoolStatus(
                 address(0),
                 address(0),

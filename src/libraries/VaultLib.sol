@@ -6,19 +6,19 @@ import "./DataType.sol";
 import "./ScaledAsset.sol";
 
 library VaultLib {
-    using AssetGroupLib for DataType.AssetGroup;
+    using AssetGroupLib for DataType.PairGroup;
 
     uint256 internal constant MAX_VAULTS = 100;
 
-    function getUserStatus(DataType.AssetGroup storage _assetGroup, DataType.Vault storage _vault, uint256 _assetId)
+    function getUserStatus(DataType.PairGroup storage _assetGroup, DataType.Vault storage _vault, uint256 _pairId)
         internal
         returns (DataType.UserStatus storage userStatus)
     {
         checkVault(_vault, msg.sender);
 
-        require(_assetGroup.isAllow(_assetId), "ASSETID");
+        require(_assetGroup.isAllow(_pairId), "ASSETID");
 
-        userStatus = createOrGetUserStatus(_vault, _assetId);
+        userStatus = createOrGetUserStatus(_vault, _pairId);
     }
 
     function checkVault(DataType.Vault memory _vault, address _caller) internal pure {
@@ -26,17 +26,17 @@ library VaultLib {
         require(_vault.owner == _caller, "V2");
     }
 
-    function createOrGetUserStatus(DataType.Vault storage _vault, uint256 _assetId)
+    function createOrGetUserStatus(DataType.Vault storage _vault, uint256 _pairId)
         internal
         returns (DataType.UserStatus storage)
     {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            if (_vault.openPositions[i].assetId == _assetId) {
+            if (_vault.openPositions[i].assetId == _pairId) {
                 return _vault.openPositions[i];
             }
         }
 
-        _vault.openPositions.push(DataType.UserStatus(_assetId, Perp.createPerpUserStatus()));
+        _vault.openPositions.push(DataType.UserStatus(_pairId, Perp.createPerpUserStatus()));
 
         return _vault.openPositions[_vault.openPositions.length - 1];
     }

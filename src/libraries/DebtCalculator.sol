@@ -7,7 +7,7 @@ import "./Perp.sol";
 
 library DebtCalculator {
     function calculateDebtValue(
-        DataType.AssetStatus memory _underlyingAssetStatus,
+        DataType.PairStatus memory _underlyingAssetStatus,
         Perp.UserStatus memory _perpUserStatus,
         uint160 _sqrtPrice
     ) internal pure returns (uint256) {

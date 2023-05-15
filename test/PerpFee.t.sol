@@ -6,7 +6,7 @@ import "../src/libraries/PerpFee.sol";
 import "./helper/Helper.sol";
 
 contract PerpFeeTest is Test, Helper {
-    DataType.AssetStatus underlyingAssetStatus;
+    DataType.PairStatus underlyingAssetStatus;
     ScaledAsset.TokenStatus stableAssetStatus;
     Perp.UserStatus perpUserStatus;
 

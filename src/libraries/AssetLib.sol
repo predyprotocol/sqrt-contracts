@@ -5,7 +5,7 @@ import "./ScaledAsset.sol";
 import "./DataType.sol";
 
 library AssetLib {
-    function checkUnderlyingAsset(DataType.AssetStatus memory underlyingAsset) internal pure {
+    function checkUnderlyingAsset(DataType.PairStatus memory underlyingAsset) internal pure {
         require(underlyingAsset.id > 0, "ASSETID");
     }
 }

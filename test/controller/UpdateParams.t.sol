@@ -32,7 +32,7 @@ contract TestControllerUpdateParams is TestController {
 
         uint256 assetId = controller.addPair(addPairParams);
 
-        DataType.AssetStatus memory asset = controller.getAsset(assetId);
+        DataType.PairStatus memory asset = controller.getAsset(assetId);
 
         assertEq(asset.id, 3);
     }
@@ -51,7 +51,7 @@ contract TestControllerUpdateParams is TestController {
     function testUpdateAssetRiskParams() public {
         controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(110000000, 20, 10));
 
-        DataType.AssetStatus memory asset = controller.getAsset(WETH_ASSET_ID);
+        DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
 
         assertEq(asset.riskParams.riskRatio, 110000000);
         assertEq(asset.riskParams.rangeSize, 20);
@@ -77,7 +77,7 @@ contract TestControllerUpdateParams is TestController {
     function testUpdateAssetIRMParams() public {
         controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams, newIrmParams);
 
-        DataType.AssetStatus memory asset = controller.getAsset(WETH_ASSET_ID);
+        DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
 
         assertEq(asset.stablePool.irmParams.baseRate, 2 * 1e16);
         assertEq(asset.stablePool.irmParams.kinkRate, 10 * 1e17);

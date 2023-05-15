@@ -12,8 +12,8 @@ library UpdateMarginLogic {
     event MarginUpdated(uint256 vaultId, int256 marginAmount);
 
     function updateMargin(
-        DataType.AssetGroup memory _assetGroup,
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        DataType.PairGroup memory _assetGroup,
+        mapping(uint256 => DataType.PairStatus) storage _assets,
         DataType.Vault storage _vault,
         int256 _marginAmount
     ) external {

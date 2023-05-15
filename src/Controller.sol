@@ -36,12 +36,12 @@ import "./interfaces/IController.sol";
  * C5: invalid vault creation
  */
 contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback, IController {
-    using AssetGroupLib for DataType.AssetGroup;
+    using AssetGroupLib for DataType.PairGroup;
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    DataType.AssetGroup internal assetGroup;
+    DataType.PairGroup internal assetGroup;
 
-    mapping(uint256 => DataType.AssetStatus) internal assets;
+    mapping(uint256 => DataType.PairStatus) internal assets;
 
     mapping(uint256 => DataType.Vault) internal vaults;
 
@@ -55,15 +55,15 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     mapping(address => bool) public allowedUniswapPools;
 
     event OperatorUpdated(address operator);
-    event PairAdded(uint256 assetId, address _uniswapPool);
+    event PairAdded(uint256 pairId, address _uniswapPool);
     event AssetGroupInitialized(address stableAsset, uint256[] assetIds);
     event VaultCreated(uint256 vaultId, address owner, bool isMainVault);
     event ProtocolRevenueWithdrawn(
-        uint256 assetId, uint256 withdrawnProtocolFeeStable, uint256 withdrawnProtocolFeeUnderlying
+        uint256 pairId, uint256 withdrawnProtocolFeeStable, uint256 withdrawnProtocolFeeUnderlying
     );
-    event AssetRiskParamsUpdated(uint256 assetId, DataType.AssetRiskParams riskParams);
+    event AssetRiskParamsUpdated(uint256 pairId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
-        uint256 assetId,
+        uint256 pairId,
         InterestRateModel.IRMParams stableIrmParams,
         InterestRateModel.IRMParams underlyingIrmParams,
         InterestRateModel.IRMParams squartIRMParams
@@ -131,7 +131,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @notice Adds token pair to the contract
      * @dev Only operator can call this function.
      * @param _addAssetParam parameters to define asset risk and interest rate model
-     * @return assetId The id of pair
+     * @return pairId The id of pair
      */
     function addPair(DataType.AddAssetParams memory _addAssetParam) external onlyOperator returns (uint256) {
         return _addPair(_addAssetParam);
@@ -143,11 +143,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _underlyingAmount amount of underlying token to withdraw
      * @param _stableAmount amount of stable token to withdraw
      */
-    function withdrawProtocolRevenue(uint256 _assetId, uint256 _underlyingAmount, uint256 _stableAmount)
+    function withdrawProtocolRevenue(uint256 _pairId, uint256 _underlyingAmount, uint256 _stableAmount)
         external
         onlyOperator
     {
-        DataType.AssetStatus storage asset = assets[_assetId];
+        DataType.PairStatus storage asset = assets[_pairId];
 
         require(
             asset.stablePool.accumulatedProtocolRevenue >= _stableAmount
@@ -166,40 +166,40 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             TransferHelper.safeTransfer(asset.underlyingPool.token, msg.sender, _underlyingAmount);
         }
 
-        emit ProtocolRevenueWithdrawn(_assetId, _stableAmount, _underlyingAmount);
+        emit ProtocolRevenueWithdrawn(_pairId, _stableAmount, _underlyingAmount);
     }
 
     /**
      * @notice Updates asset risk parameters.
      * @dev The function can be called by operator.
-     * @param _assetId The id of asset to update params.
+     * @param _pairId The id of asset to update params.
      * @param _riskParams Asset risk parameters.
      */
-    function updateAssetRiskParams(uint256 _assetId, DataType.AssetRiskParams memory _riskParams)
+    function updateAssetRiskParams(uint256 _pairId, DataType.AssetRiskParams memory _riskParams)
         external
         onlyOperator
     {
         validateIRMParams(_riskParams);
 
-        DataType.AssetStatus storage asset = assets[_assetId];
+        DataType.PairStatus storage asset = assets[_pairId];
 
         asset.riskParams.riskRatio = _riskParams.riskRatio;
         asset.riskParams.rangeSize = _riskParams.rangeSize;
         asset.riskParams.rebalanceThreshold = _riskParams.rebalanceThreshold;
 
-        emit AssetRiskParamsUpdated(_assetId, _riskParams);
+        emit AssetRiskParamsUpdated(_pairId, _riskParams);
     }
 
     /**
      * @notice Updates interest rate model parameters.
      * @dev The function can be called by operator.
-     * @param _assetId The id of asset to update params.
+     * @param _pairId The id of asset to update params.
      * @param _stableIrmParams Asset interest-rate parameters for stable.
      * @param _underlyingIrmParams Asset interest-rate parameters for underlying.
      * @param _squartIRMParams Squart interest-rate parameters.
      */
     function updateIRMParams(
-        uint256 _assetId,
+        uint256 _pairId,
         InterestRateModel.IRMParams memory _stableIrmParams,
         InterestRateModel.IRMParams memory _underlyingIrmParams,
         InterestRateModel.IRMParams memory _squartIRMParams
@@ -208,58 +208,58 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         validateIRMParams(_underlyingIrmParams);
         validateIRMParams(_squartIRMParams);
 
-        DataType.AssetStatus storage asset = assets[_assetId];
+        DataType.PairStatus storage asset = assets[_pairId];
 
         asset.stablePool.irmParams = _stableIrmParams;
         asset.underlyingPool.irmParams = _underlyingIrmParams;
         asset.squartIRMParams = _squartIRMParams;
 
-        emit IRMParamsUpdated(_assetId, _stableIrmParams, _underlyingIrmParams, _squartIRMParams);
+        emit IRMParamsUpdated(_pairId, _stableIrmParams, _underlyingIrmParams, _squartIRMParams);
     }
 
     /**
      * @notice Reallocates range of Uniswap LP position.
-     * @param _assetId The id of asset to reallocate.
+     * @param _pairId The id of asset to reallocate.
      */
-    function reallocate(uint256 _assetId) external returns (bool, int256) {
+    function reallocate(uint256 _pairId) external returns (bool, int256) {
         applyInterest();
 
-        return ApplyInterestLogic.reallocate(assets, _assetId);
+        return ApplyInterestLogic.reallocate(assets, _pairId);
     }
 
     /**
      * @notice Supplys token and mints claim token
-     * @param _assetId Asset id of the asset being supplied to the pool
+     * @param _pairId Asset id of the asset being supplied to the pool
      * @param _amount The amount of asset being supplied
      * @param _isStable If true supplys to stable pool, if false supplys to underlying pool
      * @return finalMintAmount The amount of claim token being minted
      */
-    function supplyToken(uint256 _assetId, uint256 _amount, bool _isStable)
+    function supplyToken(uint256 _pairId, uint256 _amount, bool _isStable)
         external
         nonReentrant
         returns (uint256 finalMintAmount)
     {
-        ApplyInterestLogic.applyInterestForToken(assets, _assetId);
+        ApplyInterestLogic.applyInterestForToken(assets, _pairId);
 
-        return SupplyLogic.supply(assets[_assetId], _amount, _isStable);
+        return SupplyLogic.supply(assets[_pairId], _amount, _isStable);
     }
 
     /**
      * @notice Withdraws token and burns claim token
-     * @param _assetId Asset id of the asset being withdrawn from the pool
+     * @param _pairId Asset id of the asset being withdrawn from the pool
      * @param _amount The amount of asset being withdrawn
      * @param _isStable If true supplys to stable pool, if false supplys to underlying pool
      * @return finalBurnAmount The amount of claim token being burned
      * @return finalWithdrawAmount The amount of token being withdrawn
      */
-    function withdrawToken(uint256 _assetId, uint256 _amount, bool _isStable)
+    function withdrawToken(uint256 _pairId, uint256 _amount, bool _isStable)
         external
         nonReentrant
         returns (uint256 finalBurnAmount, uint256 finalWithdrawAmount)
     {
-        ApplyInterestLogic.applyInterestForToken(assets, _assetId);
+        ApplyInterestLogic.applyInterestForToken(assets, _pairId);
 
-        return SupplyLogic.withdraw(assets[_assetId], _amount, _isStable);
+        return SupplyLogic.withdraw(assets[_pairId], _amount, _isStable);
     }
 
     /**
@@ -280,12 +280,12 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice Creates new isolated vault and open perp positions.
      * @param _depositAmount The amount of margin to deposit from main vault.
-     * @param _assetId Asset id of the asset
+     * @param _pairId Asset id of the asset
      * @param _tradeParams The trade parameters
      * @return isolatedVaultId The id of isolated vault
      * @return tradeResult The result of perp trade
      */
-    function openIsolatedVault(uint256 _depositAmount, uint256 _assetId, TradeLogic.TradeParams memory _tradeParams)
+    function openIsolatedVault(uint256 _depositAmount, uint256 _pairId, TradeLogic.TradeParams memory _tradeParams)
         external
         nonReentrant
         returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
@@ -302,20 +302,20 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         isolatedVaultId = createVaultIfNeeded(0, msg.sender, false);
 
         tradeResult = IsolatedVaultLogic.openIsolatedVault(
-            assetGroup, assets, vault, vaults[isolatedVaultId], _depositAmount, _assetId, _tradeParams
+            assetGroup, assets, vault, vaults[isolatedVaultId], _depositAmount, _pairId, _tradeParams
         );
     }
 
     /**
      * @notice Close positions in the isolated vault and move margin to main vault.
      * @param _isolatedVaultId The id of isolated vault
-     * @param _assetId Asset id of the asset
+     * @param _pairId Asset id of the asset
      * @param _closeParams The close parameters
      * @return tradeResult The result of perp trade
      */
     function closeIsolatedVault(
         uint256 _isolatedVaultId,
-        uint256 _assetId,
+        uint256 _pairId,
         IsolatedVaultLogic.CloseParams memory _closeParams
     ) external nonReentrant returns (DataType.TradeResult memory tradeResult) {
         uint256 vaultId = ownVaultsMap[msg.sender].mainVaultId;
@@ -328,7 +328,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         applyInterest();
 
         tradeResult =
-            IsolatedVaultLogic.closeIsolatedVault(assetGroup, assets, vault, isolatedVault, _assetId, _closeParams);
+            IsolatedVaultLogic.closeIsolatedVault(assetGroup, assets, vault, isolatedVault, _pairId, _closeParams);
 
         VaultLib.removeIsolatedVaultId(ownVaultsMap[msg.sender], isolatedVault.id);
     }
@@ -336,22 +336,22 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice Trades perps of x and sqrt(x)
      * @param _vaultId The id of vault
-     * @param _assetId Asset id of the asset
+     * @param _pairId Asset id of the asset
      * @param _tradeParams The trade parameters
      * @return TradeResult The result of perp trade
      */
-    function tradePerp(uint256 _vaultId, uint256 _assetId, TradeLogic.TradeParams memory _tradeParams)
+    function tradePerp(uint256 _vaultId, uint256 _pairId, TradeLogic.TradeParams memory _tradeParams)
         external
         override(IController)
         nonReentrant
         returns (DataType.TradeResult memory)
     {
-        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(assetGroup, vaults[_vaultId], _assetId);
+        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(assetGroup, vaults[_vaultId], _pairId);
 
         applyInterest();
-        settleUserFee(vaults[_vaultId], _assetId);
+        settleUserFee(vaults[_vaultId], _pairId);
 
-        return TradeLogic.execTrade(assets, vaults[_vaultId], _assetId, perpUserStatus, _tradeParams);
+        return TradeLogic.execTrade(assets, vaults[_vaultId], _pairId, perpUserStatus, _tradeParams);
     }
 
     /**
@@ -425,8 +425,8 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice add token pair
      */
-    function _addPair(DataType.AddAssetParams memory _addAssetParam) internal returns (uint256 assetId) {
-        assetId = assetGroup.assetsCount;
+    function _addPair(DataType.AddAssetParams memory _addAssetParam) internal returns (uint256 pairId) {
+        pairId = assetGroup.assetsCount;
 
         IUniswapV3Pool uniswapPool = IUniswapV3Pool(_addAssetParam.uniswapPool);
 
@@ -437,7 +437,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         bool isMarginZero = uniswapPool.token0() == stableTokenAddress;
 
         _storePairStatus(
-            assetId,
+            pairId,
             isMarginZero ? uniswapPool.token1() : uniswapPool.token0(),
             isMarginZero,
             _addAssetParam.uniswapPool,
@@ -449,11 +449,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         assetGroup.assetsCount++;
 
-        emit PairAdded(assetId, _addAssetParam.uniswapPool);
+        emit PairAdded(pairId, _addAssetParam.uniswapPool);
     }
 
     function _storePairStatus(
-        uint256 _assetId,
+        uint256 _pairId,
         address _tokenAddress,
         bool _isMarginZero,
         address _uniswapPool,
@@ -466,10 +466,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             validateIRMParams(_assetRiskParams);
         }
 
-        require(assets[_assetId].id == 0);
+        require(assets[_pairId].id == 0);
 
-        assets[_assetId] = DataType.AssetStatus(
-            _assetId,
+        assets[_pairId] = DataType.PairStatus(
+            _pairId,
             DataType.AssetPoolStatus(
                 assetGroup.stableTokenAddress,
                 SupplyLogic.deploySupplyToken(assetGroup.stableTokenAddress),
@@ -557,11 +557,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         );
     }
 
-    function getAssetGroup() external view override(IController) returns (DataType.AssetGroup memory) {
+    function getAssetGroup() external view override(IController) returns (DataType.PairGroup memory) {
         return assetGroup;
     }
 
-    function getAsset(uint256 _id) external view override(IController) returns (DataType.AssetStatus memory) {
+    function getAsset(uint256 _id) external view override(IController) returns (DataType.PairStatus memory) {
         return assets[_id];
     }
 
@@ -609,17 +609,17 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Gets asset utilization ratios
-     * @param _assetId The id of asset pair
+     * @param _pairId The id of asset pair
      * @return sqrtAsset The utilization of sqrt asset
      * @return stableAsset The utilization of stable asset
      * @return underlyingAsset The utilization of underlying asset
      */
-    function getUtilizationRatio(uint256 _assetId)
+    function getUtilizationRatio(uint256 _pairId)
         external
         view
         returns (uint256 sqrtAsset, uint256 stableAsset, uint256 underlyingAsset)
     {
-        return ReaderLogic.getUtilizationRatio(assets[_assetId]);
+        return ReaderLogic.getUtilizationRatio(assets[_pairId]);
     }
 
     function validateIRMParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {
