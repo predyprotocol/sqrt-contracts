@@ -201,6 +201,8 @@ contract CalculateMinDepositTest is TestPositionCalculator {
     function testIsSafe() public {
         DataType.Vault memory vault = getVault(0, 0, 0, -100);
 
+        // check no revert
         PositionCalculator.isSafe(assets, vault, true);
+        assertTrue(true);
     }
 }
