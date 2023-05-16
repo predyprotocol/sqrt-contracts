@@ -382,14 +382,14 @@ library Perp {
         uint256 spreadParam = PremiumCurveModel.calculatePremiumCurve(utilization);
 
         _assetStatus.fee0Growth += FullMath.mulDiv(
-            f0, _assetStatus.totalAmount + _assetStatus.borrowedAmount * spreadParam / 100, _assetStatus.totalAmount
+            f0, _assetStatus.totalAmount + _assetStatus.borrowedAmount * spreadParam / 1000, _assetStatus.totalAmount
         );
         _assetStatus.fee1Growth += FullMath.mulDiv(
-            f1, _assetStatus.totalAmount + _assetStatus.borrowedAmount * spreadParam / 100, _assetStatus.totalAmount
+            f1, _assetStatus.totalAmount + _assetStatus.borrowedAmount * spreadParam / 1000, _assetStatus.totalAmount
         );
 
-        _assetStatus.borrowPremium0Growth += FullMath.mulDiv(f0, 100 + spreadParam, 100);
-        _assetStatus.borrowPremium1Growth += FullMath.mulDiv(f1, 100 + spreadParam, 100);
+        _assetStatus.borrowPremium0Growth += FullMath.mulDiv(f0, 1000 + spreadParam, 1000);
+        _assetStatus.borrowPremium1Growth += FullMath.mulDiv(f1, 1000 + spreadParam, 1000);
 
         _assetStatus.lastFee0Growth = feeGrowthInside0X128;
         _assetStatus.lastFee1Growth = feeGrowthInside1X128;

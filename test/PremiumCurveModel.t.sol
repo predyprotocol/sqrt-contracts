@@ -14,9 +14,9 @@ contract PremiumCurveModelTest is Test {
 
     function testCalculatePremiumCurve() public {
         assertEq(PremiumCurveModel.calculatePremiumCurve(0), 0);
-        assertEq(PremiumCurveModel.calculatePremiumCurve(30 * 1e16), 0);
-        assertEq(PremiumCurveModel.calculatePremiumCurve(40 * 1e16), 1);
-        assertEq(PremiumCurveModel.calculatePremiumCurve(50 * 1e16), 6);
-        assertEq(PremiumCurveModel.calculatePremiumCurve(1e18), 78);
+        assertEq(PremiumCurveModel.calculatePremiumCurve(25 * 1e16), 0);
+        assertEq(PremiumCurveModel.calculatePremiumCurve(40 * 1e16), 31);
+        assertEq(PremiumCurveModel.calculatePremiumCurve(50 * 1e16), 87);
+        assertEq(PremiumCurveModel.calculatePremiumCurve(1e18), 787);
     }
 }

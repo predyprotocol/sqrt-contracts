@@ -61,8 +61,8 @@ contract TestReader is TestController {
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId2);
         vm.stopPrank();
 
-        assertEq(vaultStatus.vaultValue, 9999453442);
-        assertEq(vaultStatus.minDeposit, 7997921);
+        assertEq(vaultStatus.vaultValue, 9999444460);
+        assertEq(vaultStatus.minDeposit, 7997927);
     }
 
     function testGetDelta1() public {

@@ -100,7 +100,7 @@ contract TestControllerLiquidationCall is TestController {
 
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
 
-        assertEq(controller.getVault(vaultId).margin, 6480000);
+        assertEq(controller.getVault(vaultId).margin, 6460000);
     }
 
     // vault becomes insolvent

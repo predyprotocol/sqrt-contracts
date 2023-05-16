@@ -33,6 +33,6 @@ library Constants {
     // 2.5% scaled by 1e6
     uint256 internal constant SLIPPAGE_SQRT_TOLERANCE = 12422;
 
-    // 30%
-    uint256 internal constant SQUART_KINK_UR = 30 * 1e16;
+    // 25%
+    uint256 internal constant SQUART_KINK_UR = 25 * 1e16;
 }

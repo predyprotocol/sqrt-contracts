@@ -9,7 +9,7 @@ library PremiumCurveModel {
      * 0 {ur <= 0.4}
      * 1.8 * (UR-0.4)^2 {0.4 < ur}
      * @param _utilization utilization ratio scaled by 1e18
-     * @return spread parameter scaled by 100
+     * @return spread parameter scaled by 1e3
      */
     function calculatePremiumCurve(uint256 _utilization) internal pure returns (uint256) {
         if (_utilization <= Constants.SQUART_KINK_UR) {
@@ -18,6 +18,6 @@ library PremiumCurveModel {
 
         uint256 b = (_utilization - Constants.SQUART_KINK_UR);
 
-        return (160 * b * b / Constants.ONE) / Constants.ONE;
+        return (1400 * b * b / Constants.ONE) / Constants.ONE;
     }
 }
