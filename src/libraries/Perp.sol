@@ -182,8 +182,6 @@ library Perp {
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         bool _enableRevert
     ) internal returns (bool, int256 profit) {
-        // updateRebalanceFeeGrowth(_assetStatusUnderlying, _sqrtAssetStatus);
-
         (uint160 currentSqrtPrice, int24 currentTick,,,,,) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).slot0();
 
         if (
@@ -258,8 +256,6 @@ library Perp {
         IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).collect(
             address(this), _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, type(uint128).max, type(uint128).max
         );
-        // receivedAmount0.safeCastTo128(),
-        // receivedAmount1.safeCastTo128()
 
         (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) =
             Reallocation.getNewRange(_assetStatusUnderlying, _currentTick);
@@ -485,10 +481,6 @@ library Perp {
         _userStatus.sqrtPerp.stableRebalanceEntryValue += payoff.sqrtRebalanceEntryUpdateStable;
         _userStatus.sqrtPerp.underlyingRebalanceEntryValue += payoff.sqrtRebalanceEntryUpdateUnderlying;
 
-        // Update fee entry
-        //_userStatus.sqrtPerp.entryTradeFee0 = _underlyingAssetStatus.sqrtAssetStatus.fee0Growth;
-        //_userStatus.sqrtPerp.entryTradeFee1 = _underlyingAssetStatus.sqrtAssetStatus.fee1Growth;
-
         // Update sqrt position
         updateSqrtPosition(_underlyingAssetStatus.sqrtAssetStatus, _userStatus, _updateSqrtPerpParams.tradeSqrtAmount);
 
@@ -535,9 +527,6 @@ library Perp {
         if (openAmount > 0) {
             _assetStatus.totalAmount += uint256(openAmount);
 
-            // TODO: collect fee before update position
-            //_userStatus.sqrtPerp.entryPremium = _assetStatus.supplyPremiumGrowth;
-
             _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.fee0Growth;
             _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.fee1Growth;
         } else if (openAmount < 0) {
@@ -545,7 +534,6 @@ library Perp {
 
             _assetStatus.borrowedAmount += uint256(-openAmount);
 
-            // TODO: pay fee before update position
             _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.borrowPremium0Growth;
             _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.borrowPremium1Growth;
         }
@@ -677,8 +665,6 @@ library Perp {
         IUniswapV3Pool(_assetStatus.uniswapPool).collect(
             address(this), _assetStatus.tickLower, _assetStatus.tickUpper, type(uint128).max, type(uint128).max
         );
-        // amount0.safeCastTo128(),
-        // amount1.safeCastTo128()
 
         receivedAmount0 = SafeCast.toInt256(amount0);
         receivedAmount1 = SafeCast.toInt256(amount1);
