@@ -91,8 +91,6 @@ contract TestControllerTradePerp is TestController {
             controller.updateMargin(-margin);
         }
 
-        DataType.AssetStatus memory asset = controller.getAsset(2);
-
         vm.prank(user2);
         controller.withdrawToken(1, 1e18);
         vm.prank(user2);
