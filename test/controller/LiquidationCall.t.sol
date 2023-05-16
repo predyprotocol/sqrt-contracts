@@ -211,6 +211,8 @@ contract TestControllerLiquidationCall is TestController {
         uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
         wbtcUniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
+        checkTick(493);
+
         vm.warp(block.timestamp + 1 weeks);
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);

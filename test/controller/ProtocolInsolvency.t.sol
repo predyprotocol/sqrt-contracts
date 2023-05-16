@@ -123,12 +123,6 @@ contract TestControllerTradePerp is TestController {
         return getCloseParamsWithTokenId(WETH_ASSET_ID);
     }
 
-    function checkTick(int24 _tick) internal {
-        (, int24 currentTick,,,,,) = uniswapPool.slot0();
-
-        assertEq(currentTick, _tick);
-    }
-
     function testCase1() public {
         vm.startPrank(user2);
         controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
