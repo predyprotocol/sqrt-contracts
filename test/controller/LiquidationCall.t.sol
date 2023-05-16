@@ -19,17 +19,18 @@ contract TestControllerLiquidationCall is TestController {
 
         usdc.mint(user2, type(uint128).max);
         weth.mint(user2, type(uint128).max);
+        wbtc.mint(user2, type(uint128).max);
 
-        vm.prank(user2);
+        vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-
-        vm.prank(user2);
         weth.approve(address(controller), type(uint256).max);
+        wbtc.approve(address(controller), type(uint256).max);
 
-        vm.prank(user2);
-        controller.supplyToken(1, 1e10, true);
-        vm.prank(user2);
-        controller.supplyToken(1, 1e10, false);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, false);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, true);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, false);
+        vm.stopPrank();
 
         // create vault
         vaultId = controller.updateMargin(1e8);
@@ -200,5 +201,31 @@ contract TestControllerLiquidationCall is TestController {
 
         // check liquidation reward
         assertEq(usdc.balanceOf(liquidator), 200000);
+    }
+
+    function testLiquidationCallWithMultipleAssets() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 2 * 1e8));
+        controller.tradePerp(vaultId, WBTC_ASSET_ID, getTradeParams(-4 * 1e8, 2 * 1e8));
+
+        uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+        wbtcUniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        checkTick(493);
+
+        vm.warp(block.timestamp + 1 weeks);
+
+        DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
+        assertEq(vaultStatus.vaultValue, 68418616);
+        assertEq(vaultStatus.minDeposit, 93054574);
+
+        vm.prank(liquidator);
+        controller.liquidationCall(vaultId, 1e18);
+
+        DataType.Vault memory vault = controller.getVault(vaultId);
+
+        assertEq(vault.margin, 67350000);
+
+        // check liquidation reward
+        assertEq(usdc.balanceOf(liquidator), 800000);
     }
 }

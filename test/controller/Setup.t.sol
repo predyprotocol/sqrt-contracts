@@ -169,4 +169,10 @@ contract TestController is Test {
             uniswapPool.swap(address(this), true, -5 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
         }
     }
+
+    function checkTick(int24 _tick) internal {
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+        assertEq(currentTick, _tick);
+    }
 }
