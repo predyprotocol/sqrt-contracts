@@ -100,9 +100,9 @@ library PositionCalculator {
         bool _enableUnrealizedFeeCalculation
     ) internal view returns (int256 minValue, int256 vaultValue, uint256 debtValue, bool hasPosition) {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            DataType.UserStatus memory userStatus = _vault.openPositions[i];
+            Perp.UserStatus memory userStatus = _vault.openPositions[i];
 
-            uint256 assetId = userStatus.assetId;
+            uint256 assetId = userStatus.pairId;
 
             if (_assets[assetId].sqrtAssetStatus.uniswapPool != address(0)) {
                 uint160 sqrtPrice =
@@ -111,18 +111,18 @@ library PositionCalculator {
                 PositionParams memory positionParams;
                 if (_enableUnrealizedFeeCalculation) {
                     positionParams =
-                        getPositionWithUnrealizedFee(_assets[assetId], _rebalanceFeeGrowthCache, userStatus.perpTrade);
+                        getPositionWithUnrealizedFee(_assets[assetId], _rebalanceFeeGrowthCache, userStatus);
                 } else {
-                    positionParams = getPosition(userStatus.perpTrade);
+                    positionParams = getPosition(userStatus);
                 }
 
                 minValue += calculateMinValue(sqrtPrice, positionParams, _assets[assetId].riskParams.riskRatio);
 
                 vaultValue += calculateValue(sqrtPrice, positionParams);
 
-                debtValue += calculateSquartDebtValue(sqrtPrice, userStatus.perpTrade);
+                debtValue += calculateSquartDebtValue(sqrtPrice, userStatus);
 
-                hasPosition = hasPosition || getHasPositionFlag(userStatus.perpTrade);
+                hasPosition = hasPosition || getHasPositionFlag(userStatus);
             }
         }
 

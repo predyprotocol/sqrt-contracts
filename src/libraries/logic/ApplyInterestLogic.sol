@@ -11,20 +11,16 @@ library ApplyInterestLogic {
 
     event InterestGrowthUpdated(
         uint256 assetId,
-        uint256 underlyingAssetGrowth,
-        uint256 underlyingDebtGrowth,
         uint256 stableAssetGrowth,
         uint256 stableDebtGrowth,
-        uint256 underlyingAccumulatedProtocolRevenue,
-        uint256 stableAccumulatedProtocolRevenue
-    );
-
-    event PremiumGrowthUpdated(
-        uint256 assetId,
+        uint256 underlyingAssetGrowth,
+        uint256 underlyingDebtGrowth,
+        uint256 fee0Growth,
+        uint256 fee1Growth,
         uint256 borrowPremium0Growth,
         uint256 borrowPremium1Growth,
-        uint256 fee0Growth,
-        uint256 fee1Growth
+        uint256 stableAccumulatedProtocolRevenue,
+        uint256 underlyingAccumulatedProtocolRevenue
     );
 
     function applyInterestForAssetGroup(
@@ -51,7 +47,6 @@ library ApplyInterestLogic {
         assetStatus.lastUpdateTimestamp = block.timestamp;
 
         emitInterestGrowthEvent(assetStatus);
-        emitPremiumGrowthEvent(assetStatus);
     }
 
     function applyInterestForPoolStatus(DataType.AssetPoolStatus storage _poolStatus, uint256 _lastUpdateTimestamp)
@@ -79,22 +74,16 @@ library ApplyInterestLogic {
     function emitInterestGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
         emit InterestGrowthUpdated(
             _assetStatus.id,
-            _assetStatus.underlyingPool.tokenStatus.assetGrowth,
-            _assetStatus.underlyingPool.tokenStatus.debtGrowth,
             _assetStatus.stablePool.tokenStatus.assetGrowth,
             _assetStatus.stablePool.tokenStatus.debtGrowth,
-            _assetStatus.underlyingPool.accumulatedProtocolRevenue,
-            _assetStatus.stablePool.accumulatedProtocolRevenue
-        );
-    }
-
-    function emitPremiumGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
-        emit PremiumGrowthUpdated(
-            _assetStatus.id,
+            _assetStatus.underlyingPool.tokenStatus.assetGrowth,
+            _assetStatus.underlyingPool.tokenStatus.debtGrowth,
+            _assetStatus.sqrtAssetStatus.fee0Growth,
+            _assetStatus.sqrtAssetStatus.fee1Growth,
             _assetStatus.sqrtAssetStatus.borrowPremium0Growth,
             _assetStatus.sqrtAssetStatus.borrowPremium1Growth,
-            _assetStatus.sqrtAssetStatus.fee0Growth,
-            _assetStatus.sqrtAssetStatus.fee1Growth
+            _assetStatus.stablePool.accumulatedProtocolRevenue,
+            _assetStatus.underlyingPool.accumulatedProtocolRevenue
         );
     }
 

@@ -13,7 +13,7 @@ contract ScaledAssetCompoundTest is TestScaledAsset {
         TestScaledAsset.setUp();
 
         initialMintAmount = ScaledAsset.addAsset(assetStatus, ASSET_AMOUNT);
-        ScaledAsset.updatePosition(assetStatus, userStatus0, -int256(DEBT_AMOUNT));
+        ScaledAsset.updatePosition(assetStatus, userStatus0, -int256(DEBT_AMOUNT), 1, false);
     }
 
     //////////////////

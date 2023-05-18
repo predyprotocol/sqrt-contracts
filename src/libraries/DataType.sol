@@ -51,12 +51,7 @@ library DataType {
         uint256 id;
         address owner;
         int256 margin;
-        UserStatus[] openPositions;
-    }
-
-    struct UserStatus {
-        uint256 assetId;
-        Perp.UserStatus perpTrade;
+        Perp.UserStatus[] openPositions;
     }
 
     struct RebalanceFeeGrowthCache {

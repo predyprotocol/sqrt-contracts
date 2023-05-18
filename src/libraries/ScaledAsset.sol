@@ -8,12 +8,6 @@ import "./math/Math.sol";
 library ScaledAsset {
     using Math for int256;
 
-    enum InterestType {
-        EMPTY,
-        COMPOUND,
-        NORMAL
-    }
-
     struct TokenStatus {
         uint256 totalCompoundDeposited;
         uint256 totalCompoundBorrowed;
@@ -29,6 +23,11 @@ library ScaledAsset {
         int256 positionAmount;
         uint256 lastFeeGrowth;
     }
+
+    event AssetSupplied(uint256 pairId, bool isStable, uint256 amount);
+    event AssetWithdrawn(uint256 pairId, bool isStable, uint256 amount);
+    event AssetBorrowed(uint256 pairId, bool isStable, uint256 amount);
+    event AssetRepaid(uint256 pairId, bool isStable, uint256 amount);
 
     function createTokenStatus() internal pure returns (TokenStatus memory) {
         return TokenStatus(0, 0, 0, 0, Constants.ONE, Constants.ONE, 0, 0);
@@ -76,7 +75,9 @@ library ScaledAsset {
     function updatePosition(
         ScaledAsset.TokenStatus storage tokenStatus,
         ScaledAsset.UserStatus storage userStatus,
-        int256 _amount
+        int256 _amount,
+        uint256 _pairId,
+        bool _isStable
     ) internal {
         // Confirms fee has been settled before position updating.
         if (userStatus.positionAmount > 0) {
@@ -101,21 +102,29 @@ library ScaledAsset {
 
         if (closeAmount > 0) {
             tokenStatus.totalNormalBorrowed -= uint256(closeAmount);
+
+            emit AssetRepaid(_pairId, _isStable, uint256(closeAmount));
         } else if (closeAmount < 0) {
             require(getAvailableCollateralValue(tokenStatus) >= uint256(-closeAmount), "S0");
             tokenStatus.totalNormalDeposited -= uint256(-closeAmount);
+
+            emit AssetWithdrawn(_pairId, _isStable, uint256(-closeAmount));
         }
 
         if (openAmount > 0) {
             tokenStatus.totalNormalDeposited += uint256(openAmount);
 
             userStatus.lastFeeGrowth = tokenStatus.assetGrowth;
+
+            emit AssetSupplied(_pairId, _isStable, uint256(openAmount));
         } else if (openAmount < 0) {
             require(getAvailableCollateralValue(tokenStatus) >= uint256(-openAmount), "S0");
 
             tokenStatus.totalNormalBorrowed += uint256(-openAmount);
 
             userStatus.lastFeeGrowth = tokenStatus.debtGrowth;
+
+            emit AssetBorrowed(_pairId, _isStable, uint256(-openAmount));
         }
 
         userStatus.positionAmount += _amount;

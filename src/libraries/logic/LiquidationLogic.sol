@@ -43,11 +43,10 @@ library LiquidationLogic {
         PositionCalculator.isDanger(_assets, _rebalanceFeeGrowthCache, _vault);
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            DataType.UserStatus storage userStatus = _vault.openPositions[i];
+            Perp.UserStatus storage userStatus = _vault.openPositions[i];
 
-            (int256 totalPayoff, uint256 penaltyAmount) = closePerp(
-                _vault.id, _assets[userStatus.assetId], _rebalanceFeeGrowthCache, userStatus.perpTrade, _closeRatio
-            );
+            (int256 totalPayoff, uint256 penaltyAmount) =
+                closePerp(_vault.id, _assets[userStatus.pairId], _rebalanceFeeGrowthCache, userStatus, _closeRatio);
 
             _vault.margin += totalPayoff;
             totalPenaltyAmount += penaltyAmount;

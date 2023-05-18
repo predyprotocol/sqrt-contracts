@@ -4,6 +4,9 @@ pragma solidity ^0.8.19;
 import "./Setup.t.sol";
 
 contract ScaledAssetUpdatePositionTest is TestScaledAsset {
+    uint256 constant PAIR_ID = 1;
+    bool constant IS_STABLE_FLAG = false;
+
     function setUp() public override {
         TestScaledAsset.setUp();
     }
@@ -12,7 +15,7 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
 
     // supply
     function testUpdatePositionToSupply() public {
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 1e16);
         assertEq(assetStatus.totalNormalBorrowed, 0);
@@ -21,8 +24,8 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
 
     // withdraw
     function testUpdatePositionToWithdraw() public {
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 0);
         assertEq(assetStatus.totalNormalBorrowed, 0);
@@ -31,8 +34,8 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
 
     // withdraw half
     function testUpdatePositionToWithdrawHalf() public {
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -5 * 1e15);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -5 * 1e15, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 5 * 1e15);
         assertEq(assetStatus.totalNormalBorrowed, 0);
@@ -43,8 +46,8 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
     function testUpdatePositionToWithdrawAndBorrow() public {
         ScaledAsset.addAsset(assetStatus, 1e18);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -2 * 1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -2 * 1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 0);
         assertEq(assetStatus.totalNormalBorrowed, 1e16);
@@ -53,19 +56,19 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
 
     // cannot withdraw if there is no enough asset
     function testCannotWithdraw() public {
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16, PAIR_ID, IS_STABLE_FLAG);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus0, -100);
+        ScaledAsset.updatePosition(assetStatus, userStatus0, -100, PAIR_ID, IS_STABLE_FLAG);
 
         vm.expectRevert(bytes("S0"));
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
     }
 
     // borrow
     function testUpdatePositionToBorrow() public {
         ScaledAsset.addAsset(assetStatus, 1e18);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 0);
         assertEq(assetStatus.totalNormalBorrowed, 1e16);
@@ -75,15 +78,15 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
     // cannot borrow if there is no enough asset
     function testCannotBorrow() public {
         vm.expectRevert(bytes("S0"));
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
     }
 
     // repay
     function testUpdatePositionToRepay() public {
         ScaledAsset.addAsset(assetStatus, 1e18);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 0);
         assertEq(assetStatus.totalNormalBorrowed, 0);
@@ -94,8 +97,8 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
     function testUpdatePositionToRepayHalf() public {
         ScaledAsset.addAsset(assetStatus, 1e18);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 5 * 1e15);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 5 * 1e15, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 0);
         assertEq(assetStatus.totalNormalBorrowed, 5 * 1e15);
@@ -106,8 +109,8 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
     function testUpdatePositionToRepayAndDeposit() public {
         ScaledAsset.addAsset(assetStatus, 1e18);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, 2 * 1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, 2 * 1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(assetStatus.totalNormalDeposited, 1e16);
         assertEq(assetStatus.totalNormalBorrowed, 0);
@@ -117,22 +120,22 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
     // check last fee growth
     function testUpdatePositionToCheckLastFeeGrowth() public {
         ScaledAsset.addAsset(assetStatus, 1e18);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
         ScaledAsset.updateScaler(assetStatus, 1e16);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(userStatus2.lastFeeGrowth, 92000000000000);
 
-        ScaledAsset.updatePosition(assetStatus, userStatus2, -2 * 1e16);
+        ScaledAsset.updatePosition(assetStatus, userStatus2, -2 * 1e16, PAIR_ID, IS_STABLE_FLAG);
 
         assertEq(userStatus2.lastFeeGrowth, 10000000000000000);
     }
 
     // settle user fee
     function testSettleUserFee() public {
-        ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16);
-        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e15);
+        ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e15, PAIR_ID, IS_STABLE_FLAG);
 
         ScaledAsset.updateScaler(assetStatus, 1e16);
 

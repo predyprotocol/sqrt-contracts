@@ -5,7 +5,7 @@ import "../libraries/DataType.sol";
 import "../libraries/logic/TradeLogic.sol";
 
 interface IController {
-    function tradePerp(uint256 _vaultId, uint256 _pairId, TradeLogic.TradeParams memory _tradeParams)
+    function tradePerp(uint256 _vaultId, uint64 _pairId, TradeLogic.TradeParams memory _tradeParams)
         external
         returns (DataType.TradeResult memory);
 

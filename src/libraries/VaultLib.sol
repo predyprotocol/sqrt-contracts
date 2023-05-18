@@ -10,9 +10,9 @@ library VaultLib {
 
     uint256 internal constant MAX_VAULTS = 100;
 
-    function getUserStatus(DataType.PairGroup storage _assetGroup, DataType.Vault storage _vault, uint256 _pairId)
+    function getUserStatus(DataType.PairGroup storage _assetGroup, DataType.Vault storage _vault, uint64 _pairId)
         internal
-        returns (DataType.UserStatus storage userStatus)
+        returns (Perp.UserStatus storage userStatus)
     {
         checkVault(_vault, msg.sender);
 
@@ -26,17 +26,17 @@ library VaultLib {
         require(_vault.owner == _caller, "V2");
     }
 
-    function createOrGetUserStatus(DataType.Vault storage _vault, uint256 _pairId)
+    function createOrGetUserStatus(DataType.Vault storage _vault, uint64 _pairId)
         internal
-        returns (DataType.UserStatus storage)
+        returns (Perp.UserStatus storage)
     {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            if (_vault.openPositions[i].assetId == _pairId) {
+            if (_vault.openPositions[i].pairId == _pairId) {
                 return _vault.openPositions[i];
             }
         }
 
-        _vault.openPositions.push(DataType.UserStatus(_pairId, Perp.createPerpUserStatus()));
+        _vault.openPositions.push(Perp.createPerpUserStatus(_pairId));
 
         return _vault.openPositions[_vault.openPositions.length - 1];
     }

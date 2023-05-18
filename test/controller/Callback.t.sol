@@ -60,6 +60,6 @@ contract TestControllerCallback is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.openPositions[0].perpTrade.perp.amount, 500000000);
+        assertEq(vault.openPositions[0].perp.amount, 500000000);
     }
 }

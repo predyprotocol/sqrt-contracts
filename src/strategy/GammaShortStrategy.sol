@@ -63,7 +63,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     function initialize(
         address _controller,
         address _reader,
-        uint256 _pairId,
+        uint64 _pairId,
         MinPerValueLimit memory _minPerValueLimit,
         string memory _name,
         string memory _symbol
@@ -281,8 +281,8 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        int256 tradePerp = calShareToMint(share, vault.openPositions[0].perpTrade.perp.amount);
-        int256 tradeSqrt = calShareToMint(share, vault.openPositions[0].perpTrade.sqrtPerp.amount);
+        int256 tradePerp = calShareToMint(share, vault.openPositions[0].perp.amount);
+        int256 tradeSqrt = calShareToMint(share, vault.openPositions[0].sqrtPerp.amount);
 
         controller.tradePerp(
             vaultId,
@@ -337,8 +337,8 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
             vaultId,
             assetId,
             TradeLogic.TradeParams(
-                -int256(strategyShare) * vault.openPositions[0].perpTrade.perp.amount / int256(SHARE_SCALER),
-                -int256(strategyShare) * vault.openPositions[0].perpTrade.sqrtPerp.amount / int256(SHARE_SCALER),
+                -int256(strategyShare) * vault.openPositions[0].perp.amount / int256(SHARE_SCALER),
+                -int256(strategyShare) * vault.openPositions[0].sqrtPerp.amount / int256(SHARE_SCALER),
                 _tradeParams.lowerSqrtPrice,
                 _tradeParams.upperSqrtPrice,
                 _tradeParams.deadline,
@@ -435,12 +435,12 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     {
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        DataType.UserStatus memory userStatus = vault.openPositions[0];
+        Perp.UserStatus memory userStatus = vault.openPositions[0];
 
         entryUpdate = payoff.perpEntryUpdate + payoff.sqrtEntryUpdate + payoff.sqrtRebalanceEntryUpdateStable;
 
-        entryValue = userStatus.perpTrade.perp.entryValue + userStatus.perpTrade.sqrtPerp.entryValue
-            + userStatus.perpTrade.sqrtPerp.stableRebalanceEntryValue;
+        entryValue =
+            userStatus.perp.entryValue + userStatus.sqrtPerp.entryValue + userStatus.sqrtPerp.stableRebalanceEntryValue;
 
         totalMargin = uint256(vault.margin);
     }

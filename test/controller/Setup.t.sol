@@ -13,8 +13,8 @@ import "../mocks/MockERC20.sol";
 contract TestController is Test {
     uint256 internal constant RISK_RATIO = 109544511;
 
-    uint256 internal constant WETH_ASSET_ID = 1;
-    uint256 internal constant WBTC_ASSET_ID = 2;
+    uint64 internal constant WETH_ASSET_ID = 1;
+    uint64 internal constant WBTC_ASSET_ID = 2;
 
     Controller internal controller;
     MockERC20 internal usdc;

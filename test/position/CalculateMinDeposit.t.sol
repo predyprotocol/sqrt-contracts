@@ -21,17 +21,17 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         view
         returns (DataType.Vault memory)
     {
-        DataType.UserStatus[] memory openPositions = new DataType.UserStatus[](1);
+        Perp.UserStatus[] memory openPositions = new Perp.UserStatus[](1);
 
-        openPositions[0] = DataType.UserStatus(2, Perp.createPerpUserStatus());
+        openPositions[0] = Perp.createPerpUserStatus(2);
 
-        openPositions[0].perpTrade.sqrtPerp.amount = _amountSquart;
-        openPositions[0].perpTrade.underlying.positionAmount = _amountUnderlying;
-        openPositions[0].perpTrade.perp.amount = _amountUnderlying;
+        openPositions[0].sqrtPerp.amount = _amountSquart;
+        openPositions[0].underlying.positionAmount = _amountUnderlying;
+        openPositions[0].perp.amount = _amountUnderlying;
 
-        openPositions[0].perpTrade.perp.entryValue = _amountStable;
-        openPositions[0].perpTrade.sqrtPerp.entryValue = 0;
-        openPositions[0].perpTrade.stable.positionAmount = _amountStable;
+        openPositions[0].perp.entryValue = _amountStable;
+        openPositions[0].sqrtPerp.entryValue = 0;
+        openPositions[0].stable.positionAmount = _amountStable;
 
         return DataType.Vault(1, address(this), _margin, openPositions);
     }
@@ -41,26 +41,26 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         PositionCalculator.PositionParams memory _positionParams2,
         int256 _margin
     ) internal view returns (DataType.Vault memory) {
-        DataType.UserStatus[] memory openPositions = new DataType.UserStatus[](2);
+        Perp.UserStatus[] memory openPositions = new Perp.UserStatus[](2);
 
-        openPositions[0] = DataType.UserStatus(2, Perp.createPerpUserStatus());
+        openPositions[0] = Perp.createPerpUserStatus(2);
 
-        openPositions[1] = DataType.UserStatus(3, Perp.createPerpUserStatus());
+        openPositions[1] = Perp.createPerpUserStatus(3);
 
-        openPositions[0].perpTrade.sqrtPerp.amount = _positionParams1.amountSqrt;
-        openPositions[0].perpTrade.underlying.positionAmount = _positionParams1.amountUnderlying;
-        openPositions[0].perpTrade.perp.amount = _positionParams1.amountUnderlying;
+        openPositions[0].sqrtPerp.amount = _positionParams1.amountSqrt;
+        openPositions[0].underlying.positionAmount = _positionParams1.amountUnderlying;
+        openPositions[0].perp.amount = _positionParams1.amountUnderlying;
 
-        openPositions[0].perpTrade.perp.entryValue = _positionParams1.amountStable;
-        openPositions[0].perpTrade.sqrtPerp.entryValue = 0;
-        openPositions[0].perpTrade.stable.positionAmount = _positionParams1.amountStable;
+        openPositions[0].perp.entryValue = _positionParams1.amountStable;
+        openPositions[0].sqrtPerp.entryValue = 0;
+        openPositions[0].stable.positionAmount = _positionParams1.amountStable;
 
-        openPositions[1].perpTrade.sqrtPerp.amount = _positionParams2.amountSqrt;
-        openPositions[1].perpTrade.underlying.positionAmount = _positionParams2.amountUnderlying;
-        openPositions[1].perpTrade.perp.amount = _positionParams2.amountUnderlying;
-        openPositions[1].perpTrade.perp.entryValue = _positionParams2.amountStable;
-        openPositions[1].perpTrade.sqrtPerp.entryValue = 0;
-        openPositions[1].perpTrade.stable.positionAmount = _positionParams2.amountStable;
+        openPositions[1].sqrtPerp.amount = _positionParams2.amountSqrt;
+        openPositions[1].underlying.positionAmount = _positionParams2.amountUnderlying;
+        openPositions[1].perp.amount = _positionParams2.amountUnderlying;
+        openPositions[1].perp.entryValue = _positionParams2.amountStable;
+        openPositions[1].sqrtPerp.entryValue = 0;
+        openPositions[1].stable.positionAmount = _positionParams2.amountStable;
 
         return DataType.Vault(1, address(this), _margin, openPositions);
     }

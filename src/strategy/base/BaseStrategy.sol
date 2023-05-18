@@ -18,7 +18,7 @@ contract BaseStrategy is ERC20Upgradeable {
 
     address internal usdc;
 
-    uint256 internal assetId;
+    uint64 internal assetId;
 
     MinPerValueLimit internal minPerValueLimit;
 
@@ -35,7 +35,7 @@ contract BaseStrategy is ERC20Upgradeable {
 
     function initialize(
         address _controller,
-        uint256 _pairId,
+        uint64 _pairId,
         MinPerValueLimit memory _minPerValueLimit,
         string memory _name,
         string memory _symbol

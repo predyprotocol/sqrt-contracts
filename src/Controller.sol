@@ -280,7 +280,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @return isolatedVaultId The id of isolated vault
      * @return tradeResult The result of perp trade
      */
-    function openIsolatedVault(uint256 _depositAmount, uint256 _pairId, TradeLogic.TradeParams memory _tradeParams)
+    function openIsolatedVault(uint256 _depositAmount, uint64 _pairId, TradeLogic.TradeParams memory _tradeParams)
         external
         nonReentrant
         returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
@@ -317,7 +317,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      */
     function closeIsolatedVault(
         uint256 _isolatedVaultId,
-        uint256 _pairId,
+        uint64 _pairId,
         IsolatedVaultLogic.CloseParams memory _closeParams
     ) external nonReentrant returns (DataType.TradeResult memory tradeResult) {
         uint256 vaultId = ownVaultsMap[msg.sender].mainVaultId;
@@ -343,13 +343,13 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _tradeParams The trade parameters
      * @return TradeResult The result of perp trade
      */
-    function tradePerp(uint256 _vaultId, uint256 _pairId, TradeLogic.TradeParams memory _tradeParams)
+    function tradePerp(uint256 _vaultId, uint64 _pairId, TradeLogic.TradeParams memory _tradeParams)
         external
         override(IController)
         nonReentrant
         returns (DataType.TradeResult memory)
     {
-        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(pairGroup, vaults[_vaultId], _pairId);
+        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(pairGroup, vaults[_vaultId], _pairId);
 
         applyInterest();
         settleUserFee(vaults[_vaultId], _pairId);

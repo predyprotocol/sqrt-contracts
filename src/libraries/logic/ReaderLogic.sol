@@ -20,23 +20,22 @@ library ReaderLogic {
             new DataType.SubVaultStatusResult[](_vault.openPositions.length);
 
         for (uint256 i; i < _vault.openPositions.length; i++) {
-            DataType.UserStatus memory userStatus = _vault.openPositions[i];
+            Perp.UserStatus memory userStatus = _vault.openPositions[i];
 
-            bool isMarginZero = _assets[userStatus.assetId].isMarginZero;
+            bool isMarginZero = _assets[userStatus.pairId].isMarginZero;
             uint160 sqrtPrice = UniHelper.convertSqrtPrice(
-                UniHelper.getSqrtTWAP(_assets[userStatus.assetId].sqrtAssetStatus.uniswapPool), isMarginZero
+                UniHelper.getSqrtTWAP(_assets[userStatus.pairId].sqrtAssetStatus.uniswapPool), isMarginZero
             );
 
-            subVaults[i].assetId = userStatus.assetId;
-            subVaults[i].position = userStatus.perpTrade;
+            subVaults[i].assetId = userStatus.pairId;
+            subVaults[i].position = userStatus;
 
             {
-                subVaults[i].delta =
-                    calculateDelta(sqrtPrice, userStatus.perpTrade.sqrtPerp.amount, userStatus.perpTrade.perp.amount);
+                subVaults[i].delta = calculateDelta(sqrtPrice, userStatus.sqrtPerp.amount, userStatus.perp.amount);
             }
 
             (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
-                PerpFee.computeUserFee(_assets[userStatus.assetId], _rebalanceFeeGrowthCache, userStatus.perpTrade);
+                PerpFee.computeUserFee(_assets[userStatus.pairId], _rebalanceFeeGrowthCache, userStatus);
 
             subVaults[i].unrealizedFee = PositionCalculator.calculateValue(
                 sqrtPrice, PositionCalculator.PositionParams(unrealizedFeeStable, 0, unrealizedFeeUnderlying)
@@ -80,15 +79,12 @@ library ReaderLogic {
         returns (int256 _delta)
     {
         for (uint256 i; i < _vault.openPositions.length; i++) {
-            if (_pairId != _vault.openPositions[i].assetId) {
+            if (_pairId != _vault.openPositions[i].pairId) {
                 continue;
             }
 
-            _delta += calculateDelta(
-                _sqrtPrice,
-                _vault.openPositions[i].perpTrade.sqrtPerp.amount,
-                _vault.openPositions[i].perpTrade.perp.amount
-            );
+            _delta +=
+                calculateDelta(_sqrtPrice, _vault.openPositions[i].sqrtPerp.amount, _vault.openPositions[i].perp.amount);
         }
     }
 

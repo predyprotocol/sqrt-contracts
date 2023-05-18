@@ -48,7 +48,7 @@ contract TestPerp is Test, Helper {
 
         underlyingAssetStatus = createAssetStatus(1, address(weth), address(uniswapPool));
 
-        userStatus = Perp.createPerpUserStatus();
+        userStatus = Perp.createPerpUserStatus(1);
 
         ScaledAsset.addAsset(underlyingAssetStatus.underlyingPool.tokenStatus, 1e8);
         ScaledAsset.addAsset(underlyingAssetStatus.stablePool.tokenStatus, 1e8);

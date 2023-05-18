@@ -25,13 +25,13 @@ library SettleUserFeeLogic {
         latestFees = new int256[](_vault.openPositions.length);
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            uint256 assetId = _vault.openPositions[i].assetId;
+            uint256 assetId = _vault.openPositions[i].pairId;
 
             if (assetId == _excludeAssetId) {
                 continue;
             }
 
-            int256 fee = Trade.settleFee(_assets[assetId], _rebalanceFeeGrowthCache, _vault.openPositions[i].perpTrade);
+            int256 fee = Trade.settleFee(_assets[assetId], _rebalanceFeeGrowthCache, _vault.openPositions[i]);
 
             latestFees[i] = fee;
 

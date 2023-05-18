@@ -10,7 +10,7 @@ contract TestPerpUpdatePosition is TestPerp {
     function setUp() public override {
         TestPerp.setUp();
 
-        userStatus2 = Perp.createPerpUserStatus();
+        userStatus2 = Perp.createPerpUserStatus(1);
 
         Perp.updatePosition(
             underlyingAssetStatus, userStatus2, Perp.UpdatePerpParams(100, -100), Perp.UpdateSqrtPerpParams(100, -100)

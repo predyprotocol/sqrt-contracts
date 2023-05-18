@@ -41,7 +41,7 @@ contract TestControllerTradePerp is TestController {
         {
             DataType.Vault memory vault = controller.getVault(vaultId);
             for (uint256 i; i < vault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = vault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = vault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
                     controller.tradePerp(
@@ -57,7 +57,7 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             DataType.Vault memory lpVault = controller.getVault(lpVaultId);
             for (uint256 i; i < lpVault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = lpVault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = lpVault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
                     TradeLogic.TradeParams memory tradeParams =
@@ -421,7 +421,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.openPositions[0].perpTrade.underlying.positionAmount, 0);
+        assertEq(vault.openPositions[0].underlying.positionAmount, 0);
 
         assertEq(vault.margin, 10000180000);
 
@@ -527,9 +527,9 @@ contract TestControllerTradePerp is TestController {
 
     function getSqrtEntryValue(uint256 _vaultId) internal view returns (int256) {
         DataType.Vault memory vault = controller.getVault(_vaultId);
-        DataType.UserStatus memory userStatus = vault.openPositions[0];
+        Perp.UserStatus memory userStatus = vault.openPositions[0];
 
-        return userStatus.perpTrade.sqrtPerp.entryValue; //  + userStatus.perpTrade.sqrtPerp.rebalanceEntryValue;
+        return userStatus.sqrtPerp.entryValue; //  + userStatus.perpTrade.sqrtPerp.rebalanceEntryValue;
     }
 
     function testGammaAfterRebalance() public {

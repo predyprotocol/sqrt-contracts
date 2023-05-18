@@ -51,12 +51,12 @@ contract TestControllerTradePerp is TestController {
         {
             DataType.Vault memory vault = controller.getVault(vaultId);
             for (uint256 i; i < vault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = vault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = vault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
                     controller.tradePerp(
                         vaultId,
-                        vault.openPositions[i].assetId,
+                        vault.openPositions[i].pairId,
                         getTradeParams(-perpTrade.perp.amount, -perpTrade.sqrtPerp.amount)
                     );
                 }
@@ -69,14 +69,14 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             DataType.Vault memory lpVault = controller.getVault(vaultId2);
             for (uint256 i; i < lpVault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = lpVault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = lpVault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
                     TradeLogic.TradeParams memory tradeParams =
                         getTradeParams(-perpTrade.perp.amount, -perpTrade.sqrtPerp.amount);
 
                     vm.prank(user2);
-                    controller.tradePerp(vaultId2, lpVault.openPositions[i].assetId, tradeParams);
+                    controller.tradePerp(vaultId2, lpVault.openPositions[i].pairId, tradeParams);
                 }
             }
 

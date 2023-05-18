@@ -40,7 +40,6 @@ library Perp {
         int256 underlyingRebalanceEntryValue;
         uint256 entryTradeFee0;
         uint256 entryTradeFee1;
-        uint256 entryPremium;
     }
 
     struct UpdatePerpParams {
@@ -67,8 +66,10 @@ library Perp {
         address uniswapPool;
         int24 tickLower;
         int24 tickUpper;
+        uint64 numRebalance;
         uint256 totalAmount;
         uint256 borrowedAmount;
+        uint256 lastRebalanceTotalSquartAmount;
         uint256 lastFee0Growth;
         uint256 lastFee1Growth;
         uint256 borrowPremium0Growth;
@@ -79,21 +80,24 @@ library Perp {
         ScaledAsset.UserStatus rebalancePositionStable;
         int256 rebalanceFeeGrowthUnderlying;
         int256 rebalanceFeeGrowthStable;
-        uint256 lastRebalanceTotalSquartAmount;
-        uint64 numRebalance;
     }
 
     struct UserStatus {
+        uint64 pairId;
+        int24 rebalanceLastTickLower;
+        int24 rebalanceLastTickUpper;
+        uint64 lastNumRebalance;
         PositionStatus perp;
         SqrtPositionStatus sqrtPerp;
         ScaledAsset.UserStatus underlying;
         ScaledAsset.UserStatus stable;
-        int24 rebalanceLastTickLower;
-        int24 rebalanceLastTickUpper;
-        uint64 lastNumRebalance;
     }
 
-    event Rebalanced(uint256 assetId, int24 tickLower, int24 tickUpper, int256 profit);
+    event SqrtSupplied(uint256 pairId, uint256 amount);
+    event SqrtWithdrawn(uint256 pairId, uint256 amount);
+    event SqrtBorrowed(uint256 pairId, uint256 amount);
+    event SqrtRepaid(uint256 pairId, uint256 amount);
+    event Rebalanced(uint256 pairId, int24 tickLower, int24 tickUpper, int256 profit);
 
     function createAssetStatus(address uniswapPool, int24 tickLower, int24 tickUpper)
         internal
@@ -112,24 +116,25 @@ library Perp {
             0,
             0,
             0,
-            ScaledAsset.createUserStatus(),
-            ScaledAsset.createUserStatus(),
             0,
             0,
+            ScaledAsset.createUserStatus(),
+            ScaledAsset.createUserStatus(),
             0,
             0
         );
     }
 
-    function createPerpUserStatus() internal pure returns (UserStatus memory) {
+    function createPerpUserStatus(uint64 _pairId) internal pure returns (UserStatus memory) {
         return UserStatus(
+            _pairId,
+            0,
+            0,
+            0,
             PositionStatus(0, 0),
-            SqrtPositionStatus(0, 0, 0, 0, 0, 0, 0),
+            SqrtPositionStatus(0, 0, 0, 0, 0, 0),
             ScaledAsset.createUserStatus(),
-            ScaledAsset.createUserStatus(),
-            0,
-            0,
-            0
+            ScaledAsset.createUserStatus()
         );
     }
 
@@ -330,13 +335,12 @@ library Perp {
         return liquidity;
     }
 
-    function settleUserBalance(DataType.PairStatus storage _underlyingAssetStatus, UserStatus storage _userStatus)
+    function settleUserBalance(DataType.PairStatus storage _pairStatus, UserStatus storage _userStatus)
         internal
         returns (bool)
     {
-        (int256 deltaPositionUnderlying, int256 deltaPositionStable) = updateRebalanceEntry(
-            _underlyingAssetStatus.sqrtAssetStatus, _userStatus, _underlyingAssetStatus.isMarginZero
-        );
+        (int256 deltaPositionUnderlying, int256 deltaPositionStable) =
+            updateRebalanceEntry(_pairStatus.sqrtAssetStatus, _userStatus, _pairStatus.isMarginZero);
 
         if (deltaPositionUnderlying == 0 && deltaPositionStable == 0) {
             return false;
@@ -347,17 +351,17 @@ library Perp {
 
         // already settled fee
 
-        _underlyingAssetStatus.underlyingPool.tokenStatus.updatePosition(
-            _underlyingAssetStatus.sqrtAssetStatus.rebalancePositionUnderlying, -deltaPositionUnderlying
+        _pairStatus.underlyingPool.tokenStatus.updatePosition(
+            _pairStatus.sqrtAssetStatus.rebalancePositionUnderlying, -deltaPositionUnderlying, _pairStatus.id, false
         );
-        _underlyingAssetStatus.stablePool.tokenStatus.updatePosition(
-            _underlyingAssetStatus.sqrtAssetStatus.rebalancePositionStable, -deltaPositionStable
+        _pairStatus.stablePool.tokenStatus.updatePosition(
+            _pairStatus.sqrtAssetStatus.rebalancePositionStable, -deltaPositionStable, _pairStatus.id, true
         );
 
-        _underlyingAssetStatus.underlyingPool.tokenStatus.updatePosition(
-            _userStatus.underlying, deltaPositionUnderlying
+        _pairStatus.underlyingPool.tokenStatus.updatePosition(
+            _userStatus.underlying, deltaPositionUnderlying, _pairStatus.id, false
         );
-        _underlyingAssetStatus.stablePool.tokenStatus.updatePosition(_userStatus.stable, deltaPositionStable);
+        _pairStatus.stablePool.tokenStatus.updatePosition(_userStatus.stable, deltaPositionStable, _pairStatus.id, true);
 
         return true;
     }
@@ -446,7 +450,7 @@ library Perp {
     }
 
     function updatePosition(
-        DataType.PairStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _pairStatus,
         UserStatus storage _userStatus,
         UpdatePerpParams memory _updatePerpParams,
         UpdateSqrtPerpParams memory _updateSqrtPerpParams
@@ -460,10 +464,10 @@ library Perp {
 
         (payoff.sqrtRebalanceEntryUpdateUnderlying, payoff.sqrtRebalanceEntryUpdateStable) = calculateSqrtPerpOffset(
             _userStatus,
-            _underlyingAssetStatus.sqrtAssetStatus.tickLower,
-            _underlyingAssetStatus.sqrtAssetStatus.tickUpper,
+            _pairStatus.sqrtAssetStatus.tickLower,
+            _pairStatus.sqrtAssetStatus.tickUpper,
             _updateSqrtPerpParams.tradeSqrtAmount,
-            _underlyingAssetStatus.isMarginZero
+            _pairStatus.isMarginZero
         );
 
         (payoff.sqrtEntryUpdate, payoff.sqrtPayoff) = calculateEntry(
@@ -482,18 +486,27 @@ library Perp {
         _userStatus.sqrtPerp.underlyingRebalanceEntryValue += payoff.sqrtRebalanceEntryUpdateUnderlying;
 
         // Update sqrt position
-        updateSqrtPosition(_underlyingAssetStatus.sqrtAssetStatus, _userStatus, _updateSqrtPerpParams.tradeSqrtAmount);
-
-        _underlyingAssetStatus.underlyingPool.tokenStatus.updatePosition(
-            _userStatus.underlying, _updatePerpParams.tradeAmount + payoff.sqrtRebalanceEntryUpdateUnderlying
+        updateSqrtPosition(
+            _pairStatus.id, _pairStatus.sqrtAssetStatus, _userStatus, _updateSqrtPerpParams.tradeSqrtAmount
         );
 
-        _underlyingAssetStatus.stablePool.tokenStatus.updatePosition(
-            _userStatus.stable, payoff.perpEntryUpdate + payoff.sqrtEntryUpdate + payoff.sqrtRebalanceEntryUpdateStable
+        _pairStatus.underlyingPool.tokenStatus.updatePosition(
+            _userStatus.underlying,
+            _updatePerpParams.tradeAmount + payoff.sqrtRebalanceEntryUpdateUnderlying,
+            _pairStatus.id,
+            false
+        );
+
+        _pairStatus.stablePool.tokenStatus.updatePosition(
+            _userStatus.stable,
+            payoff.perpEntryUpdate + payoff.sqrtEntryUpdate + payoff.sqrtRebalanceEntryUpdateStable,
+            _pairStatus.id,
+            true
         );
     }
 
     function updateSqrtPosition(
+        uint256 _pairId,
         SqrtPerpAssetStatus storage _assetStatus,
         UserStatus storage _userStatus,
         int256 _amount
@@ -519,9 +532,13 @@ library Perp {
 
         if (closeAmount > 0) {
             _assetStatus.borrowedAmount -= uint256(closeAmount);
+
+            emit SqrtRepaid(_pairId, uint256(closeAmount));
         } else if (closeAmount < 0) {
             require(getAvailableSqrtAmount(_assetStatus) >= uint256(-closeAmount), "S0");
             _assetStatus.totalAmount -= uint256(-closeAmount);
+
+            emit SqrtWithdrawn(_pairId, uint256(-closeAmount));
         }
 
         if (openAmount > 0) {
@@ -529,6 +546,8 @@ library Perp {
 
             _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.fee0Growth;
             _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.fee1Growth;
+
+            emit SqrtSupplied(_pairId, uint256(openAmount));
         } else if (openAmount < 0) {
             require(getAvailableSqrtAmount(_assetStatus) >= uint256(-openAmount), "S0");
 
@@ -536,6 +555,8 @@ library Perp {
 
             _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.borrowPremium0Growth;
             _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.borrowPremium1Growth;
+
+            emit SqrtBorrowed(_pairId, uint256(-openAmount));
         }
 
         _userStatus.sqrtPerp.amount += _amount;
@@ -781,25 +802,25 @@ library Perp {
     }
 
     function updateRebalancePosition(
-        DataType.PairStatus storage _assetStatusUnderlying,
+        DataType.PairStatus storage _pairStatus,
         int256 _updateAmount0,
         int256 _updateAmount1
     ) internal {
-        SqrtPerpAssetStatus storage sqrtAsset = _assetStatusUnderlying.sqrtAssetStatus;
+        SqrtPerpAssetStatus storage sqrtAsset = _pairStatus.sqrtAssetStatus;
 
-        if (_assetStatusUnderlying.isMarginZero) {
-            _assetStatusUnderlying.stablePool.tokenStatus.updatePosition(
-                sqrtAsset.rebalancePositionStable, _updateAmount0
+        if (_pairStatus.isMarginZero) {
+            _pairStatus.stablePool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionStable, _updateAmount0, _pairStatus.id, true
             );
-            _assetStatusUnderlying.underlyingPool.tokenStatus.updatePosition(
-                sqrtAsset.rebalancePositionUnderlying, _updateAmount1
+            _pairStatus.underlyingPool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionUnderlying, _updateAmount1, _pairStatus.id, false
             );
         } else {
-            _assetStatusUnderlying.underlyingPool.tokenStatus.updatePosition(
-                sqrtAsset.rebalancePositionUnderlying, _updateAmount0
+            _pairStatus.underlyingPool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionUnderlying, _updateAmount0, _pairStatus.id, false
             );
-            _assetStatusUnderlying.stablePool.tokenStatus.updatePosition(
-                sqrtAsset.rebalancePositionStable, _updateAmount1
+            _pairStatus.stablePool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionStable, _updateAmount1, _pairStatus.id, true
             );
         }
     }

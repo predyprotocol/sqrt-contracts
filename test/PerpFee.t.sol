@@ -13,7 +13,7 @@ contract PerpFeeTest is Test, Helper {
     function setUp() public {
         underlyingAssetStatus = createAssetStatus(1, address(0), address(0));
         stableAssetStatus = ScaledAsset.createTokenStatus();
-        perpUserStatus = Perp.createPerpUserStatus();
+        perpUserStatus = Perp.createPerpUserStatus(1);
     }
 
     function testComputeTradeFeeForLong() public {

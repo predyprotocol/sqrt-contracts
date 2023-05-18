@@ -24,10 +24,10 @@ library IsolatedVaultLogic {
         DataType.Vault storage _vault,
         DataType.Vault storage _isolatedVault,
         uint256 _depositAmount,
-        uint256 _pairId,
+        uint64 _pairId,
         TradeLogic.TradeParams memory _tradeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
+        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
 
         _vault.margin -= int256(_depositAmount);
         _isolatedVault.margin += int256(_depositAmount);
@@ -47,10 +47,10 @@ library IsolatedVaultLogic {
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         DataType.Vault storage _isolatedVault,
-        uint256 _pairId,
+        uint64 _pairId,
         CloseParams memory _closeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        DataType.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
+        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
 
         tradeResult =
             closeVault(_assets, rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _closeParams);
@@ -70,12 +70,12 @@ library IsolatedVaultLogic {
         mapping(uint256 => DataType.PairStatus) storage _assets,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
-        uint256 _pairId,
-        DataType.UserStatus storage _userStatus,
+        uint64 _pairId,
+        Perp.UserStatus storage _userStatus,
         CloseParams memory _closeParams
     ) internal returns (DataType.TradeResult memory tradeResult) {
-        int256 tradeAmount = -_userStatus.perpTrade.perp.amount;
-        int256 tradeAmountSqrt = -_userStatus.perpTrade.sqrtPerp.amount;
+        int256 tradeAmount = -_userStatus.perp.amount;
+        int256 tradeAmountSqrt = -_userStatus.sqrtPerp.amount;
 
         return TradeLogic.execTrade(
             _assets,
