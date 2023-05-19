@@ -216,8 +216,8 @@ contract TestControllerLiquidationCall is TestController {
         vm.warp(block.timestamp + 1 weeks);
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
-        assertEq(vaultStatus.vaultValue, 68418616);
-        assertEq(vaultStatus.minDeposit, 93054574);
+        assertEq(vaultStatus.vaultValue, 68418614);
+        assertEq(vaultStatus.minDeposit, 93054575);
 
         vm.prank(liquidator);
         controller.liquidationCall(vaultId, 1e18);

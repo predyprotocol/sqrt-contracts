@@ -86,6 +86,9 @@ contract TestControllerTradePerp is TestController {
             controller.updateMargin(-margin);
         }
 
+        console.log(usdc.balanceOf(address(controller)));
+        console.log(weth.balanceOf(address(controller)));
+
         vm.startPrank(user2);
         controller.withdrawToken(WETH_ASSET_ID, 1e18, true);
         controller.withdrawToken(WETH_ASSET_ID, 1e18, false);
@@ -99,11 +102,8 @@ contract TestControllerTradePerp is TestController {
         for (uint256 i = 1; i <= 2; i++) {
             DataType.PairStatus memory asset = controller.getAsset(i);
 
-            if (asset.underlyingPool.accumulatedProtocolRevenue > 0 || asset.stablePool.accumulatedProtocolRevenue > 0)
-            {
-                controller.withdrawProtocolRevenue(
-                    i, asset.underlyingPool.accumulatedProtocolRevenue, asset.stablePool.accumulatedProtocolRevenue
-                );
+            if (asset.accumulatedProtocolRevenue > 0) {
+                controller.withdrawProtocolRevenue(i, asset.accumulatedProtocolRevenue);
             }
         }
 
@@ -708,7 +708,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 125697330);
+        assertEq(vaultStatus.vaultValue, 125697326);
         assertEq(vaultStatus.minDeposit, 136761535);
 
         vm.prank(user2);

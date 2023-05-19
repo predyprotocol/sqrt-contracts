@@ -4,9 +4,6 @@ pragma solidity ^0.8.19;
 library Constants {
     uint256 internal constant ONE = 1e18;
 
-    // Reserve factor is 8%
-    uint256 internal constant RESERVE_FACTOR = 8 * 1e16;
-
     // Margin option
     int256 internal constant MIN_MARGIN_AMOUNT = 1e6;
     uint256 internal constant MARGIN_ROUNDED_DECIMALS = 1e4;

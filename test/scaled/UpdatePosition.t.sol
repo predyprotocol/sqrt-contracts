@@ -125,7 +125,7 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
 
         ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16, PAIR_ID, IS_STABLE_FLAG);
 
-        assertEq(userStatus2.lastFeeGrowth, 92000000000000);
+        assertEq(userStatus2.lastFeeGrowth, 100000000000000);
 
         ScaledAsset.updatePosition(assetStatus, userStatus2, -2 * 1e16, PAIR_ID, IS_STABLE_FLAG);
 
@@ -143,7 +143,7 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
 
         int256 interestFee = ScaledAsset.settleUserFee(assetStatus, userStatus2);
 
-        assertEq(interestFee, 9200000000000);
-        assertEq(userStatus2.lastFeeGrowth, 920000000000000);
+        assertEq(interestFee, 10000000000000);
+        assertEq(userStatus2.lastFeeGrowth, 1000000000000000);
     }
 }

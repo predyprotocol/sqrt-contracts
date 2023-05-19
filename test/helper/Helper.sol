@@ -17,20 +17,16 @@ contract Helper {
                 address(0),
                 address(0),
                 ScaledAsset.createTokenStatus(),
-                InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-                0
+                InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18)
             ),
             DataType.AssetPoolStatus(
-                _weth,
-                address(0),
-                ScaledAsset.createTokenStatus(),
-                InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
-                0
+                _weth, address(0), ScaledAsset.createTokenStatus(), InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18)
             ),
             DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
             Perp.createAssetStatus(_uniswapPool, -100, 100),
             false,
-            block.timestamp
+            block.timestamp,
+            0
         );
 
         assetStatus.sqrtAssetStatus.borrowPremium0Growth = 1 * Constants.Q128 / 1e2;

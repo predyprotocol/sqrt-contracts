@@ -93,10 +93,7 @@ library Perp {
         ScaledAsset.UserStatus stable;
     }
 
-    event SqrtSupplied(uint256 pairId, uint256 amount);
-    event SqrtWithdrawn(uint256 pairId, uint256 amount);
-    event SqrtBorrowed(uint256 pairId, uint256 amount);
-    event SqrtRepaid(uint256 pairId, uint256 amount);
+    event SqrtPositionUpdated(uint256 pairId, int256 open, int256 close);
     event Rebalanced(uint256 pairId, int24 tickLower, int24 tickUpper, int256 profit);
 
     function createAssetStatus(address uniswapPool, int24 tickLower, int24 tickUpper)
@@ -532,13 +529,9 @@ library Perp {
 
         if (closeAmount > 0) {
             _assetStatus.borrowedAmount -= uint256(closeAmount);
-
-            emit SqrtRepaid(_pairId, uint256(closeAmount));
         } else if (closeAmount < 0) {
             require(getAvailableSqrtAmount(_assetStatus) >= uint256(-closeAmount), "S0");
             _assetStatus.totalAmount -= uint256(-closeAmount);
-
-            emit SqrtWithdrawn(_pairId, uint256(-closeAmount));
         }
 
         if (openAmount > 0) {
@@ -546,8 +539,6 @@ library Perp {
 
             _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.fee0Growth;
             _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.fee1Growth;
-
-            emit SqrtSupplied(_pairId, uint256(openAmount));
         } else if (openAmount < 0) {
             require(getAvailableSqrtAmount(_assetStatus) >= uint256(-openAmount), "S0");
 
@@ -555,11 +546,11 @@ library Perp {
 
             _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.borrowPremium0Growth;
             _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.borrowPremium1Growth;
-
-            emit SqrtBorrowed(_pairId, uint256(-openAmount));
         }
 
         _userStatus.sqrtPerp.amount += _amount;
+
+        emit SqrtPositionUpdated(_pairId, openAmount, closeAmount);
     }
 
     function getAvailableSqrtAmount(SqrtPerpAssetStatus memory _assetStatus) internal pure returns (uint256) {

@@ -24,10 +24,7 @@ library ScaledAsset {
         uint256 lastFeeGrowth;
     }
 
-    event AssetSupplied(uint256 pairId, bool isStable, uint256 amount);
-    event AssetWithdrawn(uint256 pairId, bool isStable, uint256 amount);
-    event AssetBorrowed(uint256 pairId, bool isStable, uint256 amount);
-    event AssetRepaid(uint256 pairId, bool isStable, uint256 amount);
+    event ScaledAssetPositionUpdated(uint256 pairId, bool isStable, int256 open, int256 close);
 
     function createTokenStatus() internal pure returns (TokenStatus memory) {
         return TokenStatus(0, 0, 0, 0, Constants.ONE, Constants.ONE, 0, 0);
@@ -102,32 +99,26 @@ library ScaledAsset {
 
         if (closeAmount > 0) {
             tokenStatus.totalNormalBorrowed -= uint256(closeAmount);
-
-            emit AssetRepaid(_pairId, _isStable, uint256(closeAmount));
         } else if (closeAmount < 0) {
             require(getAvailableCollateralValue(tokenStatus) >= uint256(-closeAmount), "S0");
             tokenStatus.totalNormalDeposited -= uint256(-closeAmount);
-
-            emit AssetWithdrawn(_pairId, _isStable, uint256(-closeAmount));
         }
 
         if (openAmount > 0) {
             tokenStatus.totalNormalDeposited += uint256(openAmount);
 
             userStatus.lastFeeGrowth = tokenStatus.assetGrowth;
-
-            emit AssetSupplied(_pairId, _isStable, uint256(openAmount));
         } else if (openAmount < 0) {
             require(getAvailableCollateralValue(tokenStatus) >= uint256(-openAmount), "S0");
 
             tokenStatus.totalNormalBorrowed += uint256(-openAmount);
 
             userStatus.lastFeeGrowth = tokenStatus.debtGrowth;
-
-            emit AssetBorrowed(_pairId, _isStable, uint256(-openAmount));
         }
 
         userStatus.positionAmount += _amount;
+
+        emit ScaledAssetPositionUpdated(_pairId, _isStable, openAmount, closeAmount);
     }
 
     function computeUserFee(ScaledAsset.TokenStatus memory _assetStatus, ScaledAsset.UserStatus memory _userStatus)
@@ -177,7 +168,7 @@ library ScaledAsset {
     {
         require(accountState.positionAmount <= 0, "S1");
 
-        return FixedPointMathLib.mulDivDown(
+        return FixedPointMathLib.mulDivUp(
             tokenState.debtGrowth - accountState.lastFeeGrowth,
             // never overflow
             uint256(-accountState.positionAmount),
@@ -186,24 +177,14 @@ library ScaledAsset {
     }
 
     // update scaler
-    function updateScaler(TokenStatus storage tokenState, uint256 _interestRate) internal returns (uint256) {
+    function updateScaler(TokenStatus storage tokenState, uint256 _interestRate) internal {
         if (tokenState.totalCompoundDeposited == 0 && tokenState.totalNormalDeposited == 0) {
-            return 0;
+            return;
         }
-
-        uint256 protocolFee = FixedPointMathLib.mulDivDown(
-            FixedPointMathLib.mulDivDown(_interestRate, getTotalDebtValue(tokenState), Constants.ONE),
-            Constants.RESERVE_FACTOR,
-            Constants.ONE
-        );
 
         // supply interest rate is InterestRate * Utilization * (1 - ReserveFactor)
         uint256 supplyInterestRate = FixedPointMathLib.mulDivDown(
-            FixedPointMathLib.mulDivDown(
-                _interestRate, getTotalDebtValue(tokenState), getTotalCollateralValue(tokenState)
-            ),
-            Constants.ONE - Constants.RESERVE_FACTOR,
-            Constants.ONE
+            _interestRate, getTotalDebtValue(tokenState), getTotalCollateralValue(tokenState)
         );
 
         // round up
@@ -213,8 +194,6 @@ library ScaledAsset {
         tokenState.assetScaler =
             FixedPointMathLib.mulDivDown(tokenState.assetScaler, Constants.ONE + supplyInterestRate, Constants.ONE);
         tokenState.assetGrowth += supplyInterestRate;
-
-        return protocolFee;
     }
 
     function getTotalCollateralValue(TokenStatus memory tokenState) internal pure returns (uint256) {

@@ -79,14 +79,11 @@ contract TestControllerTradePerp is TestController {
         vm.prank(user2);
         controller.withdrawToken(1, 1e18, false);
 
-        {
-            DataType.PairStatus memory asset = controller.getAsset(1);
+        for (uint256 i = 1; i <= 2; i++) {
+            DataType.PairStatus memory asset = controller.getAsset(i);
 
-            if (asset.underlyingPool.accumulatedProtocolRevenue > 0 || asset.stablePool.accumulatedProtocolRevenue > 0)
-            {
-                controller.withdrawProtocolRevenue(
-                    1, asset.underlyingPool.accumulatedProtocolRevenue, asset.stablePool.accumulatedProtocolRevenue
-                );
+            if (asset.accumulatedProtocolRevenue > 0) {
+                controller.withdrawProtocolRevenue(i, asset.accumulatedProtocolRevenue);
             }
         }
 
@@ -671,7 +668,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 9999838139);
+        assertEq(vaultStatus.vaultValue, 9999840124);
 
         withdrawAll();
     }

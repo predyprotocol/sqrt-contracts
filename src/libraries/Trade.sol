@@ -32,7 +32,7 @@ library Trade {
             _underlyingAssetStatus.isMarginZero
         );
 
-        fee = roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, stableFee + swapResult.fee);
+        fee = roundAndAddProtocolFee(_underlyingAssetStatus, stableFee + swapResult.fee);
     }
 
     function trade(
@@ -72,12 +72,10 @@ library Trade {
             Perp.UpdateSqrtPerpParams(_tradeAmountSqrt, swapResult.amountSqrtPerp + stableAmountForSqrt)
         );
 
-        tradeResult.payoff.perpPayoff =
-            roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, tradeResult.payoff.perpPayoff);
-        tradeResult.payoff.sqrtPayoff =
-            roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, tradeResult.payoff.sqrtPayoff);
+        tradeResult.payoff.perpPayoff = roundAndAddProtocolFee(_underlyingAssetStatus, tradeResult.payoff.perpPayoff);
+        tradeResult.payoff.sqrtPayoff = roundAndAddProtocolFee(_underlyingAssetStatus, tradeResult.payoff.sqrtPayoff);
 
-        tradeResult.fee = roundAndAddProtocolFee(_underlyingAssetStatus.stablePool, stableFee + swapResult.fee);
+        tradeResult.fee = roundAndAddProtocolFee(_underlyingAssetStatus, stableFee + swapResult.fee);
     }
 
     function settleUserBalanceAndFee(
@@ -91,13 +89,23 @@ library Trade {
         Perp.settleUserBalance(_underlyingAssetStatus, _userStatus);
     }
 
-    function roundAndAddProtocolFee(DataType.AssetPoolStatus storage _stablePoolStatus, int256 _amount)
+    function roundAndAddProtocolFee(DataType.PairStatus storage _pairStatus, int256 _amount)
         internal
         returns (int256)
     {
         int256 rounded = roundMargin(_amount, Constants.MARGIN_ROUNDED_DECIMALS);
         if (_amount > rounded) {
-            _stablePoolStatus.accumulatedProtocolRevenue += uint256(_amount - rounded);
+            if (_pairStatus.sqrtAssetStatus.totalAmount > 0) {
+                uint256 deltaFee = uint256(_amount - rounded) * Constants.Q128 / _pairStatus.sqrtAssetStatus.totalAmount;
+
+                if (_pairStatus.isMarginZero) {
+                    _pairStatus.sqrtAssetStatus.fee0Growth += deltaFee;
+                } else {
+                    _pairStatus.sqrtAssetStatus.fee1Growth += deltaFee;
+                }
+            } else {
+                _pairStatus.accumulatedProtocolRevenue += uint256(_amount - rounded);
+            }
         }
         return rounded;
     }

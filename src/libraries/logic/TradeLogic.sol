@@ -28,7 +28,7 @@ library TradeLogic {
     }
 
     event PositionUpdated(
-        uint256 vaultId, uint256 assetId, int256 tradeAmount, int256 tradeSqrtAmount, Perp.Payoff payoff, int256 fee
+        uint256 vaultId, uint256 pairId, int256 tradeAmount, int256 tradeSqrtAmount, Perp.Payoff payoff, int256 fee
     );
 
     function execTrade(

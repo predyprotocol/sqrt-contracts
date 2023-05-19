@@ -37,6 +37,7 @@ library DataType {
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
         uint256 lastUpdateTimestamp;
+        uint256 accumulatedProtocolRevenue;
     }
 
     struct AssetPoolStatus {
@@ -44,7 +45,6 @@ library DataType {
         address supplyTokenAddress;
         ScaledAsset.TokenStatus tokenStatus;
         InterestRateModel.IRMParams irmParams;
-        uint256 accumulatedProtocolRevenue;
     }
 
     struct Vault {

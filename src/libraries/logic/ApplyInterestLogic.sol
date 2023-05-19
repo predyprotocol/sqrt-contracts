@@ -18,9 +18,7 @@ library ApplyInterestLogic {
         uint256 fee0Growth,
         uint256 fee1Growth,
         uint256 borrowPremium0Growth,
-        uint256 borrowPremium1Growth,
-        uint256 stableAccumulatedProtocolRevenue,
-        uint256 underlyingAccumulatedProtocolRevenue
+        uint256 borrowPremium1Growth
     );
 
     function applyInterestForAssetGroup(
@@ -68,7 +66,7 @@ library ApplyInterestLogic {
             * (block.timestamp - _lastUpdateTimestamp) / 365 days;
 
         // Update scaler
-        _poolStatus.accumulatedProtocolRevenue += _poolStatus.tokenStatus.updateScaler(interestRate);
+        _poolStatus.tokenStatus.updateScaler(interestRate);
     }
 
     function emitInterestGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
@@ -81,9 +79,7 @@ library ApplyInterestLogic {
             _assetStatus.sqrtAssetStatus.fee0Growth,
             _assetStatus.sqrtAssetStatus.fee1Growth,
             _assetStatus.sqrtAssetStatus.borrowPremium0Growth,
-            _assetStatus.sqrtAssetStatus.borrowPremium1Growth,
-            _assetStatus.stablePool.accumulatedProtocolRevenue,
-            _assetStatus.underlyingPool.accumulatedProtocolRevenue
+            _assetStatus.sqrtAssetStatus.borrowPremium1Growth
         );
     }
 

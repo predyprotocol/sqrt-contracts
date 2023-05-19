@@ -60,9 +60,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     event PairAdded(uint256 pairId, address _uniswapPool);
     event AssetGroupInitialized(address stableAsset, uint256[] assetIds);
     event VaultCreated(uint256 vaultId, address owner, bool isMainVault);
-    event ProtocolRevenueWithdrawn(
-        uint256 pairId, uint256 withdrawnProtocolFeeStable, uint256 withdrawnProtocolFeeUnderlying
-    );
+    event ProtocolRevenueWithdrawn(uint256 pairId, uint256 withdrawnProtocolFee);
     event AssetRiskParamsUpdated(uint256 pairId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
@@ -139,33 +137,20 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice Withdraws accumulated protocol revenue.
      * @dev Only operator can call this function.
-     * @param _underlyingAmount amount of underlying token to withdraw
-     * @param _stableAmount amount of stable token to withdraw
+     * @param _amount amount of stable token to withdraw
      */
-    function withdrawProtocolRevenue(uint256 _pairId, uint256 _underlyingAmount, uint256 _stableAmount)
-        external
-        onlyOperator
-    {
+    function withdrawProtocolRevenue(uint256 _pairId, uint256 _amount) external onlyOperator {
         DataType.PairStatus storage asset = assets[_pairId];
 
-        require(
-            asset.stablePool.accumulatedProtocolRevenue >= _stableAmount
-                && asset.underlyingPool.accumulatedProtocolRevenue >= _underlyingAmount,
-            "C8"
-        );
+        require(asset.accumulatedProtocolRevenue >= _amount, "C8");
 
-        asset.stablePool.accumulatedProtocolRevenue -= _stableAmount;
-        asset.underlyingPool.accumulatedProtocolRevenue -= _underlyingAmount;
+        asset.accumulatedProtocolRevenue -= _amount;
 
-        if (_stableAmount > 0) {
-            TransferHelper.safeTransfer(asset.stablePool.token, msg.sender, _stableAmount);
+        if (_amount > 0) {
+            TransferHelper.safeTransfer(asset.stablePool.token, msg.sender, _amount);
         }
 
-        if (_underlyingAmount > 0) {
-            TransferHelper.safeTransfer(asset.underlyingPool.token, msg.sender, _underlyingAmount);
-        }
-
-        emit ProtocolRevenueWithdrawn(_pairId, _stableAmount, _underlyingAmount);
+        emit ProtocolRevenueWithdrawn(_pairId, _amount);
     }
 
     /**
@@ -463,20 +448,19 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
                 pairGroup.stableTokenAddress,
                 SupplyLogic.deploySupplyToken(pairGroup.stableTokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _stableIrmParams,
-                0
+                _stableIrmParams
             ),
             DataType.AssetPoolStatus(
                 _tokenAddress,
                 SupplyLogic.deploySupplyToken(_tokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _underlyingIrmParams,
-                0
+                _underlyingIrmParams
             ),
             _assetRiskParams,
             Perp.createAssetStatus(_uniswapPool, -_assetRiskParams.rangeSize, _assetRiskParams.rangeSize),
             _isMarginZero,
-            block.timestamp
+            block.timestamp,
+            0
         );
 
         if (_uniswapPool != address(0)) {
