@@ -2,12 +2,14 @@
 pragma solidity ^0.8.19;
 
 import "./Setup.t.sol";
+import "../../src/Reader.sol";
 import "forge-std/console.sol";
 
 /*
  * https://docs.google.com/spreadsheets/d/101wXPKNGG0vqm7M6Op9WIf1GUKvvdKiCO4riO5D_iFc/edit?usp=sharing
  */
 contract TestControllerTradePerp is TestController {
+    Reader reader;
     uint256 vaultId;
     uint256 lpVaultId;
 
@@ -33,6 +35,8 @@ contract TestControllerTradePerp is TestController {
 
         vm.prank(user2);
         lpVaultId = controller.updateMargin(1e10);
+
+        reader = new Reader(controller);
     }
 
     function withdrawAll() internal {
@@ -160,7 +164,7 @@ contract TestControllerTradePerp is TestController {
     function testCannotTradePerp_IfAssetIdIsZero() public {
         TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
-        vm.expectRevert(bytes("ASSETID"));
+        vm.expectRevert(bytes("A0"));
         controller.tradePerp(vaultId, 0, tradeParams);
     }
 
@@ -253,7 +257,7 @@ contract TestControllerTradePerp is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -1 * 1e6));
 
-        (uint256 ur,,) = controller.getUtilizationRatio(WETH_ASSET_ID);
+        (uint256 ur,,) = reader.getUtilizationRatio(WETH_ASSET_ID);
 
         assertEq(ur, 1e18);
 
@@ -689,7 +693,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(tradeResult.minDeposit, 1000000);
 
-        (uint256 ur,,) = controller.getUtilizationRatio(WETH_ASSET_ID);
+        (uint256 ur,,) = reader.getUtilizationRatio(WETH_ASSET_ID);
 
         assertEq(ur, 5 * 1e17);
 

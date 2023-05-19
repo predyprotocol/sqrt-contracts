@@ -11,40 +11,48 @@ library ApplyInterestLogic {
 
     event InterestGrowthUpdated(
         uint256 assetId,
-        uint256 stableAssetGrowth,
-        uint256 stableDebtGrowth,
-        uint256 underlyingAssetGrowth,
-        uint256 underlyingDebtGrowth,
+        ScaledAsset.TokenStatus stableStatus,
+        ScaledAsset.TokenStatus underlyingStatus,
         uint256 fee0Growth,
         uint256 fee1Growth,
         uint256 borrowPremium0Growth,
         uint256 borrowPremium1Growth
     );
 
-    function applyInterestForAssetGroup(
-        DataType.PairGroup storage _assetGroup,
-        mapping(uint256 => DataType.PairStatus) storage _assets
+    function applyInterestForPairGroup(
+        DataType.PairGroup memory _pairGroup,
+        mapping(uint256 => DataType.PairStatus) storage _pairs
     ) external {
-        for (uint256 i = 1; i < _assetGroup.assetsCount; i++) {
-            applyInterestForToken(_assets, i);
+        for (uint256 i = 1; i < _pairGroup.assetsCount; i++) {
+            applyInterestForToken(_pairs, i);
         }
     }
 
-    function applyInterestForToken(mapping(uint256 => DataType.PairStatus) storage _assets, uint256 _pairId) public {
-        DataType.PairStatus storage assetStatus = _assets[_pairId];
+    function applyInterestForVault(DataType.Vault memory _vault, mapping(uint256 => DataType.PairStatus) storage _pairs)
+        external
+    {
+        for (uint256 i = 0; i < _vault.openPositions.length; i++) {
+            uint256 pairId = _vault.openPositions[i].pairId;
 
-        require(assetStatus.id > 0, "A0");
+            applyInterestForToken(_pairs, pairId);
+        }
+    }
 
-        Perp.updateFeeAndPremiumGrowth(assetStatus.sqrtAssetStatus);
+    function applyInterestForToken(mapping(uint256 => DataType.PairStatus) storage _pairs, uint256 _pairId) public {
+        DataType.PairStatus storage pairStatus = _pairs[_pairId];
 
-        applyInterestForPoolStatus(assetStatus.underlyingPool, assetStatus.lastUpdateTimestamp);
+        require(pairStatus.id > 0, "A0");
 
-        applyInterestForPoolStatus(assetStatus.stablePool, assetStatus.lastUpdateTimestamp);
+        Perp.updateFeeAndPremiumGrowth(pairStatus.sqrtAssetStatus);
+
+        applyInterestForPoolStatus(pairStatus.underlyingPool, pairStatus.lastUpdateTimestamp);
+
+        applyInterestForPoolStatus(pairStatus.stablePool, pairStatus.lastUpdateTimestamp);
 
         // Update last update timestamp
-        assetStatus.lastUpdateTimestamp = block.timestamp;
+        pairStatus.lastUpdateTimestamp = block.timestamp;
 
-        emitInterestGrowthEvent(assetStatus);
+        emitInterestGrowthEvent(pairStatus);
     }
 
     function applyInterestForPoolStatus(DataType.AssetPoolStatus storage _poolStatus, uint256 _lastUpdateTimestamp)
@@ -72,10 +80,8 @@ library ApplyInterestLogic {
     function emitInterestGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
         emit InterestGrowthUpdated(
             _assetStatus.id,
-            _assetStatus.stablePool.tokenStatus.assetGrowth,
-            _assetStatus.stablePool.tokenStatus.debtGrowth,
-            _assetStatus.underlyingPool.tokenStatus.assetGrowth,
-            _assetStatus.underlyingPool.tokenStatus.debtGrowth,
+            _assetStatus.stablePool.tokenStatus,
+            _assetStatus.underlyingPool.tokenStatus,
             _assetStatus.sqrtAssetStatus.fee0Growth,
             _assetStatus.sqrtAssetStatus.fee1Growth,
             _assetStatus.sqrtAssetStatus.borrowPremium0Growth,
@@ -84,36 +90,35 @@ library ApplyInterestLogic {
     }
 
     function reallocate(
-        mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
-        uint256 _assetId
+        uint256 _pairId
     ) external returns (bool reallocationHappened, int256 profit) {
-        DataType.PairStatus storage underlyingAsset = _assets[_assetId];
+        DataType.PairStatus storage pairStatus = _pairs[_pairId];
 
-        AssetLib.checkUnderlyingAsset(underlyingAsset);
+        AssetLib.checkUnderlyingAsset(pairStatus);
 
-        Perp.updateRebalanceFeeGrowth(underlyingAsset, underlyingAsset.sqrtAssetStatus);
+        Perp.updateRebalanceFeeGrowth(pairStatus, pairStatus.sqrtAssetStatus);
 
-        (reallocationHappened, profit) = Perp.reallocate(underlyingAsset, underlyingAsset.sqrtAssetStatus, false);
+        (reallocationHappened, profit) = Perp.reallocate(pairStatus, pairStatus.sqrtAssetStatus, false);
 
         if (reallocationHappened) {
-            _rebalanceFeeGrowthCache[AssetLib.getRebalanceCacheId(
-                _assetId, underlyingAsset.sqrtAssetStatus.numRebalance
-            )] = DataType.RebalanceFeeGrowthCache(
-                underlyingAsset.sqrtAssetStatus.rebalanceFeeGrowthStable,
-                underlyingAsset.sqrtAssetStatus.rebalanceFeeGrowthUnderlying
+            _rebalanceFeeGrowthCache[AssetLib.getRebalanceCacheId(_pairId, pairStatus.sqrtAssetStatus.numRebalance)] =
+            DataType.RebalanceFeeGrowthCache(
+                pairStatus.sqrtAssetStatus.rebalanceFeeGrowthStable,
+                pairStatus.sqrtAssetStatus.rebalanceFeeGrowthUnderlying
             );
-            underlyingAsset.sqrtAssetStatus.lastRebalanceTotalSquartAmount = underlyingAsset.sqrtAssetStatus.totalAmount;
-            underlyingAsset.sqrtAssetStatus.numRebalance++;
+            pairStatus.sqrtAssetStatus.lastRebalanceTotalSquartAmount = pairStatus.sqrtAssetStatus.totalAmount;
+            pairStatus.sqrtAssetStatus.numRebalance++;
         }
 
         if (profit < 0) {
             address token;
 
-            if (underlyingAsset.isMarginZero) {
-                token = underlyingAsset.underlyingPool.token;
+            if (pairStatus.isMarginZero) {
+                token = pairStatus.underlyingPool.token;
             } else {
-                token = underlyingAsset.stablePool.token;
+                token = pairStatus.stablePool.token;
             }
 
             TransferHelper.safeTransferFrom(token, msg.sender, address(this), uint256(-profit));

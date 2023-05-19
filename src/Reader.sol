@@ -28,4 +28,21 @@ contract Reader {
 
         return ReaderLogic.getDelta(asset.id, controller.getVault(_vaultId), controller.getSqrtPrice(_pairId));
     }
+
+    /**
+     * @notice Gets asset utilization ratios
+     * @param _pairId The id of asset pair
+     * @return sqrtAsset The utilization of sqrt asset
+     * @return stableAsset The utilization of stable asset
+     * @return underlyingAsset The utilization of underlying asset
+     */
+    function getUtilizationRatio(uint256 _pairId)
+        external
+        view
+        returns (uint256 sqrtAsset, uint256 stableAsset, uint256 underlyingAsset)
+    {
+        DataType.PairStatus memory pair = controller.getAsset(_pairId);
+
+        return ReaderLogic.getUtilizationRatio(pair);
+    }
 }

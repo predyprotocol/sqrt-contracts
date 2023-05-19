@@ -163,7 +163,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         external
         onlyOperator
     {
-        validateIRMParams(_riskParams);
+        validateRiskParams(_riskParams);
 
         DataType.PairStatus storage asset = assets[_pairId];
 
@@ -202,7 +202,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _pairId The id of pair to reallocate.
      */
     function reallocate(uint256 _pairId) external returns (bool, int256) {
-        applyInterest();
+        ApplyInterestLogic.applyInterestForToken(assets, _pairId);
 
         return ApplyInterestLogic.reallocate(assets, rebalanceFeeGrowthCache, _pairId);
     }
@@ -276,7 +276,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         VaultLib.checkVault(vault, msg.sender);
 
-        applyInterest();
+        applyInterest(vault);
         settleUserFee(vault);
 
         isolatedVaultId = createVaultIfNeeded(0, msg.sender, false);
@@ -312,7 +312,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         VaultLib.checkVault(vault, msg.sender);
 
-        applyInterest();
+        applyInterest(isolatedVault);
 
         tradeResult = IsolatedVaultLogic.closeIsolatedVault(
             pairGroup, assets, rebalanceFeeGrowthCache, vault, isolatedVault, _pairId, _closeParams
@@ -336,7 +336,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     {
         Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(pairGroup, vaults[_vaultId], _pairId);
 
-        applyInterest();
+        applyInterest(vaults[_vaultId]);
         settleUserFee(vaults[_vaultId], _pairId);
 
         return TradeLogic.execTrade(
@@ -355,7 +355,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         require(vault.owner != address(0));
 
-        applyInterest();
+        applyInterest(vault);
 
         uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
 
@@ -436,9 +436,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         InterestRateModel.IRMParams memory _stableIrmParams,
         InterestRateModel.IRMParams memory _underlyingIrmParams
     ) internal {
-        if (_uniswapPool != address(0)) {
-            validateIRMParams(_assetRiskParams);
-        }
+        validateRiskParams(_assetRiskParams);
 
         require(assets[_pairId].id == 0);
 
@@ -468,8 +466,8 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
     }
 
-    function applyInterest() internal {
-        ApplyInterestLogic.applyInterestForAssetGroup(pairGroup, assets);
+    function applyInterest(DataType.Vault memory _vault) internal {
+        ApplyInterestLogic.applyInterestForVault(_vault, assets);
     }
 
     function settleUserFee(DataType.Vault storage _vault) internal returns (int256[] memory latestFees) {
@@ -544,9 +542,9 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _vaultId The id of the vault
      */
     function getVaultStatus(uint256 _vaultId) external returns (DataType.VaultStatusResult memory) {
-        applyInterest();
-
         DataType.Vault storage vault = vaults[_vaultId];
+
+        applyInterest(vault);
 
         return ReaderLogic.getVaultStatus(assets, rebalanceFeeGrowthCache, vault, ownVaultsMap[vault.owner].mainVaultId);
     }
@@ -559,7 +557,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         external
         returns (DataType.VaultStatusResult memory, DataType.VaultStatusResult[] memory)
     {
-        applyInterest();
+        ApplyInterestLogic.applyInterestForPairGroup(pairGroup, assets);
 
         DataType.OwnVaults memory ownVaults = ownVaultsMap[msg.sender];
 
@@ -580,22 +578,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         );
     }
 
-    /**
-     * @notice Gets asset utilization ratios
-     * @param _pairId The id of asset pair
-     * @return sqrtAsset The utilization of sqrt asset
-     * @return stableAsset The utilization of stable asset
-     * @return underlyingAsset The utilization of underlying asset
-     */
-    function getUtilizationRatio(uint256 _pairId)
-        external
-        view
-        returns (uint256 sqrtAsset, uint256 stableAsset, uint256 underlyingAsset)
-    {
-        return ReaderLogic.getUtilizationRatio(assets[_pairId]);
-    }
-
-    function validateIRMParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {
+    function validateRiskParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {
         require(1e8 < _assetRiskParams.riskRatio && _assetRiskParams.riskRatio <= 10 * 1e8, "C0");
 
         require(_assetRiskParams.rangeSize > 0 && _assetRiskParams.rebalanceThreshold > 0, "C0");
