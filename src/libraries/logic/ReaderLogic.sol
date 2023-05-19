@@ -11,7 +11,7 @@ library ReaderLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
     function getVaultStatus(
-        mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint256 _mainVaultId
@@ -22,12 +22,12 @@ library ReaderLogic {
         for (uint256 i; i < _vault.openPositions.length; i++) {
             Perp.UserStatus memory userStatus = _vault.openPositions[i];
 
-            bool isMarginZero = _assets[userStatus.pairId].isMarginZero;
+            bool isMarginZero = _pairs[userStatus.pairId].isMarginZero;
             uint160 sqrtPrice = UniHelper.convertSqrtPrice(
-                UniHelper.getSqrtTWAP(_assets[userStatus.pairId].sqrtAssetStatus.uniswapPool), isMarginZero
+                UniHelper.getSqrtTWAP(_pairs[userStatus.pairId].sqrtAssetStatus.uniswapPool), isMarginZero
             );
 
-            subVaults[i].assetId = userStatus.pairId;
+            subVaults[i].pairId = userStatus.pairId;
             subVaults[i].position = userStatus;
 
             {
@@ -35,7 +35,7 @@ library ReaderLogic {
             }
 
             (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
-                PerpFee.computeUserFee(_assets[userStatus.pairId], _rebalanceFeeGrowthCache, userStatus);
+                PerpFee.computeUserFee(_pairs[userStatus.pairId], _rebalanceFeeGrowthCache, userStatus);
 
             subVaults[i].unrealizedFee = PositionCalculator.calculateValue(
                 sqrtPrice, PositionCalculator.PositionParams(unrealizedFeeStable, 0, unrealizedFeeUnderlying)
@@ -43,7 +43,7 @@ library ReaderLogic {
         }
 
         (int256 minDeposit, int256 vaultValue,) =
-            PositionCalculator.calculateMinDeposit(_assets, _rebalanceFeeGrowthCache, _vault, true);
+            PositionCalculator.calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault, true);
 
         return DataType.VaultStatusResult(
             _vault.id,

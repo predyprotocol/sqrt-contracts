@@ -59,11 +59,6 @@ library DataType {
         int256 underlyingGrowth;
     }
 
-    struct AssetParams {
-        uint256 assetGroupId;
-        uint256 assetId;
-    }
-
     struct TradeResult {
         Perp.Payoff payoff;
         int256 fee;
@@ -71,7 +66,7 @@ library DataType {
     }
 
     struct SubVaultStatusResult {
-        uint256 assetId;
+        uint256 pairId;
         Perp.UserStatus position;
         int256 delta;
         int256 unrealizedFee;

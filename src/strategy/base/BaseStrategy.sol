@@ -18,7 +18,7 @@ contract BaseStrategy is ERC20Upgradeable {
 
     address internal usdc;
 
-    uint64 internal assetId;
+    uint64 internal pairId;
 
     MinPerValueLimit internal minPerValueLimit;
 
@@ -44,11 +44,11 @@ contract BaseStrategy is ERC20Upgradeable {
 
         controller = IController(_controller);
 
-        assetId = _pairId;
+        pairId = _pairId;
 
         minPerValueLimit = _minPerValueLimit;
 
-        DataType.PairStatus memory asset = controller.getAsset(assetId);
+        DataType.PairStatus memory asset = controller.getAsset(pairId);
 
         usdc = asset.stablePool.token;
 

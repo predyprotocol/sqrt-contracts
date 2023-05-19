@@ -6,18 +6,18 @@ import "../ScaledAsset.sol";
 import "../UniHelper.sol";
 
 library SettleUserFeeLogic {
-    event FeeCollected(uint256 vaultId, uint256 assetId, int256 feeCollected);
+    event FeeCollected(uint256 vaultId, uint256 pairId, int256 feeCollected);
 
     function settleUserFee(
-        mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault
     ) external returns (int256[] memory latestFees) {
-        return settleUserFee(_assets, _rebalanceFeeGrowthCache, _vault, 0);
+        return settleUserFee(_pairs, _rebalanceFeeGrowthCache, _vault, 0);
     }
 
     function settleUserFee(
-        mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint256 _excludeAssetId
@@ -25,21 +25,21 @@ library SettleUserFeeLogic {
         latestFees = new int256[](_vault.openPositions.length);
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            uint256 assetId = _vault.openPositions[i].pairId;
+            uint256 pairId = _vault.openPositions[i].pairId;
 
-            if (assetId == _excludeAssetId) {
+            if (pairId == _excludeAssetId) {
                 continue;
             }
 
-            int256 fee = Trade.settleFee(_assets[assetId], _rebalanceFeeGrowthCache, _vault.openPositions[i]);
+            int256 fee = Trade.settleFee(_pairs[pairId], _rebalanceFeeGrowthCache, _vault.openPositions[i]);
 
             latestFees[i] = fee;
 
             _vault.margin += fee;
 
-            emit FeeCollected(_vault.id, assetId, fee);
+            emit FeeCollected(_vault.id, pairId, fee);
 
-            UniHelper.checkPriceByTWAP(_assets[assetId].sqrtAssetStatus.uniswapPool);
+            UniHelper.checkPriceByTWAP(_pairs[pairId].sqrtAssetStatus.uniswapPool);
         }
     }
 }

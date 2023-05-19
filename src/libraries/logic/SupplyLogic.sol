@@ -13,8 +13,8 @@ import "../../tokenization/SupplyToken.sol";
 library SupplyLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    event TokenSupplied(address account, uint256 assetId, uint256 suppliedAmount);
-    event TokenWithdrawn(address account, uint256 assetId, uint256 finalWithdrawnAmount);
+    event TokenSupplied(address account, uint256 pairId, uint256 suppliedAmount);
+    event TokenWithdrawn(address account, uint256 pairId, uint256 finalWithdrawnAmount);
 
     function deploySupplyToken(address _tokenAddress) external returns (address) {
         IERC20Metadata erc20 = IERC20Metadata(_tokenAddress);

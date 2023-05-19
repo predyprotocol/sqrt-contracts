@@ -32,14 +32,14 @@ library TradeLogic {
     );
 
     function execTrade(
-        mapping(uint256 => DataType.PairStatus) storage _assets,
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint256 _pairId,
         Perp.UserStatus storage _userStatus,
         TradeParams memory _tradeParams
     ) public returns (DataType.TradeResult memory tradeResult) {
-        DataType.PairStatus storage underlyingAssetStatus = _assets[_pairId];
+        DataType.PairStatus storage underlyingAssetStatus = _pairs[_pairId];
 
         AssetLib.checkUnderlyingAsset(underlyingAssetStatus);
 
@@ -72,7 +72,7 @@ library TradeLogic {
             UpdateMarginLogic.emitEvent(_vault, marginAmount);
         }
 
-        tradeResult.minDeposit = PositionCalculator.isSafe(_assets, _rebalanceFeeGrowthCache, _vault, false);
+        tradeResult.minDeposit = PositionCalculator.isSafe(_pairs, _rebalanceFeeGrowthCache, _vault, false);
 
         emit PositionUpdated(
             _vault.id,

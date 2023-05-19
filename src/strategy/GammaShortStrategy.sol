@@ -164,7 +164,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         controller.tradePerp(
             vaultId,
-            assetId,
+            pairId,
             TradeLogic.TradeParams(
                 _initialPerpAmount,
                 _initialSquartAmount,
@@ -216,7 +216,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     {
         controller.tradePerp(
             vaultId,
-            assetId,
+            pairId,
             TradeLogic.TradeParams(
                 0,
                 _squartAmount,
@@ -243,7 +243,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         onlyHedger
         nonReentrant
     {
-        uint256 sqrtPrice = controller.getSqrtPrice(assetId);
+        uint256 sqrtPrice = controller.getSqrtPrice(pairId);
 
         require(isTimeHedge() || isPriceHedge(sqrtPrice), "TG");
 
@@ -286,7 +286,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         controller.tradePerp(
             vaultId,
-            assetId,
+            pairId,
             TradeLogic.TradeParams(
                 tradePerp,
                 tradeSqrt,
@@ -307,7 +307,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         _mint(_recepient, _strategyTokenAmount);
 
         {
-            DataType.PairStatus memory asset = controller.getAsset(assetId);
+            DataType.PairStatus memory asset = controller.getAsset(pairId);
 
             UniHelper.checkPriceByTWAP(asset.sqrtAssetStatus.uniswapPool);
         }
@@ -335,7 +335,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         DataType.TradeResult memory tradeResult = controller.tradePerp(
             vaultId,
-            assetId,
+            pairId,
             TradeLogic.TradeParams(
                 -int256(strategyShare) * vault.openPositions[0].perp.amount / int256(SHARE_SCALER),
                 -int256(strategyShare) * vault.openPositions[0].sqrtPerp.amount / int256(SHARE_SCALER),
@@ -379,11 +379,11 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     }
 
     function getDelta() external view returns (int256) {
-        return reader.getDelta(assetId, vaultId);
+        return reader.getDelta(pairId, vaultId);
     }
 
     function checkPriceHedge() external view returns (bool) {
-        return isPriceHedge(controller.getSqrtPrice(assetId));
+        return isPriceHedge(controller.getSqrtPrice(pairId));
     }
 
     function checkTimeHedge() external view returns (bool) {
@@ -415,11 +415,11 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     function _execDeltaHedge(IStrategyVault.StrategyTradeParams memory _tradeParams, uint256 _deltaRatio) internal {
         require(_deltaRatio <= 1e18);
 
-        int256 delta = reader.getDelta(assetId, vaultId) * int256(_deltaRatio) / 1e18;
+        int256 delta = reader.getDelta(pairId, vaultId) * int256(_deltaRatio) / 1e18;
 
         controller.tradePerp(
             vaultId,
-            assetId,
+            pairId,
             TradeLogic.TradeParams(
                 -delta, 0, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice, _tradeParams.deadline, false, ""
             )

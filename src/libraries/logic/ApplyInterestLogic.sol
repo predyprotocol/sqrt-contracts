@@ -10,7 +10,7 @@ library ApplyInterestLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
     event InterestGrowthUpdated(
-        uint256 assetId,
+        uint256 pairId,
         ScaledAsset.TokenStatus stableStatus,
         ScaledAsset.TokenStatus underlyingStatus,
         uint256 fee0Growth,
