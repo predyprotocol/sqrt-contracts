@@ -19,15 +19,6 @@ library ApplyInterestLogic {
         uint256 borrowPremium1Growth
     );
 
-    function applyInterestForPairGroup(
-        DataType.PairGroup memory _pairGroup,
-        mapping(uint256 => DataType.PairStatus) storage _pairs
-    ) external {
-        for (uint256 i = 1; i < _pairGroup.assetsCount; i++) {
-            applyInterestForToken(_pairs, i);
-        }
-    }
-
     function applyInterestForVault(DataType.Vault memory _vault, mapping(uint256 => DataType.PairStatus) storage _pairs)
         external
     {

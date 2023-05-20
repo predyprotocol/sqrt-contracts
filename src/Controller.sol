@@ -521,12 +521,12 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @dev This function should not be called on chain.
      * @param _vaultId The id of the vault
      */
-    function getVaultStatus(uint256 _vaultId) external returns (DataType.VaultStatusResult memory) {
+    function getVaultStatus(uint256 _vaultId) public returns (DataType.VaultStatusResult memory) {
         DataType.Vault storage vault = vaults[_vaultId];
 
         applyInterest(vault);
 
-        return ReaderLogic.getVaultStatus(assets, rebalanceFeeGrowthCache, vault, ownVaultsMap[vault.owner].mainVaultId);
+        return ReaderLogic.getVaultStatus(assets, rebalanceFeeGrowthCache, vault);
     }
 
     /**
@@ -537,25 +537,16 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         external
         returns (DataType.VaultStatusResult memory, DataType.VaultStatusResult[] memory)
     {
-        ApplyInterestLogic.applyInterestForPairGroup(pairGroup, assets);
-
         DataType.OwnVaults memory ownVaults = ownVaultsMap[msg.sender];
 
         DataType.VaultStatusResult[] memory vaultStatusResults =
             new DataType.VaultStatusResult[](ownVaults.isolatedVaultIds.length);
 
         for (uint256 i; i < ownVaults.isolatedVaultIds.length; i++) {
-            vaultStatusResults[i] = ReaderLogic.getVaultStatus(
-                assets, rebalanceFeeGrowthCache, vaults[ownVaults.isolatedVaultIds[i]], ownVaults.mainVaultId
-            );
+            vaultStatusResults[i] = getVaultStatus(ownVaults.isolatedVaultIds[i]);
         }
 
-        return (
-            ReaderLogic.getVaultStatus(
-                assets, rebalanceFeeGrowthCache, vaults[ownVaults.mainVaultId], ownVaults.mainVaultId
-                ),
-            vaultStatusResults
-        );
+        return (getVaultStatus(ownVaults.mainVaultId), vaultStatusResults);
     }
 
     function validateRiskParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {

@@ -13,8 +13,7 @@ library ReaderLogic {
     function getVaultStatus(
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
-        DataType.Vault storage _vault,
-        uint256 _mainVaultId
+        DataType.Vault memory _vault
     ) external view returns (DataType.VaultStatusResult memory) {
         DataType.SubVaultStatusResult[] memory subVaults =
             new DataType.SubVaultStatusResult[](_vault.openPositions.length);
@@ -46,13 +45,7 @@ library ReaderLogic {
             PositionCalculator.calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault, true);
 
         return DataType.VaultStatusResult(
-            _vault.id,
-            _mainVaultId == _vault.id,
-            vaultValue,
-            _vault.margin,
-            vaultValue - _vault.margin,
-            minDeposit,
-            subVaults
+            _vault.id, vaultValue, _vault.margin, vaultValue - _vault.margin, minDeposit, subVaults
         );
     }
 
