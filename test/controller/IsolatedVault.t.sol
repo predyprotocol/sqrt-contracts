@@ -110,7 +110,7 @@ contract TestControllerIsolatedVault is TestController {
             controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         vm.stopPrank();
 
-        assertEq(tradeResult.payoff.perpPayoff, -4510000);
+        assertEq(tradeResult.payoff.perpPayoff, -4501127);
         assertEq(tradeResult.payoff.sqrtPayoff, 0);
         assertEq(tradeResult.minDeposit, 0);
     }

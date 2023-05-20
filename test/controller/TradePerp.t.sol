@@ -83,14 +83,6 @@ contract TestControllerTradePerp is TestController {
         vm.prank(user2);
         controller.withdrawToken(1, 1e18, false);
 
-        for (uint256 i = 1; i <= 2; i++) {
-            DataType.PairStatus memory asset = controller.getAsset(i);
-
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(i, asset.accumulatedProtocolRevenue);
-            }
-        }
-
         assertLt(usdc.balanceOf(address(controller)), 100);
         assertLt(weth.balanceOf(address(controller)), 100);
     }
@@ -193,7 +185,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999998998);
 
         withdrawAll();
     }
@@ -214,7 +206,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999998998);
     }
 
     // open sqrt long
@@ -233,7 +225,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999998996);
     }
 
     // open sqrt short
@@ -296,7 +288,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999999996);
     }
 
     // pay interest
@@ -309,7 +301,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999930000);
+        assertEq(vault.margin, 9999948272);
     }
 
     function testPayPremium() public {
@@ -362,7 +354,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10098040000);
+        assertEq(vault.margin, 10098052535);
 
         withdrawAll();
     }
@@ -381,7 +373,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000190000);
+        assertEq(vault.margin, 10000190794);
     }
 
     function testShortDeltaAndPriceBecomesHigh() public {
@@ -397,7 +389,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999880000);
+        assertEq(vault.margin, 9999889746);
     }
 
     function testLongSqrtAndPriceBecomesHigh() public {
@@ -424,7 +416,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(vault.openPositions[0].underlying.positionAmount, 0);
 
-        assertEq(vault.margin, 10000180000);
+        assertEq(vault.margin, 10000189893);
 
         withdrawAll();
     }
@@ -463,7 +455,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999999507);
     }
 
     // after rebalance
@@ -484,7 +476,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10007890000);
+        assertEq(vault.margin, 10007895971);
 
         withdrawAll();
     }
@@ -521,7 +513,7 @@ contract TestControllerTradePerp is TestController {
         //
         // 207995284 - 200050029
 
-        assertEq(tradeResult.payoff.sqrtPayoff, 7990000);
+        assertEq(tradeResult.payoff.sqrtPayoff, 7998013);
 
         withdrawAll();
     }
@@ -547,7 +539,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999830000);
+        assertEq(vault.margin, 9999840077);
 
         withdrawAll();
     }
@@ -582,7 +574,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10013910000);
+        assertEq(vault.margin, 10013924328);
 
         withdrawAll();
     }
@@ -602,7 +594,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999530000);
+        assertEq(vault.margin, 9999541600);
 
         withdrawAll();
     }

@@ -99,14 +99,6 @@ contract TestControllerTradePerp is TestController {
         console.log(usdc.balanceOf(address(controller)));
         console.log(weth.balanceOf(address(controller)));
 
-        for (uint256 i = 1; i <= 2; i++) {
-            DataType.PairStatus memory asset = controller.getAsset(i);
-
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(i, asset.accumulatedProtocolRevenue);
-            }
-        }
-
         assertLt(usdc.balanceOf(address(controller)), 100);
         assertLt(weth.balanceOf(address(controller)), 100);
     }
@@ -303,7 +295,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10010290000);
+        assertEq(vault.margin, 10010294743);
 
         withdrawAll();
     }
@@ -594,7 +586,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999960000);
+        assertEq(vault.margin, 9999982726);
 
         withdrawAll();
     }
@@ -619,7 +611,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 3960000);
+        assertEq(vault.margin, 3982724);
 
         withdrawAll();
     }
@@ -646,7 +638,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999830000);
+        assertEq(vault.margin, 9999839387);
 
         withdrawAll();
     }

@@ -135,25 +135,6 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     }
 
     /**
-     * @notice Withdraws accumulated protocol revenue.
-     * @dev Only operator can call this function.
-     * @param _amount amount of stable token to withdraw
-     */
-    function withdrawProtocolRevenue(uint256 _pairId, uint256 _amount) external onlyOperator {
-        DataType.PairStatus storage asset = assets[_pairId];
-
-        require(asset.accumulatedProtocolRevenue >= _amount, "C8");
-
-        asset.accumulatedProtocolRevenue -= _amount;
-
-        if (_amount > 0) {
-            TransferHelper.safeTransfer(asset.stablePool.token, msg.sender, _amount);
-        }
-
-        emit ProtocolRevenueWithdrawn(_pairId, _amount);
-    }
-
-    /**
      * @notice Updates asset risk parameters.
      * @dev The function can be called by operator.
      * @param _pairId The id of asset to update params.
@@ -457,8 +438,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             _assetRiskParams,
             Perp.createAssetStatus(_uniswapPool, -_assetRiskParams.rangeSize, _assetRiskParams.rangeSize),
             _isMarginZero,
-            block.timestamp,
-            0
+            block.timestamp
         );
 
         if (_uniswapPool != address(0)) {

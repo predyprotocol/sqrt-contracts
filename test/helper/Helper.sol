@@ -25,8 +25,7 @@ contract Helper {
             DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
             Perp.createAssetStatus(_uniswapPool, -100, 100),
             false,
-            block.timestamp,
-            0
+            block.timestamp
         );
 
         assetStatus.sqrtAssetStatus.borrowPremium0Growth = 1 * Constants.Q128 / 1e2;

@@ -104,7 +104,7 @@ library Trade {
                     _pairStatus.sqrtAssetStatus.fee1Growth += deltaFee;
                 }
             } else {
-                _pairStatus.accumulatedProtocolRevenue += uint256(_amount - rounded);
+                return _amount;
             }
         }
         return rounded;
