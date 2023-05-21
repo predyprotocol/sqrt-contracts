@@ -93,6 +93,14 @@ library Perp {
         ScaledAsset.UserStatus stable;
     }
 
+    event PremiumGrowthUpdated(
+        uint256 pairId,
+        uint256 totalAmount,
+        uint256 borrowAmount,
+        uint256 fee0Growth,
+        uint256 fee1Growth,
+        uint256 spread
+    );
     event SqrtPositionUpdated(uint256 pairId, int256 open, int256 close);
     event Rebalanced(uint256 pairId, int24 tickLower, int24 tickUpper, int256 profit);
 
@@ -363,7 +371,7 @@ library Perp {
         return true;
     }
 
-    function updateFeeAndPremiumGrowth(SqrtPerpAssetStatus storage _assetStatus) internal {
+    function updateFeeAndPremiumGrowth(uint256 _pairId, SqrtPerpAssetStatus storage _assetStatus) internal {
         if (_assetStatus.totalAmount == 0) {
             return;
         }
@@ -373,6 +381,10 @@ library Perp {
 
         uint256 f0 = feeGrowthInside0X128 - _assetStatus.lastFee0Growth;
         uint256 f1 = feeGrowthInside1X128 - _assetStatus.lastFee1Growth;
+
+        if (f0 == 0 && f1 == 0) {
+            return;
+        }
 
         uint256 utilization = getUtilizationRatio(_assetStatus);
 
@@ -390,6 +402,8 @@ library Perp {
 
         _assetStatus.lastFee0Growth = feeGrowthInside0X128;
         _assetStatus.lastFee1Growth = feeGrowthInside1X128;
+
+        emit PremiumGrowthUpdated(_pairId, _assetStatus.totalAmount, _assetStatus.borrowedAmount, f0, f1, spreadParam);
     }
 
     function saveLastFeeGrowth(SqrtPerpAssetStatus storage _assetStatus) internal {

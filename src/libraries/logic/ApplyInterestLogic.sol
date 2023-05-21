@@ -13,10 +13,8 @@ library ApplyInterestLogic {
         uint256 pairId,
         ScaledAsset.TokenStatus stableStatus,
         ScaledAsset.TokenStatus underlyingStatus,
-        uint256 fee0Growth,
-        uint256 fee1Growth,
-        uint256 borrowPremium0Growth,
-        uint256 borrowPremium1Growth
+        uint256 interestRateStable,
+        uint256 interestRateUnderlying
     );
 
     function applyInterestForVault(DataType.Vault memory _vault, mapping(uint256 => DataType.PairStatus) storage _pairs)
@@ -34,49 +32,55 @@ library ApplyInterestLogic {
 
         require(pairStatus.id > 0, "A0");
 
-        Perp.updateFeeAndPremiumGrowth(pairStatus.sqrtAssetStatus);
+        Perp.updateFeeAndPremiumGrowth(_pairId, pairStatus.sqrtAssetStatus);
 
-        applyInterestForPoolStatus(pairStatus.underlyingPool, pairStatus.lastUpdateTimestamp);
+        uint256 interestRateStable = applyInterestForPoolStatus(pairStatus.stablePool, pairStatus.lastUpdateTimestamp);
 
-        applyInterestForPoolStatus(pairStatus.stablePool, pairStatus.lastUpdateTimestamp);
+        uint256 interestRateUnderlying =
+            applyInterestForPoolStatus(pairStatus.underlyingPool, pairStatus.lastUpdateTimestamp);
 
         // Update last update timestamp
         pairStatus.lastUpdateTimestamp = block.timestamp;
 
-        emitInterestGrowthEvent(pairStatus);
+        if (interestRateStable > 0 || interestRateUnderlying > 0) {
+            emitInterestGrowthEvent(pairStatus, interestRateStable, interestRateUnderlying);
+        }
     }
 
     function applyInterestForPoolStatus(DataType.AssetPoolStatus storage _poolStatus, uint256 _lastUpdateTimestamp)
         internal
+        returns (uint256 interestRate)
     {
         if (block.timestamp <= _lastUpdateTimestamp) {
-            return;
+            return 0;
         }
 
         // Gets utilization ratio
         uint256 utilizationRatio = _poolStatus.tokenStatus.getUtilizationRatio();
 
         if (utilizationRatio == 0) {
-            return;
+            return 0;
         }
 
         // Calculates interest rate
-        uint256 interestRate = InterestRateModel.calculateInterestRate(_poolStatus.irmParams, utilizationRatio)
+        interestRate = InterestRateModel.calculateInterestRate(_poolStatus.irmParams, utilizationRatio)
             * (block.timestamp - _lastUpdateTimestamp) / 365 days;
 
         // Update scaler
         _poolStatus.tokenStatus.updateScaler(interestRate);
     }
 
-    function emitInterestGrowthEvent(DataType.PairStatus memory _assetStatus) internal {
+    function emitInterestGrowthEvent(
+        DataType.PairStatus memory _assetStatus,
+        uint256 _interestRatioStable,
+        uint256 _interestRatioUnderlying
+    ) internal {
         emit InterestGrowthUpdated(
             _assetStatus.id,
             _assetStatus.stablePool.tokenStatus,
             _assetStatus.underlyingPool.tokenStatus,
-            _assetStatus.sqrtAssetStatus.fee0Growth,
-            _assetStatus.sqrtAssetStatus.fee1Growth,
-            _assetStatus.sqrtAssetStatus.borrowPremium0Growth,
-            _assetStatus.sqrtAssetStatus.borrowPremium1Growth
+            _interestRatioStable,
+            _interestRatioUnderlying
         );
     }
 

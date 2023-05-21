@@ -102,9 +102,8 @@ library LiquidationLogic {
         uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
         uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
 
-        DataType.TradeResult memory tradeResult = TradeLogic.trade(
-            _underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt
-        );
+        DataType.TradeResult memory tradeResult =
+            TradeLogic.trade(_underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt);
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
