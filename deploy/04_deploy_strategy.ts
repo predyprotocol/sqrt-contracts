@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           args: [
             Controller.address,
             Reader.address,
-            2,
+            1,
             {
               lower: '100000000000000000',
               upper: '200000000000000000'

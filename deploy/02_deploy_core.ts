@@ -18,8 +18,8 @@ const WETH_IRM_PARAMS = {
 
 const ASSET_RISK_PARAMS_MIDDLE = {
   riskRatio: '109544511',
-  rangeSize: 800,
-  rebalanceThreshold: 400
+  rangeSize: 820,
+  rebalanceThreshold: 410
 }
 const ASSET_RISK_PARAMS_HIGH = {
   riskRatio: '109544511',
