@@ -27,7 +27,7 @@ library LiquidationLogic {
         uint256 mainVaultId,
         uint256 withdrawnMarginAmount,
         address liquidator,
-        uint256 totalPenaltyAmount
+        int256 totalPenaltyAmount
     );
 
     function execLiquidationCall(
@@ -36,7 +36,7 @@ library LiquidationLogic {
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
         uint256 _closeRatio
-    ) external returns (uint256 totalPenaltyAmount, bool isClosedAll) {
+    ) external returns (int256 totalPenaltyAmount, bool isClosedAll) {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         // The vault must be danger
@@ -49,11 +49,11 @@ library LiquidationLogic {
                 closePerp(_vault.id, _pairs[userStatus.pairId], _rebalanceFeeGrowthCache, userStatus, _closeRatio);
 
             _vault.margin += totalPayoff;
-            totalPenaltyAmount += penaltyAmount;
+            totalPenaltyAmount += int256(penaltyAmount);
         }
 
         (_vault.margin, totalPenaltyAmount) =
-            calculatePayableReward(_vault.margin, totalPenaltyAmount * _closeRatio / Constants.ONE);
+            calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount) * _closeRatio / Constants.ONE);
 
         // The vault must be safe after liquidation call
         int256 minDeposit = PositionCalculator.isSafe(_pairs, _rebalanceFeeGrowthCache, _vault, true);
@@ -78,14 +78,14 @@ library LiquidationLogic {
     function calculatePayableReward(int256 reserveBefore, uint256 expectedReward)
         internal
         pure
-        returns (int256 reserveAfter, uint256 payableReward)
+        returns (int256 reserveAfter, int256 payableReward)
     {
         if (reserveBefore >= int256(expectedReward)) {
-            return (reserveBefore - int256(expectedReward), expectedReward);
+            return (reserveBefore - int256(expectedReward), int256(expectedReward));
         } else if (reserveBefore >= 0) {
-            return (0, uint256(reserveBefore));
+            return (0, reserveBefore);
         } else {
-            return (reserveBefore, 0);
+            return (0, reserveBefore);
         }
     }
 
@@ -102,8 +102,9 @@ library LiquidationLogic {
         uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
         uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
 
-        DataType.TradeResult memory tradeResult =
-            TradeLogic.trade(_underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt);
+        DataType.TradeResult memory tradeResult = TradeLogic.trade(
+            _underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt
+        );
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 

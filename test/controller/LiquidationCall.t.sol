@@ -111,11 +111,14 @@ contract TestControllerLiquidationCall is TestController {
 
         vm.warp(block.timestamp + 1 hours);
 
+        uint256 beforeBalance = usdc.balanceOf(address(this));
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        uint256 afterBalance = usdc.balanceOf(address(this));
+        assertEq(beforeBalance - afterBalance, 23532567);
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, -23532567);
+        assertEq(vault.margin, 0);
 
         controller.updateMargin(1e8);
     }

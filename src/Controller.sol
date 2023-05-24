@@ -340,7 +340,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
 
-        (uint256 penaltyAmount, bool isClosedAll) = LiquidationLogic.execLiquidationCall(
+        (int256 penaltyAmount, bool isClosedAll) = LiquidationLogic.execLiquidationCall(
             assets, rebalanceFeeGrowthCache, vault, vaults[mainVaultId], _closeRatio
         );
 
@@ -349,7 +349,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
 
         if (penaltyAmount > 0) {
-            TransferHelper.safeTransfer(pairGroup.stableTokenAddress, msg.sender, penaltyAmount);
+            TransferHelper.safeTransfer(pairGroup.stableTokenAddress, msg.sender, uint256(penaltyAmount));
+        } else if (penaltyAmount < 0) {
+            TransferHelper.safeTransferFrom(
+                pairGroup.stableTokenAddress, msg.sender, address(this), uint256(-penaltyAmount)
+            );
         }
     }
 
