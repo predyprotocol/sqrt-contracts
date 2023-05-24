@@ -116,10 +116,10 @@ contract TestController is Test {
         DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](2);
 
         addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
         addAssetParams[1] = DataType.AddAssetParams(
-            address(wbtcUniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(wbtcUniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
         controller.initialize(address(usdc), addAssetParams);

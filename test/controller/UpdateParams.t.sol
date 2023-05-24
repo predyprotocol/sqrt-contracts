@@ -18,7 +18,7 @@ contract TestControllerUpdateParams is TestController {
         DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](1);
 
         addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
         vm.expectRevert(bytes("Initializable: contract is already initialized"));
@@ -27,7 +27,7 @@ contract TestControllerUpdateParams is TestController {
 
     function testAddPair() public {
         DataType.AddAssetParams memory addPairParams = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
         uint256 assetId = controller.addPair(addPairParams);

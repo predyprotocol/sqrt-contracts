@@ -66,11 +66,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             usdc,
             [{
               uniswapPool: networkNameToWethUniswapPool(network.name),
+              isIsolatedMode: false,
               assetRiskParams: ASSET_RISK_PARAMS_MIDDLE,
               stableIrmParams: USDC_IRM_PARAMS,
               underlyingIrmParams: WETH_IRM_PARAMS
             }, {
               uniswapPool: networkNameToArbUniswapPool(network.name),
+              isIsolatedMode: false,
               assetRiskParams: ASSET_RISK_PARAMS_HIGH,
               stableIrmParams: USDC_IRM_PARAMS,
               underlyingIrmParams: WETH_IRM_PARAMS

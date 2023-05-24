@@ -10,15 +10,17 @@ library VaultLib {
 
     uint256 internal constant MAX_VAULTS = 100;
 
-    function getUserStatus(DataType.PairGroup storage _assetGroup, DataType.Vault storage _vault, uint64 _pairId)
-        internal
-        returns (Perp.UserStatus storage userStatus)
-    {
+    function getUserStatus(
+        DataType.PairGroup storage _pairGroup,
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        DataType.Vault storage _vault,
+        uint64 _pairId
+    ) internal returns (Perp.UserStatus storage userStatus) {
         checkVault(_vault, msg.sender);
 
-        require(_assetGroup.isAllow(_pairId), "ASSETID");
+        require(_pairGroup.isAllow(_pairId), "ASSETID");
 
-        userStatus = createOrGetUserStatus(_vault, _pairId);
+        userStatus = createOrGetUserStatus(_pairs, _vault, _pairId);
     }
 
     function checkVault(DataType.Vault memory _vault, address _caller) internal pure {
@@ -26,19 +28,44 @@ library VaultLib {
         require(_vault.owner == _caller, "V2");
     }
 
-    function createOrGetUserStatus(DataType.Vault storage _vault, uint64 _pairId)
-        internal
-        returns (Perp.UserStatus storage)
-    {
+    function createOrGetUserStatus(
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        DataType.Vault storage _vault,
+        uint64 _pairId
+    ) internal returns (Perp.UserStatus storage) {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             if (_vault.openPositions[i].pairId == _pairId) {
                 return _vault.openPositions[i];
             }
         }
 
+        if (_vault.openPositions.length >= 1) {
+            // vault must not be isolated and _pairId must not be isolated
+            require(
+                !_pairs[_vault.openPositions[0].pairId].isIsolatedMode && !_pairs[_pairId].isIsolatedMode, "ISOLATED"
+            );
+        }
+
         _vault.openPositions.push(Perp.createPerpUserStatus(_pairId));
 
         return _vault.openPositions[_vault.openPositions.length - 1];
+    }
+
+    function cleanOpenPosition(DataType.Vault storage _vault, uint256 _pairId) internal {
+        for (uint256 i = 0; i < _vault.openPositions.length; i++) {
+            Perp.UserStatus memory userStatus = _vault.openPositions[i];
+
+            if (userStatus.pairId == _pairId && userStatus.perp.amount == 0 && userStatus.sqrtPerp.amount == 0) {
+                removeOpenPosition(_vault, i);
+
+                return;
+            }
+        }
+    }
+
+    function removeOpenPosition(DataType.Vault storage _vault, uint256 _index) internal {
+        _vault.openPositions[_index] = _vault.openPositions[_vault.openPositions.length - 1];
+        _vault.openPositions.pop();
     }
 
     function updateMainVaultId(DataType.OwnVaults storage _ownVaults, uint256 _mainVaultId) internal {

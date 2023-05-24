@@ -315,7 +315,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         nonReentrant
         returns (DataType.TradeResult memory)
     {
-        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(pairGroup, vaults[_vaultId], _pairId);
+        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(pairGroup, assets, vaults[_vaultId], _pairId);
 
         applyInterest(vaults[_vaultId]);
         settleUserFee(vaults[_vaultId], _pairId);
@@ -401,6 +401,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             pairId,
             isMarginZero ? uniswapPool.token1() : uniswapPool.token0(),
             isMarginZero,
+            _addAssetParam.isIsolatedMode,
             _addAssetParam.uniswapPool,
             _addAssetParam.assetRiskParams,
             _addAssetParam.stableIrmParams,
@@ -416,6 +417,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         uint256 _pairId,
         address _tokenAddress,
         bool _isMarginZero,
+        bool _isolatedMode,
         address _uniswapPool,
         DataType.AssetRiskParams memory _assetRiskParams,
         InterestRateModel.IRMParams memory _stableIrmParams,
@@ -442,6 +444,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
             _assetRiskParams,
             Perp.createAssetStatus(_uniswapPool, -_assetRiskParams.rangeSize, _assetRiskParams.rangeSize),
             _isMarginZero,
+            _isolatedMode,
             block.timestamp
         );
 

@@ -18,6 +18,7 @@ library DataType {
 
     struct AddAssetParams {
         address uniswapPool;
+        bool isIsolatedMode;
         DataType.AssetRiskParams assetRiskParams;
         InterestRateModel.IRMParams stableIrmParams;
         InterestRateModel.IRMParams underlyingIrmParams;
@@ -36,6 +37,7 @@ library DataType {
         AssetRiskParams riskParams;
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
+        bool isIsolatedMode;
         uint256 lastUpdateTimestamp;
     }
 

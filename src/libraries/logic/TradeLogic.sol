@@ -17,6 +17,8 @@ import "./UpdateMarginLogic.sol";
  * T3: margin must be positive
  */
 library TradeLogic {
+    using VaultLib for DataType.Vault;
+
     struct TradeParams {
         int256 tradeAmount;
         int256 tradeAmountSqrt;
@@ -52,6 +54,9 @@ library TradeLogic {
             _tradeParams.tradeAmount,
             _tradeParams.tradeAmountSqrt
         );
+
+        // remove the open position from the vault
+        _vault.cleanOpenPosition(_pairId);
 
         _vault.margin += tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 

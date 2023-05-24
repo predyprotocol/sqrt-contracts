@@ -27,7 +27,7 @@ library IsolatedVaultLogic {
         uint64 _pairId,
         TradeLogic.TradeParams memory _tradeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
+        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _pairs, _isolatedVault, _pairId);
 
         _vault.margin -= int256(_depositAmount);
         _isolatedVault.margin += int256(_depositAmount);
@@ -50,7 +50,7 @@ library IsolatedVaultLogic {
         uint64 _pairId,
         CloseParams memory _closeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _isolatedVault, _pairId);
+        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _pairs, _isolatedVault, _pairId);
 
         tradeResult = closeVault(_pairs, rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _closeParams);
 

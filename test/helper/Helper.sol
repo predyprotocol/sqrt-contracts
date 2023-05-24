@@ -11,6 +11,14 @@ contract Helper {
         view
         returns (DataType.PairStatus memory assetStatus)
     {
+        return createAssetStatus(_pairId, _weth, _uniswapPool, false);
+    }
+
+    function createAssetStatus(uint256 _pairId, address _weth, address _uniswapPool, bool _isIsolatedMode)
+        internal
+        view
+        returns (DataType.PairStatus memory assetStatus)
+    {
         assetStatus = DataType.PairStatus(
             _pairId,
             DataType.AssetPoolStatus(
@@ -25,6 +33,7 @@ contract Helper {
             DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
             Perp.createAssetStatus(_uniswapPool, -100, 100),
             false,
+            _isIsolatedMode,
             block.timestamp
         );
 
