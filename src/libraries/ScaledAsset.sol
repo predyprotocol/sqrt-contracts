@@ -10,11 +10,9 @@ library ScaledAsset {
 
     struct TokenStatus {
         uint256 totalCompoundDeposited;
-        uint256 totalCompoundBorrowed;
         uint256 totalNormalDeposited;
         uint256 totalNormalBorrowed;
         uint256 assetScaler;
-        uint256 debtScaler;
         uint256 assetGrowth;
         uint256 debtGrowth;
     }
@@ -27,7 +25,7 @@ library ScaledAsset {
     event ScaledAssetPositionUpdated(uint256 pairId, bool isStable, int256 open, int256 close);
 
     function createTokenStatus() internal pure returns (TokenStatus memory) {
-        return TokenStatus(0, 0, 0, 0, Constants.ONE, Constants.ONE, 0, 0);
+        return TokenStatus(0, 0, 0, Constants.ONE, 0, 0);
     }
 
     function createUserStatus() internal pure returns (UserStatus memory) {
@@ -188,8 +186,6 @@ library ScaledAsset {
         );
 
         // round up
-        tokenState.debtScaler =
-            FixedPointMathLib.mulDivUp(tokenState.debtScaler, (Constants.ONE + _interestRate), Constants.ONE);
         tokenState.debtGrowth += _interestRate;
         tokenState.assetScaler =
             FixedPointMathLib.mulDivDown(tokenState.assetScaler, Constants.ONE + supplyInterestRate, Constants.ONE);
@@ -202,8 +198,7 @@ library ScaledAsset {
     }
 
     function getTotalDebtValue(TokenStatus memory tokenState) internal pure returns (uint256) {
-        return FixedPointMathLib.mulDivDown(tokenState.totalCompoundBorrowed, tokenState.debtScaler, Constants.ONE)
-            + tokenState.totalNormalBorrowed;
+        return tokenState.totalNormalBorrowed;
     }
 
     function getAvailableCollateralValue(TokenStatus memory tokenState) internal pure returns (uint256) {
