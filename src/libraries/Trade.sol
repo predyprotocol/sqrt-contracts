@@ -13,80 +13,75 @@ library Trade {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
     function settleFee(
-        DataType.PairStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus
     ) internal returns (int256 fee) {
-        Perp.updateRebalanceFeeGrowth(_underlyingAssetStatus, _underlyingAssetStatus.sqrtAssetStatus);
+        Perp.updateRebalanceFeeGrowth(_pairStatus, _pairStatus.sqrtAssetStatus);
 
         int256 underlyingFee;
         int256 stableFee;
 
-        (underlyingFee, stableFee) =
-            settleUserBalanceAndFee(_underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
+        (underlyingFee, stableFee) = settleUserBalanceAndFee(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
 
         // swap
         SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
-            _underlyingAssetStatus.sqrtAssetStatus.uniswapPool,
+            _pairStatus.sqrtAssetStatus.uniswapPool,
             SwapLib.SwapUnderlyingParams(0, 0, underlyingFee),
-            _underlyingAssetStatus.isMarginZero
+            _pairStatus.isMarginZero
         );
 
-        fee = roundAndAddProtocolFee(_underlyingAssetStatus, stableFee + swapResult.fee);
+        fee = roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee);
     }
 
     function trade(
-        DataType.PairStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
     ) internal returns (DataType.TradeResult memory tradeResult) {
-        Perp.updateRebalanceFeeGrowth(_underlyingAssetStatus, _underlyingAssetStatus.sqrtAssetStatus);
+        Perp.updateRebalanceFeeGrowth(_pairStatus, _pairStatus.sqrtAssetStatus);
 
         int256 underlyingFee;
         int256 stableFee;
 
-        (underlyingFee, stableFee) =
-            settleUserBalanceAndFee(_underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
+        (underlyingFee, stableFee) = settleUserBalanceAndFee(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
 
         (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) = Perp.computeRequiredAmounts(
-            _underlyingAssetStatus.sqrtAssetStatus,
-            _underlyingAssetStatus.isMarginZero,
-            _perpUserStatus,
-            _tradeAmountSqrt
+            _pairStatus.sqrtAssetStatus, _pairStatus.isMarginZero, _perpUserStatus, _tradeAmountSqrt
         );
 
         // swap
         SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
-            _underlyingAssetStatus.sqrtAssetStatus.uniswapPool,
+            _pairStatus.sqrtAssetStatus.uniswapPool,
             SwapLib.SwapUnderlyingParams(-_tradeAmount, underlyingAmountForSqrt, underlyingFee),
-            _underlyingAssetStatus.isMarginZero
+            _pairStatus.isMarginZero
         );
 
         // update position
         tradeResult.payoff = Perp.updatePosition(
-            _underlyingAssetStatus,
+            _pairStatus,
             _perpUserStatus,
             Perp.UpdatePerpParams(_tradeAmount, swapResult.amountPerp),
             Perp.UpdateSqrtPerpParams(_tradeAmountSqrt, swapResult.amountSqrtPerp + stableAmountForSqrt)
         );
 
-        tradeResult.payoff.perpPayoff = roundAndAddProtocolFee(_underlyingAssetStatus, tradeResult.payoff.perpPayoff);
-        tradeResult.payoff.sqrtPayoff = roundAndAddProtocolFee(_underlyingAssetStatus, tradeResult.payoff.sqrtPayoff);
+        tradeResult.payoff.perpPayoff = roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.perpPayoff);
+        tradeResult.payoff.sqrtPayoff = roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.sqrtPayoff);
 
-        tradeResult.fee = roundAndAddProtocolFee(_underlyingAssetStatus, stableFee + swapResult.fee);
+        tradeResult.fee = roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee);
     }
 
     function settleUserBalanceAndFee(
-        DataType.PairStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         Perp.UserStatus storage _userStatus
     ) internal returns (int256 underlyingFee, int256 stableFee) {
         // settle rebalance fee if settle balance happens
-        (underlyingFee, stableFee) = PerpFee.settleUserFee(_underlyingAssetStatus, rebalanceFeeGrowthCache, _userStatus);
+        (underlyingFee, stableFee) = PerpFee.settleUserFee(_pairStatus, rebalanceFeeGrowthCache, _userStatus);
 
-        Perp.settleUserBalance(_underlyingAssetStatus, _userStatus);
+        Perp.settleUserBalance(_pairStatus, _userStatus);
     }
 
     function roundAndAddProtocolFee(DataType.PairStatus storage _pairStatus, int256 _amount)

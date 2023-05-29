@@ -91,7 +91,7 @@ library LiquidationLogic {
 
     function closePerp(
         uint256 _vaultId,
-        DataType.PairStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
         uint256 _closeRatio
@@ -99,18 +99,17 @@ library LiquidationLogic {
         int256 tradeAmount = -_perpUserStatus.perp.amount * int256(_closeRatio) / int256(Constants.ONE);
         int256 tradeAmountSqrt = -_perpUserStatus.sqrtPerp.amount * int256(_closeRatio) / int256(Constants.ONE);
 
-        uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
-        uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
+        uint160 sqrtTwap = UniHelper.getSqrtTWAP(_pairStatus.sqrtAssetStatus.uniswapPool);
+        uint256 debtValue = DebtCalculator.calculateDebtValue(_pairStatus, _perpUserStatus, sqrtTwap);
 
-        DataType.TradeResult memory tradeResult = TradeLogic.trade(
-            _underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt
-        );
+        DataType.TradeResult memory tradeResult =
+            TradeLogic.trade(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt);
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
         {
             // reverts if price is out of slippage threshold
-            uint256 sqrtPrice = UniHelper.getSqrtPrice(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
+            uint256 sqrtPrice = UniHelper.getSqrtPrice(_pairStatus.sqrtAssetStatus.uniswapPool);
 
             uint256 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(debtValue);
             penaltyAmount = calculatePenaltyAmount(debtValue);
@@ -123,7 +122,7 @@ library LiquidationLogic {
         }
 
         emit PositionLiquidated(
-            _vaultId, _underlyingAssetStatus.id, tradeAmount, tradeAmountSqrt, tradeResult.payoff, tradeResult.fee
+            _vaultId, _pairStatus.id, tradeAmount, tradeAmountSqrt, tradeResult.payoff, tradeResult.fee
         );
     }
 

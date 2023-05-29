@@ -90,15 +90,13 @@ library TradeLogic {
     }
 
     function trade(
-        DataType.PairStatus storage _underlyingAssetStatus,
+        DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
     ) public returns (DataType.TradeResult memory) {
-        return Trade.trade(
-            _underlyingAssetStatus, _rebalanceFeeGrowthCache, _perpUserStatus, _tradeAmount, _tradeAmountSqrt
-        );
+        return Trade.trade(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus, _tradeAmount, _tradeAmountSqrt);
     }
 
     function checkDeadline(uint256 _deadline) internal view {
