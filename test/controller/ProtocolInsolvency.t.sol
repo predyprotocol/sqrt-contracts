@@ -704,7 +704,7 @@ contract TestControllerTradePerp is TestController {
         assertEq(vaultStatus.minDeposit, 136761535);
 
         vm.prank(user2);
-        controller.liquidationCall(vaultId, 1e18);
+        controller.liquidationCall(vaultId, 1e18, 0);
 
         withdrawAll();
     }

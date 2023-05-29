@@ -54,9 +54,12 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     address public operator;
 
+    address public liquidator;
+
     mapping(address => bool) public allowedUniswapPools;
 
     event OperatorUpdated(address operator);
+    event LiquidatorUpdated(address liquidator);
     event PairAdded(uint256 pairId, address _uniswapPool);
     event AssetGroupInitialized(address stableAsset, uint256[] assetIds);
     event VaultCreated(uint256 vaultId, address owner, bool isMainVault);
@@ -122,6 +125,18 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         operator = _newOperator;
 
         emit OperatorUpdated(_newOperator);
+    }
+
+    /**
+     * @notice Sets new liquidator
+     * @dev Only operator can call this function.
+     * @param _newLiquidator The address of new operator
+     */
+    function setLiquidator(address _newLiquidator) external onlyOperator {
+        require(_newLiquidator != address(0));
+        liquidator = _newLiquidator;
+
+        emit LiquidatorUpdated(_newLiquidator);
     }
 
     /**
@@ -321,7 +336,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         settleUserFee(vaults[_vaultId], _pairId);
 
         return TradeLogic.execTrade(
-            pairs, rebalanceFeeGrowthCache, vaults[_vaultId], _pairId, perpUserStatus, _tradeParams
+            pairGroup, pairs, rebalanceFeeGrowthCache, vaults[_vaultId], _pairId, perpUserStatus, _tradeParams
         );
     }
 
@@ -330,18 +345,23 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * Anyone can call this function.
      * @param _vaultId The id of vault
      * @param _closeRatio If you'll close all position, set 1e18.
+     * @param _sqrtSlippageTolerance if caller is liquidator, the caller can set custom slippage tolerance.
      */
-    function liquidationCall(uint256 _vaultId, uint256 _closeRatio) external nonReentrant {
+    function liquidationCall(uint256 _vaultId, uint256 _closeRatio, uint256 _sqrtSlippageTolerance)
+        external
+        nonReentrant
+    {
         DataType.Vault storage vault = vaults[_vaultId];
 
         require(vault.owner != address(0));
+        require(msg.sender == liquidator || _sqrtSlippageTolerance == 0);
 
         applyInterest(vault);
 
         uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
 
         (int256 penaltyAmount, bool isClosedAll) = LiquidationLogic.execLiquidationCall(
-            pairs, rebalanceFeeGrowthCache, vault, vaults[mainVaultId], _closeRatio
+            pairGroup, pairs, rebalanceFeeGrowthCache, vault, vaults[mainVaultId], _closeRatio, _sqrtSlippageTolerance
         );
 
         if (isClosedAll) {
@@ -373,6 +393,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     {
         pairGroup.stableTokenAddress = _stableAssetAddress;
         pairGroup.assetsCount = 1;
+        pairGroup.marginRoundedDecimal = 4;
 
         assetIds = new uint256[](_addAssetParams.length);
 
@@ -465,7 +486,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         internal
         returns (int256[] memory latestFees)
     {
-        return SettleUserFeeLogic.settleUserFee(pairs, rebalanceFeeGrowthCache, _vault, _excludeAssetId);
+        return SettleUserFeeLogic.settleUserFee(pairGroup, pairs, rebalanceFeeGrowthCache, _vault, _excludeAssetId);
     }
 
     function createVaultIfNeeded(uint256 _vaultId, address _caller, bool _isMainVault)

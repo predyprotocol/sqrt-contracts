@@ -18,7 +18,7 @@ library IsolatedVaultLogic {
     event IsolatedVaultClosed(uint256 vaultId, uint256 isolatedVaultId, uint256 marginAmount);
 
     function openIsolatedVault(
-        DataType.PairGroup storage _pairGroup,
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
@@ -35,14 +35,14 @@ library IsolatedVaultLogic {
         PositionCalculator.isSafe(_pairs, _rebalanceFeeGrowthCache, _vault, false);
 
         tradeResult = TradeLogic.execTrade(
-            _pairs, _rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _tradeParams
+            _pairGroup, _pairs, _rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _tradeParams
         );
 
         emit IsolatedVaultOpened(_vault.id, _isolatedVault.id, _depositAmount);
     }
 
     function closeIsolatedVault(
-        DataType.PairGroup storage _pairGroup,
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
@@ -52,7 +52,9 @@ library IsolatedVaultLogic {
     ) external returns (DataType.TradeResult memory tradeResult) {
         Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _pairs, _isolatedVault, _pairId);
 
-        tradeResult = closeVault(_pairs, rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _closeParams);
+        tradeResult = closeVault(
+            _pairGroup, _pairs, rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _closeParams
+        );
 
         // _isolatedVault.margin must be greater than 0
 
@@ -66,6 +68,7 @@ library IsolatedVaultLogic {
     }
 
     function closeVault(
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
@@ -77,6 +80,7 @@ library IsolatedVaultLogic {
         int256 tradeAmountSqrt = -_userStatus.sqrtPerp.amount;
 
         return TradeLogic.execTrade(
+            _pairGroup,
             _pairs,
             _rebalanceFeeGrowthCache,
             _vault,

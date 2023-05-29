@@ -34,6 +34,7 @@ library TradeLogic {
     );
 
     function execTrade(
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
@@ -41,14 +42,15 @@ library TradeLogic {
         Perp.UserStatus storage _userStatus,
         TradeParams memory _tradeParams
     ) public returns (DataType.TradeResult memory tradeResult) {
-        DataType.PairStatus storage underlyingAssetStatus = _pairs[_pairId];
+        DataType.PairStatus storage pairStatus = _pairs[_pairId];
 
-        AssetLib.checkUnderlyingAsset(underlyingAssetStatus);
+        AssetLib.checkUnderlyingAsset(pairStatus);
 
         checkDeadline(_tradeParams.deadline);
 
         tradeResult = trade(
-            underlyingAssetStatus,
+            _pairGroup,
+            pairStatus,
             _rebalanceFeeGrowthCache,
             _userStatus,
             _tradeParams.tradeAmount,
@@ -60,9 +62,7 @@ library TradeLogic {
 
         _vault.margin += tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
-        checkPrice(
-            underlyingAssetStatus.sqrtAssetStatus.uniswapPool, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice
-        );
+        checkPrice(pairStatus.sqrtAssetStatus.uniswapPool, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice);
 
         if (_tradeParams.enableCallback) {
             // Calls callback function
@@ -72,7 +72,7 @@ library TradeLogic {
 
             _vault.margin += marginAmount;
 
-            UpdateMarginLogic.execMarginTransfer(_vault, underlyingAssetStatus.stablePool.token, marginAmount);
+            UpdateMarginLogic.execMarginTransfer(_vault, pairStatus.stablePool.token, marginAmount);
 
             UpdateMarginLogic.emitEvent(_vault, marginAmount);
         }
@@ -81,7 +81,7 @@ library TradeLogic {
 
         emit PositionUpdated(
             _vault.id,
-            underlyingAssetStatus.id,
+            pairStatus.id,
             _tradeParams.tradeAmount,
             _tradeParams.tradeAmountSqrt,
             tradeResult.payoff,
@@ -90,13 +90,16 @@ library TradeLogic {
     }
 
     function trade(
+        DataType.PairGroup memory _pairGroup,
         DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
     ) public returns (DataType.TradeResult memory) {
-        return Trade.trade(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus, _tradeAmount, _tradeAmountSqrt);
+        return Trade.trade(
+            _pairGroup, _pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus, _tradeAmount, _tradeAmountSqrt
+        );
     }
 
     function checkDeadline(uint256 _deadline) internal view {

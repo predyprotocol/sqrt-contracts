@@ -11,7 +11,7 @@ library VaultLib {
     uint256 internal constant MAX_VAULTS = 100;
 
     function getUserStatus(
-        DataType.PairGroup storage _pairGroup,
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         DataType.Vault storage _vault,
         uint64 _pairId

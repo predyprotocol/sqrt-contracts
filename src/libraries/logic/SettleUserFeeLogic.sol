@@ -9,14 +9,16 @@ library SettleUserFeeLogic {
     event FeeCollected(uint256 vaultId, uint256 pairId, int256 feeCollected);
 
     function settleUserFee(
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault
     ) external returns (int256[] memory latestFees) {
-        return settleUserFee(_pairs, _rebalanceFeeGrowthCache, _vault, 0);
+        return settleUserFee(_pairGroup, _pairs, _rebalanceFeeGrowthCache, _vault, 0);
     }
 
     function settleUserFee(
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
@@ -31,7 +33,7 @@ library SettleUserFeeLogic {
                 continue;
             }
 
-            int256 fee = Trade.settleFee(_pairs[pairId], _rebalanceFeeGrowthCache, _vault.openPositions[i]);
+            int256 fee = Trade.settleFee(_pairGroup, _pairs[pairId], _rebalanceFeeGrowthCache, _vault.openPositions[i]);
 
             latestFees[i] = fee;
 

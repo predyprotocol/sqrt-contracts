@@ -101,7 +101,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         uint256 finalDepositMargin = calShareToMargin(entryUpdate, entryValue, share, totalMargin);
 
-        finalDepositMargin = roundUpMargin(finalDepositMargin, Constants.MARGIN_ROUNDED_DECIMALS);
+        finalDepositMargin = roundUpMargin(finalDepositMargin, marginRoundedScaler);
 
         finalDepositAmountCached = finalDepositMargin;
 
@@ -355,7 +355,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         _burn(msg.sender, _withdrawStrategyAmount);
 
-        finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), Constants.MARGIN_ROUNDED_DECIMALS);
+        finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), marginRoundedScaler);
 
         controller.updateMargin(-int256(finalWithdrawAmount));
 

@@ -21,7 +21,7 @@ contract VaultLibTest is Test, Helper {
         VaultLib.addIsolatedVaultId(ownVaults2, 200);
 
         // create pair group
-        pairGroup = DataType.PairGroup(address(0), 4);
+        pairGroup = DataType.PairGroup(address(0), 4, 4);
 
         // create pair status
         pairs[1] = createAssetStatus(1, address(0), address(0), false);

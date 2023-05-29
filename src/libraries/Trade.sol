@@ -13,6 +13,7 @@ library Trade {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
     function settleFee(
+        DataType.PairGroup memory _pairGroup,
         DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus
@@ -31,10 +32,11 @@ library Trade {
             _pairStatus.isMarginZero
         );
 
-        fee = roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee);
+        fee = roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
     }
 
     function trade(
+        DataType.PairGroup memory _pairGroup,
         DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
@@ -67,10 +69,13 @@ library Trade {
             Perp.UpdateSqrtPerpParams(_tradeAmountSqrt, swapResult.amountSqrtPerp + stableAmountForSqrt)
         );
 
-        tradeResult.payoff.perpPayoff = roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.perpPayoff);
-        tradeResult.payoff.sqrtPayoff = roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.sqrtPayoff);
+        tradeResult.payoff.perpPayoff =
+            roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.perpPayoff, _pairGroup.marginRoundedDecimal);
+        tradeResult.payoff.sqrtPayoff =
+            roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.sqrtPayoff, _pairGroup.marginRoundedDecimal);
 
-        tradeResult.fee = roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee);
+        tradeResult.fee =
+            roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
     }
 
     function settleUserBalanceAndFee(
@@ -84,11 +89,12 @@ library Trade {
         Perp.settleUserBalance(_pairStatus, _userStatus);
     }
 
-    function roundAndAddProtocolFee(DataType.PairStatus storage _pairStatus, int256 _amount)
-        internal
-        returns (int256)
-    {
-        int256 rounded = roundMargin(_amount, Constants.MARGIN_ROUNDED_DECIMALS);
+    function roundAndAddProtocolFee(
+        DataType.PairStatus storage _pairStatus,
+        int256 _amount,
+        uint8 _marginRoundedDecimal
+    ) internal returns (int256) {
+        int256 rounded = roundMargin(_amount, 10 ** _marginRoundedDecimal);
         if (_amount > rounded) {
             if (_pairStatus.sqrtAssetStatus.totalAmount > 0) {
                 uint256 deltaFee = uint256(_amount - rounded) * Constants.Q128 / _pairStatus.sqrtAssetStatus.totalAmount;

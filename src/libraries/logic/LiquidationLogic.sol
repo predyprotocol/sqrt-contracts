@@ -31,11 +31,13 @@ library LiquidationLogic {
     );
 
     function execLiquidationCall(
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
-        uint256 _closeRatio
+        uint256 _closeRatio,
+        uint256 _liquidationSlippageSqrtTolerance
     ) external returns (int256 totalPenaltyAmount, bool isClosedAll) {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
@@ -45,8 +47,15 @@ library LiquidationLogic {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             Perp.UserStatus storage userStatus = _vault.openPositions[i];
 
-            (int256 totalPayoff, uint256 penaltyAmount) =
-                closePerp(_vault.id, _pairs[userStatus.pairId], _rebalanceFeeGrowthCache, userStatus, _closeRatio);
+            (int256 totalPayoff, uint256 penaltyAmount) = closePerp(
+                _vault.id,
+                _pairGroup,
+                _pairs[userStatus.pairId],
+                _rebalanceFeeGrowthCache,
+                userStatus,
+                _closeRatio,
+                _liquidationSlippageSqrtTolerance
+            );
 
             _vault.margin += totalPayoff;
             totalPenaltyAmount += int256(penaltyAmount);
@@ -91,19 +100,21 @@ library LiquidationLogic {
 
     function closePerp(
         uint256 _vaultId,
+        DataType.PairGroup memory _pairGroup,
         DataType.PairStatus storage _pairStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
-        uint256 _closeRatio
+        uint256 _closeRatio,
+        uint256 _sqrtSlippageTolerance
     ) internal returns (int256 totalPayoff, uint256 penaltyAmount) {
         int256 tradeAmount = -_perpUserStatus.perp.amount * int256(_closeRatio) / int256(Constants.ONE);
         int256 tradeAmountSqrt = -_perpUserStatus.sqrtPerp.amount * int256(_closeRatio) / int256(Constants.ONE);
 
         uint160 sqrtTwap = UniHelper.getSqrtTWAP(_pairStatus.sqrtAssetStatus.uniswapPool);
-        uint256 debtValue = DebtCalculator.calculateDebtValue(_pairStatus, _perpUserStatus, sqrtTwap);
 
-        DataType.TradeResult memory tradeResult =
-            TradeLogic.trade(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt);
+        DataType.TradeResult memory tradeResult = TradeLogic.trade(
+            _pairGroup, _pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt
+        );
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
@@ -111,8 +122,8 @@ library LiquidationLogic {
             // reverts if price is out of slippage threshold
             uint256 sqrtPrice = UniHelper.getSqrtPrice(_pairStatus.sqrtAssetStatus.uniswapPool);
 
-            uint256 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(debtValue);
-            penaltyAmount = calculatePenaltyAmount(debtValue);
+            uint256 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(_sqrtSlippageTolerance);
+            penaltyAmount = calculatePenaltyAmount(_pairGroup.marginRoundedDecimal);
 
             require(
                 sqrtTwap * 1e6 / (1e6 + liquidationSlippageSqrtTolerance) <= sqrtPrice
@@ -126,25 +137,17 @@ library LiquidationLogic {
         );
     }
 
-    function calculateLiquidationSlippageTolerance(uint256 _debtValue) internal pure returns (uint256) {
-        uint256 liquidationSlippageSqrtTolerance = Math.max(
-            Constants.LIQ_SLIPPAGE_SQRT_SLOPE * (FixedPointMathLib.sqrt(_debtValue * 1e6)) / 1e6
-                + Constants.LIQ_SLIPPAGE_SQRT_BASE,
-            Constants.BASE_LIQ_SLIPPAGE_SQRT_TOLERANCE
-        );
-
-        if (liquidationSlippageSqrtTolerance > 1e6) {
-            return 1e6;
+    function calculateLiquidationSlippageTolerance(uint256 _sqrtSlippageTolerance) internal pure returns (uint256) {
+        if (_sqrtSlippageTolerance == 0) {
+            return Constants.BASE_LIQ_SLIPPAGE_SQRT_TOLERANCE;
+        } else if (_sqrtSlippageTolerance <= Constants.MAX_LIQ_SLIPPAGE_SQRT_TOLERANCE) {
+            return _sqrtSlippageTolerance;
+        } else {
+            return Constants.MAX_LIQ_SLIPPAGE_SQRT_TOLERANCE;
         }
-
-        return liquidationSlippageSqrtTolerance;
     }
 
-    function calculatePenaltyAmount(uint256 _debtValue) internal pure returns (uint256) {
-        // penalty amount is 0.05% of debt value
-        return Math.max(
-            ((_debtValue / 2000) / Constants.MARGIN_ROUNDED_DECIMALS) * Constants.MARGIN_ROUNDED_DECIMALS,
-            Constants.MIN_PENALTY
-        );
+    function calculatePenaltyAmount(uint8 _marginRoundedDecimal) internal pure returns (uint256) {
+        return 100 * (10 ** _marginRoundedDecimal);
     }
 }
