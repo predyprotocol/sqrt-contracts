@@ -12,29 +12,6 @@ import "./ScaledAsset.sol";
 library Trade {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function settleFee(
-        DataType.PairGroup memory _pairGroup,
-        DataType.PairStatus storage _pairStatus,
-        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
-        Perp.UserStatus storage _perpUserStatus
-    ) internal returns (int256 fee) {
-        Perp.updateRebalanceFeeGrowth(_pairStatus, _pairStatus.sqrtAssetStatus);
-
-        int256 underlyingFee;
-        int256 stableFee;
-
-        (underlyingFee, stableFee) = settleUserBalanceAndFee(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
-
-        // swap
-        SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
-            _pairStatus.sqrtAssetStatus.uniswapPool,
-            SwapLib.SwapUnderlyingParams(0, 0, underlyingFee),
-            _pairStatus.isMarginZero
-        );
-
-        fee = roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
-    }
-
     function trade(
         DataType.PairGroup memory _pairGroup,
         DataType.PairStatus storage _pairStatus,
@@ -70,12 +47,12 @@ library Trade {
         );
 
         tradeResult.payoff.perpPayoff =
-            roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.perpPayoff, _pairGroup.marginRoundedDecimal);
+            roundAndAddToFeeGrowth(_pairStatus, tradeResult.payoff.perpPayoff, _pairGroup.marginRoundedDecimal);
         tradeResult.payoff.sqrtPayoff =
-            roundAndAddProtocolFee(_pairStatus, tradeResult.payoff.sqrtPayoff, _pairGroup.marginRoundedDecimal);
+            roundAndAddToFeeGrowth(_pairStatus, tradeResult.payoff.sqrtPayoff, _pairGroup.marginRoundedDecimal);
 
         tradeResult.fee =
-            roundAndAddProtocolFee(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
+            roundAndAddToFeeGrowth(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
     }
 
     function settleUserBalanceAndFee(
@@ -83,13 +60,12 @@ library Trade {
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         Perp.UserStatus storage _userStatus
     ) internal returns (int256 underlyingFee, int256 stableFee) {
-        // settle rebalance fee if settle balance happens
         (underlyingFee, stableFee) = PerpFee.settleUserFee(_pairStatus, rebalanceFeeGrowthCache, _userStatus);
 
         Perp.settleUserBalance(_pairStatus, _userStatus);
     }
 
-    function roundAndAddProtocolFee(
+    function roundAndAddToFeeGrowth(
         DataType.PairStatus storage _pairStatus,
         int256 _amount,
         uint8 _marginRoundedDecimal

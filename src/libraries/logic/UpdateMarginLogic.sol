@@ -6,7 +6,6 @@ import "../DataType.sol";
 import "../PositionCalculator.sol";
 import "../ScaledAsset.sol";
 import "../VaultLib.sol";
-import "./SettleUserFeeLogic.sol";
 
 library UpdateMarginLogic {
     event MarginUpdated(uint256 vaultId, int256 marginAmount);
@@ -20,9 +19,6 @@ library UpdateMarginLogic {
     ) external {
         VaultLib.checkVault(_vault, msg.sender);
         // settle user fee and balance
-        if (_marginAmount < 0) {
-            SettleUserFeeLogic.settleUserFee(_pairGroup, _pairs, _rebalanceFeeGrowthCache, _vault);
-        }
 
         _vault.margin += _marginAmount;
 

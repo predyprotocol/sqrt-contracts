@@ -104,6 +104,6 @@ contract TestBaseStrategy is Test {
             address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
-        controller.initialize(address(usdc), addAssetParams);
+        controller.initialize(address(usdc), 4, addAssetParams);
     }
 }

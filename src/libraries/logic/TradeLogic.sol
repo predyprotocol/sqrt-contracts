@@ -39,7 +39,7 @@ library TradeLogic {
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint256 _pairId,
-        Perp.UserStatus storage _userStatus,
+        Perp.UserStatus storage _openPosition,
         TradeParams memory _tradeParams
     ) public returns (DataType.TradeResult memory tradeResult) {
         DataType.PairStatus storage pairStatus = _pairs[_pairId];
@@ -52,7 +52,7 @@ library TradeLogic {
             _pairGroup,
             pairStatus,
             _rebalanceFeeGrowthCache,
-            _userStatus,
+            _openPosition,
             _tradeParams.tradeAmount,
             _tradeParams.tradeAmountSqrt
         );

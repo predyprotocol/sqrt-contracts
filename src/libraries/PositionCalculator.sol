@@ -31,7 +31,7 @@ library PositionCalculator {
         DataType.Vault memory _vault
     ) internal view {
         (int256 minDeposit, int256 vaultValue, bool hasPosition) =
-            calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault, true);
+            calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
 
         if (!hasPosition) {
             revert("ND");
@@ -50,7 +50,7 @@ library PositionCalculator {
         bool hasPosition;
 
         // isSafe does not count unrealized fee
-        (minDeposit, vaultValue, hasPosition) = calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault, false);
+        (minDeposit, vaultValue, hasPosition) = calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
 
         // if it is liquidationCall and vault has no positions then skip margin check
         // because it can be insolvent vault
@@ -64,14 +64,12 @@ library PositionCalculator {
     function calculateMinDeposit(
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
-        DataType.Vault memory _vault,
-        bool _enableUnrealizedFeeCalculation
+        DataType.Vault memory _vault
     ) internal view returns (int256 minDeposit, int256 vaultValue, bool hasPosition) {
         int256 minValue;
         uint256 debtValue;
 
-        (minValue, vaultValue, debtValue, hasPosition) =
-            calculateMinValue(_pairs, _rebalanceFeeGrowthCache, _vault, _enableUnrealizedFeeCalculation);
+        (minValue, vaultValue, debtValue, hasPosition) = calculateMinValue(_pairs, _rebalanceFeeGrowthCache, _vault);
 
         int256 minMinValue = SafeCast.toInt256(calculateRequiredCollateralWithDebt() * debtValue / 1e6);
 
@@ -91,13 +89,11 @@ library PositionCalculator {
      * @param _pairs The mapping of assets
      * @param _rebalanceFeeGrowthCache rebalance fee growth cache
      * @param _vault The target vault for calculation
-     * @param _enableUnrealizedFeeCalculation If true calculation count unrealized fee.
      */
     function calculateMinValue(
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
-        DataType.Vault memory _vault,
-        bool _enableUnrealizedFeeCalculation
+        DataType.Vault memory _vault
     ) internal view returns (int256 minValue, int256 vaultValue, uint256 debtValue, bool hasPosition) {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             Perp.UserStatus memory userStatus = _vault.openPositions[i];
@@ -108,12 +104,8 @@ library PositionCalculator {
                 uint160 sqrtPrice =
                     getSqrtPrice(_pairs[pairId].sqrtAssetStatus.uniswapPool, _pairs[pairId].isMarginZero);
 
-                PositionParams memory positionParams;
-                if (_enableUnrealizedFeeCalculation) {
-                    positionParams = getPositionWithUnrealizedFee(_pairs[pairId], _rebalanceFeeGrowthCache, userStatus);
-                } else {
-                    positionParams = getPosition(userStatus);
-                }
+                PositionParams memory positionParams =
+                    getPositionWithUnrealizedFee(_pairs[pairId], _rebalanceFeeGrowthCache, userStatus);
 
                 minValue += calculateMinValue(sqrtPrice, positionParams, _pairs[pairId].riskParams.riskRatio);
 
