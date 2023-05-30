@@ -201,12 +201,14 @@ contract TestControllerTradePerp is TestController {
 
     // close delta short
     function testCloseShortDelta() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1e6, 0));
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e6, 0));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 100 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100 * 1e6, 0));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999998998);
+        assertEq(vault.margin, 9999940000);
+        assertEq(vault.openPositions[0].perp.amount, 0);
+        assertEq(vault.openPositions[0].perp.entryValue, 0);
     }
 
     // open sqrt long

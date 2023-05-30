@@ -101,6 +101,18 @@ contract TestControllerTradePerp is TestController {
 
         assertLt(usdc.balanceOf(address(controller)), 100);
         assertLt(weth.balanceOf(address(controller)), 100);
+
+        {
+            DataType.PairStatus memory pairAfter = controller.getAsset(WETH_ASSET_ID);
+
+            assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
+        }
+
+        {
+            DataType.PairStatus memory pairAfter = controller.getAsset(WBTC_ASSET_ID);
+
+            assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
+        }
     }
 
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)

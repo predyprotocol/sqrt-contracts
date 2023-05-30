@@ -33,7 +33,7 @@ library PerpFee {
     }
 
     function settleUserFee(
-        DataType.PairStatus memory _assetStatus,
+        DataType.PairStatus storage _assetStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _userStatus
     ) internal returns (int256 totalFeeUnderlying, int256 totalFeeStable) {
@@ -126,7 +126,7 @@ library PerpFee {
 
     function settleRebalanceEntryFee(
         uint256 _assetId,
-        Perp.SqrtPerpAssetStatus memory _assetStatus,
+        Perp.SqrtPerpAssetStatus storage _assetStatus,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _userStatus
     ) internal returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) {
@@ -134,8 +134,9 @@ library PerpFee {
             (rebalanceFeeUnderlying, rebalanceFeeStable) =
                 computeRebalanceEntryFee(_assetId, _assetStatus, _rebalanceFeeGrowthCache, _userStatus);
 
-            _userStatus.lastNumRebalance = _assetStatus.numRebalance;
             _assetStatus.lastRebalanceTotalSquartAmount -= uint256(_userStatus.sqrtPerp.amount);
         }
+
+        _userStatus.lastNumRebalance = _assetStatus.numRebalance;
     }
 }
