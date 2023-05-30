@@ -14,11 +14,6 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assets[1] = createAssetStatus(1, address(0), address(0));
         assets[2] = createAssetStatus(2, address(0), address(uniswapPool));
         assets[3] = createAssetStatus(3, address(0), address(wbtcUniswapPool));
-
-        assets[2].sqrtAssetStatus.borrowPremium0Growth = 0;
-        assets[2].sqrtAssetStatus.borrowPremium1Growth = 0;
-        assets[2].sqrtAssetStatus.fee0Growth = 0;
-        assets[2].sqrtAssetStatus.fee1Growth = 0;
     }
 
     function getVault(int256 _amountStable, int256 _amountSquart, int256 _amountUnderlying, int256 _margin)
@@ -159,8 +154,8 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         (int256 minDeposit, int256 vaultValue, bool hasPosition) =
             PositionCalculator.calculateMinDeposit(assets, rebalanceFeeGrowthCache, vault);
 
-        assertEq(minDeposit, 34854962);
-        assertEq(vaultValue, 200020498);
+        assertEq(minDeposit, 34851628);
+        assertEq(vaultValue, 200000000);
         assertTrue(hasPosition);
 
         PositionCalculator.isSafe(assets, rebalanceFeeGrowthCache, vault, false);

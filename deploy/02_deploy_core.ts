@@ -64,6 +64,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           methodName: 'initialize',
           args: [
             usdc,
+            4,
             [{
               uniswapPool: networkNameToWethUniswapPool(network.name),
               isIsolatedMode: false,
