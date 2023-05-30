@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./SupplyLogic.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../DataType.sol";
+import "../../tokenization/SupplyToken.sol";
 
 library AddAssetLogic {
     event PairAdded(uint256 pairId, address _uniswapPool);
@@ -116,13 +118,13 @@ library AddAssetLogic {
             _pairId,
             DataType.AssetPoolStatus(
                 _pairGroup.stableTokenAddress,
-                SupplyLogic.deploySupplyToken(_pairGroup.stableTokenAddress),
+                deploySupplyToken(_pairGroup.stableTokenAddress),
                 ScaledAsset.createTokenStatus(),
                 _addAssetParam.stableIrmParams
             ),
             DataType.AssetPoolStatus(
                 _tokenAddress,
-                SupplyLogic.deploySupplyToken(_tokenAddress),
+                deploySupplyToken(_tokenAddress),
                 ScaledAsset.createTokenStatus(),
                 _addAssetParam.underlyingIrmParams
             ),
@@ -135,6 +137,19 @@ library AddAssetLogic {
             _isMarginZero,
             _addAssetParam.isIsolatedMode,
             block.timestamp
+        );
+    }
+
+    function deploySupplyToken(address _tokenAddress) internal returns (address) {
+        IERC20Metadata erc20 = IERC20Metadata(_tokenAddress);
+
+        return address(
+            new SupplyToken(
+            address(this),
+            string.concat("Predy-Supply-", erc20.name()),
+            string.concat("p", erc20.symbol()),
+            erc20.decimals()
+            )
         );
     }
 

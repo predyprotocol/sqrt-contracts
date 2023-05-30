@@ -9,19 +9,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deploy } = deployments
 
-  await deploy('SettleUserFeeLogic', {
+  await deploy('AddAssetLogic', {
     from: deployer,
     log: true,
   })
 
-  const SettleUserFeeLogic = await ethers.getContract('SettleUserFeeLogic', deployer)
+  const AddAssetLogic = await ethers.getContract('AddAssetLogic', deployer)
 
   await deploy('UpdateMarginLogic', {
     from: deployer,
-    log: true,
-    libraries: {
-      SettleUserFeeLogic: SettleUserFeeLogic.address
-    }
+    log: true
   })
 
   const UpdateMarginLogic = await ethers.getContract('UpdateMarginLogic', deployer)
