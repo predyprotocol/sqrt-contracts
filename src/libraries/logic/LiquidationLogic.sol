@@ -5,7 +5,6 @@ import "@solmate/utils/FixedPointMathLib.sol";
 import "../DataType.sol";
 import "../Perp.sol";
 import "../PositionCalculator.sol";
-import "../DebtCalculator.sol";
 import "../ScaledAsset.sol";
 import "./TradeLogic.sol";
 

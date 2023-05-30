@@ -15,13 +15,17 @@ contract TestControllerIsolatedVault is TestController {
 
         usdc.mint(user1, type(uint128).max);
         weth.mint(user1, type(uint128).max);
+        wbtc.mint(user1, type(uint128).max);
         usdc.mint(user2, type(uint128).max);
 
         vm.startPrank(user1);
         usdc.approve(address(controller), type(uint256).max);
         weth.approve(address(controller), type(uint256).max);
+        wbtc.approve(address(controller), type(uint256).max);
         controller.supplyToken(1, 1e10, true);
         controller.supplyToken(1, 1e10, false);
+        controller.supplyToken(2, 1e10, true);
+        controller.supplyToken(2, 1e10, false);
         vaultId1 = controller.updateMargin(1e10);
         vm.stopPrank();
 
@@ -98,6 +102,20 @@ contract TestControllerIsolatedVault is TestController {
 
         vm.expectRevert(bytes("V1"));
         controller.closeIsolatedVault(1000, WETH_ASSET_ID, closeParams);
+
+        vm.stopPrank();
+    }
+
+    function testCannotCloseIsolatedVault_IfVaultHasPositions() public {
+        vm.startPrank(user1);
+        (uint256 isolatedVaultId,) = controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, getTradeParams(-20 * 1e8, 0));
+
+        controller.tradePerp(isolatedVaultId, WBTC_ASSET_ID, getTradeParams(-10 * 1e6, 10 * 1e6));
+
+        IsolatedVaultLogic.CloseParams memory closeParams = getCloseParams();
+
+        vm.expectRevert(bytes("I2"));
+        controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, closeParams);
 
         vm.stopPrank();
     }
