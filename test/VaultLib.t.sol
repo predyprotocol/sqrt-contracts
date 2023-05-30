@@ -82,6 +82,39 @@ contract VaultLibTest is Test, Helper {
         assertEq(vault.openPositions[0].pairId, 2);
     }
 
+    function testCleanOpenPosition() public {
+        VaultLib.createOrGetUserStatus(pairs, vault, 1);
+        VaultLib.createOrGetUserStatus(pairs, vault, 3);
+
+        vault.openPositions[1].perp.amount = 100;
+
+        VaultLib.cleanOpenPosition(vault);
+
+        assertEq(vault.openPositions.length, 1);
+        assertEq(vault.openPositions[0].pairId, 3);
+    }
+
+    function testCleanOpenPositionForEmpty() public {
+        VaultLib.createOrGetUserStatus(pairs, vault, 1);
+        VaultLib.createOrGetUserStatus(pairs, vault, 3);
+
+        vault.openPositions[0].perp.amount = 100;
+        vault.openPositions[1].perp.amount = 100;
+
+        VaultLib.cleanOpenPosition(vault);
+
+        assertEq(vault.openPositions.length, 2);
+    }
+
+    function testCleanOpenPositionForMultiples() public {
+        VaultLib.createOrGetUserStatus(pairs, vault, 1);
+        VaultLib.createOrGetUserStatus(pairs, vault, 3);
+
+        VaultLib.cleanOpenPosition(vault);
+
+        assertEq(vault.openPositions.length, 0);
+    }
+
     function testUpdateMainVaultId() public {
         VaultLib.updateMainVaultId(ownVaults1, 50);
 

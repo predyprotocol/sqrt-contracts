@@ -58,7 +58,7 @@ library TradeLogic {
         );
 
         // remove the open position from the vault
-        _vault.cleanOpenPosition(_pairId);
+        _vault.cleanOpenPosition();
 
         _vault.margin += tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 

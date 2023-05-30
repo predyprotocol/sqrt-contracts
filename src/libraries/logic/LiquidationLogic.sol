@@ -17,6 +17,7 @@ import "./TradeLogic.sol";
  */
 library LiquidationLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
+    using VaultLib for DataType.Vault;
 
     event PositionLiquidated(
         uint256 vaultId, uint256 pairId, int256 tradeAmount, int256 tradeSqrtAmount, Perp.Payoff payoff, int256 fee
@@ -59,6 +60,8 @@ library LiquidationLogic {
             _vault.margin += totalPayoff;
             totalPenaltyAmount += int256(penaltyAmount);
         }
+
+        _vault.cleanOpenPosition();
 
         (_vault.margin, totalPenaltyAmount) =
             calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount) * _closeRatio / Constants.ONE);

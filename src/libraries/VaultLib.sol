@@ -51,14 +51,15 @@ library VaultLib {
         return _vault.openPositions[_vault.openPositions.length - 1];
     }
 
-    function cleanOpenPosition(DataType.Vault storage _vault, uint256 _pairId) internal {
-        for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            Perp.UserStatus memory userStatus = _vault.openPositions[i];
+    function cleanOpenPosition(DataType.Vault storage _vault) internal {
+        uint256 length = _vault.openPositions.length;
 
-            if (userStatus.pairId == _pairId && userStatus.perp.amount == 0 && userStatus.sqrtPerp.amount == 0) {
-                removeOpenPosition(_vault, i);
+        for (uint256 i = 0; i < length; i++) {
+            uint256 index = length - i - 1;
+            Perp.UserStatus memory userStatus = _vault.openPositions[index];
 
-                return;
+            if (userStatus.perp.amount == 0 && userStatus.sqrtPerp.amount == 0) {
+                removeOpenPosition(_vault, index);
             }
         }
     }
