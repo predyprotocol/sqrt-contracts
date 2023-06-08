@@ -18,13 +18,13 @@ const WETH_IRM_PARAMS = {
 
 const ASSET_RISK_PARAMS_MIDDLE = {
   riskRatio: '109544511',
-  rangeSize: 820,
-  rebalanceThreshold: 410
+  rangeSize: 720,
+  rebalanceThreshold: 360
 }
 const ASSET_RISK_PARAMS_HIGH = {
   riskRatio: '109544511',
-  rangeSize: 980,
-  rebalanceThreshold: 480
+  rangeSize: 840,
+  rebalanceThreshold: 420
 }
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
