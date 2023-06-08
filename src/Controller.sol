@@ -414,10 +414,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         return pairs[_id];
     }
 
-    function getLatestAssetStatus(uint256 _id) external returns (DataType.AssetStatus memory) {
-        ApplyInterestLogic.applyInterestForToken(assets, _id);
+    function getLatestAssetStatus(uint256 _id) external returns (DataType.PairStatus memory) {
+        ApplyInterestLogic.applyInterestForToken(pairs, _id);
 
-        return assets[_id];
+        return pairs[_id];
     }
 
     function getVault(uint256 _id) external view override(IController) returns (DataType.Vault memory) {
