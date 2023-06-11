@@ -18,6 +18,6 @@ library PremiumCurveModel {
 
         uint256 b = (_utilization - Constants.SQUART_KINK_UR);
 
-        return (1400 * b * b / Constants.ONE) / Constants.ONE;
+        return (1600 * b * b / Constants.ONE) / Constants.ONE;
     }
 }
