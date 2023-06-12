@@ -14,8 +14,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  const AddAssetLogic = await ethers.getContract('AddAssetLogic', deployer)
-
   await deploy('UpdateMarginLogic', {
     from: deployer,
     log: true
@@ -25,13 +23,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await deploy('TradeLogic', {
     from: deployer,
-    log: true,
-    libraries: {
-      UpdateMarginLogic: UpdateMarginLogic.address
-    }
+    log: true
   })
 
   const TradeLogic = await ethers.getContract('TradeLogic', deployer)
+
+  await deploy('TradePerpLogic', {
+    from: deployer,
+    log: true,
+    libraries: {
+      UpdateMarginLogic: UpdateMarginLogic.address,
+      TradeLogic: TradeLogic.address
+    }
+  })
 
   await deploy('LiquidationLogic', {
     from: deployer,
@@ -41,11 +45,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   })
 
+  const TradePerpLogic = await ethers.getContract('TradePerpLogic', deployer)
+
   await deploy('IsolatedVaultLogic', {
     from: deployer,
     log: true,
     libraries: {
-      TradeLogic: TradeLogic.address
+      TradePerpLogic: TradePerpLogic.address
     }
   })
 

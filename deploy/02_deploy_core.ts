@@ -38,7 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const LiquidationLogic = await ethers.getContract('LiquidationLogic', deployer)
   const ReaderLogic = await ethers.getContract('ReaderLogic', deployer)
   const SupplyLogic = await ethers.getContract('SupplyLogic', deployer)
-  const TradeLogic = await ethers.getContract('TradeLogic', deployer)
+  const TradePerpLogic = await ethers.getContract('TradePerpLogic', deployer)
   const UpdateMarginLogic = await ethers.getContract('UpdateMarginLogic', deployer)
   const IsolatedVaultLogic = await ethers.getContract('IsolatedVaultLogic', deployer)
 
@@ -53,7 +53,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ReaderLogic: ReaderLogic.address,
       AddAssetLogic: AddAssetLogic.address,
       SupplyLogic: SupplyLogic.address,
-      TradeLogic: TradeLogic.address,
+      TradePerpLogic: TradePerpLogic.address,
       UpdateMarginLogic: UpdateMarginLogic.address,
       IsolatedVaultLogic: IsolatedVaultLogic.address
     },
