@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./TradeLogic.sol";
+import "./TradePerpLogic.sol";
 
 /*
  * Error Codes
  * I1: vault is not safe
+ * I2: vault must not have positions
  */
 library IsolatedVaultLogic {
     struct CloseParams {
@@ -18,31 +19,31 @@ library IsolatedVaultLogic {
     event IsolatedVaultClosed(uint256 vaultId, uint256 isolatedVaultId, uint256 marginAmount);
 
     function openIsolatedVault(
-        DataType.PairGroup storage _pairGroup,
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         DataType.Vault storage _isolatedVault,
         uint256 _depositAmount,
         uint64 _pairId,
-        TradeLogic.TradeParams memory _tradeParams
+        TradePerpLogic.TradeParams memory _tradeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _pairs, _isolatedVault, _pairId);
+        Perp.UserStatus storage openPosition = VaultLib.getUserStatus(_pairGroup, _pairs, _isolatedVault, _pairId);
 
         _vault.margin -= int256(_depositAmount);
         _isolatedVault.margin += int256(_depositAmount);
 
-        PositionCalculator.isSafe(_pairs, _rebalanceFeeGrowthCache, _vault, false);
+        PositionCalculator.checkSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
 
-        tradeResult = TradeLogic.execTrade(
-            _pairs, _rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _tradeParams
+        tradeResult = TradePerpLogic.execTrade(
+            _pairGroup, _pairs, _rebalanceFeeGrowthCache, _isolatedVault, _pairId, openPosition, _tradeParams
         );
 
         emit IsolatedVaultOpened(_vault.id, _isolatedVault.id, _depositAmount);
     }
 
     function closeIsolatedVault(
-        DataType.PairGroup storage _pairGroup,
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
@@ -50,9 +51,9 @@ library IsolatedVaultLogic {
         uint64 _pairId,
         CloseParams memory _closeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
-        Perp.UserStatus storage perpUserStatus = VaultLib.getUserStatus(_pairGroup, _pairs, _isolatedVault, _pairId);
+        tradeResult = closeVault(_pairGroup, _pairs, rebalanceFeeGrowthCache, _isolatedVault, _pairId, _closeParams);
 
-        tradeResult = closeVault(_pairs, rebalanceFeeGrowthCache, _isolatedVault, _pairId, perpUserStatus, _closeParams);
+        require(tradeResult.minDeposit == 0, "I2");
 
         // _isolatedVault.margin must be greater than 0
 
@@ -66,23 +67,26 @@ library IsolatedVaultLogic {
     }
 
     function closeVault(
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault storage _vault,
         uint64 _pairId,
-        Perp.UserStatus storage _userStatus,
         CloseParams memory _closeParams
     ) internal returns (DataType.TradeResult memory tradeResult) {
-        int256 tradeAmount = -_userStatus.perp.amount;
-        int256 tradeAmountSqrt = -_userStatus.sqrtPerp.amount;
+        Perp.UserStatus storage openPosition = VaultLib.getUserStatus(_pairGroup, _pairs, _vault, _pairId);
 
-        return TradeLogic.execTrade(
+        int256 tradeAmount = -openPosition.perp.amount;
+        int256 tradeAmountSqrt = -openPosition.sqrtPerp.amount;
+
+        return TradePerpLogic.execTrade(
+            _pairGroup,
             _pairs,
             _rebalanceFeeGrowthCache,
             _vault,
             _pairId,
-            _userStatus,
-            TradeLogic.TradeParams(
+            openPosition,
+            TradePerpLogic.TradeParams(
                 tradeAmount,
                 tradeAmountSqrt,
                 _closeParams.lowerSqrtPrice,

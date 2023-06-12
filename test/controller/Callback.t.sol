@@ -21,7 +21,7 @@ contract TestControllerCallback is TestController {
         controller.supplyToken(1, 1e10, false);
         vm.stopPrank();
 
-        vaultId = controller.updateMargin(1e8);
+        vaultId = controller.updateMargin(1e8, 0);
     }
 
     function predyTradeCallback(DataType.TradeResult memory, bytes calldata _data) external pure returns (int256) {
@@ -31,7 +31,7 @@ contract TestControllerCallback is TestController {
     }
 
     function testCannotTradePerp() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             5 * 1e8,
             0,
             getLowerSqrtPrice(WETH_ASSET_ID),
@@ -46,7 +46,7 @@ contract TestControllerCallback is TestController {
     }
 
     function testTradePerp() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             5 * 1e8,
             0,
             getLowerSqrtPrice(WETH_ASSET_ID),

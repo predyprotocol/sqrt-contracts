@@ -122,15 +122,15 @@ contract TestController is Test {
             address(wbtcUniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
         );
 
-        controller.initialize(address(usdc), addAssetParams);
+        controller.initialize(address(usdc), 4, addAssetParams);
     }
 
     function getTradeParamsWithTokenId(uint256 _tokenId, int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
-        return TradeLogic.TradeParams(
+        return TradePerpLogic.TradeParams(
             _tradeAmount,
             _tradeSqrtAmount,
             getLowerSqrtPrice(_tokenId),

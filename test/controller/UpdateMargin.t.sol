@@ -21,7 +21,7 @@ contract TestControllerUpdateMargin is TestController {
         usdc.approve(address(controller), type(uint256).max);
 
         vm.prank(user2);
-        vaultId2 = controller.updateMargin(1000 * 1e6);
+        vaultId2 = controller.updateMargin(1000 * 1e6, 0);
 
         controller.supplyToken(WETH_ASSET_ID, 1e10, true);
         controller.supplyToken(WETH_ASSET_ID, 1e10, false);
@@ -29,7 +29,7 @@ contract TestControllerUpdateMargin is TestController {
 
     function testDepositMargin_IfAccountAlreadyHasMainVault() public {
         vm.prank(user2);
-        controller.updateMargin(1000 * 1e6);
+        controller.updateMargin(1000 * 1e6, 0);
 
         DataType.Vault memory vault = controller.getVault(vaultId2);
         assertEq(vault.margin, 2000 * 1e6);
@@ -38,14 +38,14 @@ contract TestControllerUpdateMargin is TestController {
     // Cannot withdraw margin if caller is not owner
     function testCannotUpdateMargin_IfCallerHasNoVault() public {
         vm.expectRevert(bytes("NS"));
-        controller.updateMargin(-100);
+        controller.updateMargin(-100, 0);
     }
 
     // deposit margin
     function testDepositMargin() public {
         uint256 beforeUsdcBalance = usdc.balanceOf(user1);
         vm.prank(user1);
-        uint256 vaultId = controller.updateMargin(1000 * 1e6);
+        uint256 vaultId = controller.updateMargin(1000 * 1e6, 0);
         uint256 afterUsdcBalance = usdc.balanceOf(user1);
 
         assertEq(vaultId, 2);
@@ -63,7 +63,7 @@ contract TestControllerUpdateMargin is TestController {
     function testWithdrawMargin() public {
         uint256 beforeUsdcBalance = usdc.balanceOf(user2);
         vm.prank(user2);
-        controller.updateMargin(-1000 * 1e6);
+        controller.updateMargin(-1000 * 1e6, 0);
         uint256 afterUsdcBalance = usdc.balanceOf(user2);
 
         assertEq(afterUsdcBalance - beforeUsdcBalance, 1000 * 1e6);
@@ -77,18 +77,34 @@ contract TestControllerUpdateMargin is TestController {
     function testCannotWithdrawMargin_IfMarginBecomesNegative() public {
         vm.prank(user2);
         vm.expectRevert(bytes("NS"));
-        controller.updateMargin(-1000 * 1e6 - 1);
+        controller.updateMargin(-1000 * 1e6 - 1, 0);
     }
 
     // cannot withdraw margin if vault is not safe
     function testCannotWithdrawMargin_IfVaultHasPosition() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParamsWithTokenId(WETH_ASSET_ID, 1000, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParamsWithTokenId(WETH_ASSET_ID, 1000, 0);
 
         vm.prank(user2);
         controller.tradePerp(vaultId2, WETH_ASSET_ID, tradeParams);
 
         vm.prank(user2);
         vm.expectRevert(bytes("NS"));
-        controller.updateMargin(-1000 * 1e6);
+        controller.updateMargin(-1000 * 1e6, 0);
+    }
+
+    function testUpdateMarginOfIsolatedVault() public {
+        vm.startPrank(user2);
+        (uint256 isolatedVaultId,) = controller.openIsolatedVault(
+            100 * 1e6, WETH_ASSET_ID, getTradeParamsWithTokenId(WETH_ASSET_ID, -10 * 1e6, 10 * 1e6)
+        );
+
+        controller.updateMargin(100 * 1e6, isolatedVaultId);
+
+        controller.updateMargin(-150 * 1e6, isolatedVaultId);
+
+        vm.stopPrank();
+
+        DataType.Vault memory vault = controller.getVault(isolatedVaultId);
+        assertEq(vault.margin, 50 * 1e6);
     }
 }

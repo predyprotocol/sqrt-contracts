@@ -9,6 +9,7 @@ library DataType {
     struct PairGroup {
         address stableTokenAddress;
         uint256 assetsCount;
+        uint8 marginRoundedDecimal;
     }
 
     struct OwnVaults {

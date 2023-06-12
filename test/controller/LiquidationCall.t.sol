@@ -6,6 +6,7 @@ import "./Setup.t.sol";
 
 contract TestControllerLiquidationCall is TestController {
     uint256 constant DEFAULT_CLOSE_RATIO = 1e18;
+    uint256 constant DEFAULT_SLIPPAGE_SQRT_TOLERANCE = 0;
 
     uint256 vaultId;
     uint256 lpVaultId;
@@ -33,9 +34,9 @@ contract TestControllerLiquidationCall is TestController {
         vm.stopPrank();
 
         // create vault
-        vaultId = controller.updateMargin(1e8);
+        vaultId = controller.updateMargin(1e8, 0);
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(1e10);
+        lpVaultId = controller.updateMargin(1e10, 0);
 
         uniswapPool.mint(address(this), -20000, 20000, 1e18, bytes(""));
     }
@@ -43,7 +44,7 @@ contract TestControllerLiquidationCall is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
@@ -57,14 +58,14 @@ contract TestControllerLiquidationCall is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         vm.prank(liquidator);
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, 0);
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 58198887);
+        assertEq(vault.margin, 57598887);
 
         // check liquidation reward
-        assertEq(usdc.balanceOf(liquidator), 400000);
+        assertEq(usdc.balanceOf(liquidator), 1000000);
     }
 
     function testLiquidationCall_IsolatedVault() public {
@@ -75,14 +76,14 @@ contract TestControllerLiquidationCall is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         vm.prank(liquidator);
-        controller.liquidationCall(isolatedVaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(isolatedVaultId, DEFAULT_CLOSE_RATIO, 0);
 
         DataType.Vault memory vault = controller.getVault(isolatedVaultId);
 
         assertEq(vault.margin, 0);
 
         // check liquidation reward
-        assertEq(usdc.balanceOf(liquidator), 400000);
+        assertEq(usdc.balanceOf(liquidator), 1000000);
     }
 
     // liquidation call with interest paid
@@ -93,14 +94,14 @@ contract TestControllerLiquidationCall is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(800 * 1e6, -800 * 1e6));
 
-        controller.updateMargin(-92000000);
+        controller.updateMargin(-92000000, 0);
 
         manipulateVol(40);
         vm.warp(block.timestamp + 1 minutes);
 
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
 
-        assertEq(controller.getVault(vaultId).margin, 6460000);
+        assertEq(controller.getVault(vaultId).margin, 5570000);
     }
 
     // vault becomes insolvent
@@ -112,7 +113,7 @@ contract TestControllerLiquidationCall is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         uint256 beforeBalance = usdc.balanceOf(address(this));
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
         uint256 afterBalance = usdc.balanceOf(address(this));
         assertEq(beforeBalance - afterBalance, 23532567);
 
@@ -120,7 +121,7 @@ contract TestControllerLiquidationCall is TestController {
 
         assertEq(vault.margin, 0);
 
-        controller.updateMargin(1e8);
+        controller.updateMargin(1e8, 0);
     }
 
     // cannot exec liquidation call if vault is safe
@@ -130,7 +131,7 @@ contract TestControllerLiquidationCall is TestController {
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 
         vm.expectRevert(bytes("ND"));
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
     }
 
     // cannot exec liquidation call if the vault has no debt
@@ -139,8 +140,14 @@ contract TestControllerLiquidationCall is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1e8, 0));
 
+        {
+            // withdraw all margin
+            DataType.Vault memory vault = controller.getVault(vaultId);
+            controller.updateMargin(-vault.margin, 0);
+        }
+
         vm.expectRevert(bytes("ND"));
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
     }
 
     // trade after liquidation call
@@ -151,7 +158,7 @@ contract TestControllerLiquidationCall is TestController {
 
         vm.warp(block.timestamp + 1 hours);
 
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-10 * 1e6, 0));
     }
@@ -164,10 +171,10 @@ contract TestControllerLiquidationCall is TestController {
 
         vm.warp(block.timestamp + 1 hours);
 
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
 
         vm.expectRevert(bytes("ND"));
-        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO);
+        controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
     }
 
     function testLiquidationCallPartially() public {
@@ -178,14 +185,14 @@ contract TestControllerLiquidationCall is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         vm.prank(liquidator);
-        controller.liquidationCall(vaultId, 5 * 1e17);
+        controller.liquidationCall(vaultId, 5 * 1e17, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 79098687);
+        assertEq(vault.margin, 78798687);
 
         // check liquidation reward
-        assertEq(usdc.balanceOf(liquidator), 200000);
+        assertEq(usdc.balanceOf(liquidator), 500000);
     }
 
     function testLiquidationCallPartially_IsolatedVault() public {
@@ -196,14 +203,14 @@ contract TestControllerLiquidationCall is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         vm.prank(liquidator);
-        controller.liquidationCall(isolatedVaultId, 5 * 1e17);
+        controller.liquidationCall(isolatedVaultId, 5 * 1e17, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
 
         DataType.Vault memory vault = controller.getVault(isolatedVaultId);
 
-        assertEq(vault.margin, 79098687);
+        assertEq(vault.margin, 78798687);
 
         // check liquidation reward
-        assertEq(usdc.balanceOf(liquidator), 200000);
+        assertEq(usdc.balanceOf(liquidator), 500000);
     }
 
     // liquidates a vault that has multiple asset positions.
@@ -223,13 +230,13 @@ contract TestControllerLiquidationCall is TestController {
         assertEq(vaultStatus.minDeposit, 93054575);
 
         vm.prank(liquidator);
-        controller.liquidationCall(vaultId, 1e18);
+        controller.liquidationCall(vaultId, 1e18, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 67372980);
+        assertEq(vault.margin, 66172980);
 
         // check liquidation reward
-        assertEq(usdc.balanceOf(liquidator), 800000);
+        assertEq(usdc.balanceOf(liquidator), 2000000);
     }
 }

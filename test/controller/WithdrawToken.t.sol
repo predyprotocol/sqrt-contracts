@@ -28,13 +28,13 @@ contract TestControllerWithdrawToken is TestController {
         vm.stopPrank();
 
         vm.prank(user2);
-        vaultId = controller.updateMargin(1e10);
+        vaultId = controller.updateMargin(1e10, 0);
     }
 
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }

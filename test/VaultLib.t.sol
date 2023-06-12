@@ -21,7 +21,7 @@ contract VaultLibTest is Test, Helper {
         VaultLib.addIsolatedVaultId(ownVaults2, 200);
 
         // create pair group
-        pairGroup = DataType.PairGroup(address(0), 4);
+        pairGroup = DataType.PairGroup(address(0), 4, 4);
 
         // create pair status
         pairs[1] = createAssetStatus(1, address(0), address(0), false);
@@ -80,6 +80,39 @@ contract VaultLibTest is Test, Helper {
 
         assertEq(vault.openPositions.length, 1);
         assertEq(vault.openPositions[0].pairId, 2);
+    }
+
+    function testCleanOpenPosition() public {
+        VaultLib.createOrGetUserStatus(pairs, vault, 1);
+        VaultLib.createOrGetUserStatus(pairs, vault, 3);
+
+        vault.openPositions[1].perp.amount = 100;
+
+        VaultLib.cleanOpenPosition(vault);
+
+        assertEq(vault.openPositions.length, 1);
+        assertEq(vault.openPositions[0].pairId, 3);
+    }
+
+    function testCleanOpenPositionForEmpty() public {
+        VaultLib.createOrGetUserStatus(pairs, vault, 1);
+        VaultLib.createOrGetUserStatus(pairs, vault, 3);
+
+        vault.openPositions[0].perp.amount = 100;
+        vault.openPositions[1].perp.amount = 100;
+
+        VaultLib.cleanOpenPosition(vault);
+
+        assertEq(vault.openPositions.length, 2);
+    }
+
+    function testCleanOpenPositionForMultiples() public {
+        VaultLib.createOrGetUserStatus(pairs, vault, 1);
+        VaultLib.createOrGetUserStatus(pairs, vault, 3);
+
+        VaultLib.cleanOpenPosition(vault);
+
+        assertEq(vault.openPositions.length, 0);
     }
 
     function testUpdateMainVaultId() public {

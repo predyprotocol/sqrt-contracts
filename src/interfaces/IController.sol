@@ -2,14 +2,14 @@
 pragma solidity ^0.8.19;
 
 import "../libraries/DataType.sol";
-import "../libraries/logic/TradeLogic.sol";
+import "../libraries/logic/TradePerpLogic.sol";
 
 interface IController {
-    function tradePerp(uint256 _vaultId, uint64 _pairId, TradeLogic.TradeParams memory _tradeParams)
+    function tradePerp(uint256 _vaultId, uint64 _pairId, TradePerpLogic.TradeParams memory _tradeParams)
         external
         returns (DataType.TradeResult memory);
 
-    function updateMargin(int256 _marginAmount) external returns (uint256 vaultId);
+    function updateMargin(int256 _marginAmount, uint256 _vaultId) external returns (uint256 vaultId);
 
     function getSqrtPrice(uint256 _pairId) external view returns (uint160);
 

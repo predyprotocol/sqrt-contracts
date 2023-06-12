@@ -101,7 +101,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         uint256 finalDepositMargin = calShareToMargin(entryUpdate, entryValue, share, totalMargin);
 
-        finalDepositMargin = roundUpMargin(finalDepositMargin, Constants.MARGIN_ROUNDED_DECIMALS);
+        finalDepositMargin = roundUpMargin(finalDepositMargin, marginRoundedScaler);
 
         finalDepositAmountCached = finalDepositMargin;
 
@@ -160,12 +160,12 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         ERC20(usdc).approve(address(controller), _initialMarginAmount);
 
-        vaultId = controller.updateMargin(int256(_initialMarginAmount));
+        vaultId = controller.updateMargin(int256(_initialMarginAmount), 0);
 
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 _initialPerpAmount,
                 _initialSquartAmount,
                 _tradeParams.lowerSqrtPrice,
@@ -217,7 +217,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 0,
                 _squartAmount,
                 _tradeParams.lowerSqrtPrice,
@@ -287,7 +287,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 tradePerp,
                 tradeSqrt,
                 _tradeParams.lowerSqrtPrice,
@@ -336,7 +336,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         DataType.TradeResult memory tradeResult = controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 -int256(strategyShare) * vault.openPositions[0].perp.amount / int256(SHARE_SCALER),
                 -int256(strategyShare) * vault.openPositions[0].sqrtPerp.amount / int256(SHARE_SCALER),
                 _tradeParams.lowerSqrtPrice,
@@ -355,9 +355,9 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         _burn(msg.sender, _withdrawStrategyAmount);
 
-        finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), Constants.MARGIN_ROUNDED_DECIMALS);
+        finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), marginRoundedScaler);
 
-        controller.updateMargin(-int256(finalWithdrawAmount));
+        controller.updateMargin(-int256(finalWithdrawAmount), 0);
 
         TransferHelper.safeTransfer(usdc, _recepient, finalWithdrawAmount);
 
@@ -420,7 +420,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 -delta, 0, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice, _tradeParams.deadline, false, ""
             )
         );

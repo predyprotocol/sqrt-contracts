@@ -42,7 +42,7 @@ library ReaderLogic {
         }
 
         (int256 minDeposit, int256 vaultValue,) =
-            PositionCalculator.calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault, true);
+            PositionCalculator.calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
 
         return DataType.VaultStatusResult(
             _vault.id, vaultValue, _vault.margin, vaultValue - _vault.margin, minDeposit, subVaults

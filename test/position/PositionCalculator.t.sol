@@ -3,7 +3,6 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import "../../src/libraries/PositionCalculator.sol";
-import "../../src/libraries/DebtCalculator.sol";
 
 /*
  * https://www.desmos.com/calculator/p4gc1eri8v
@@ -72,12 +71,6 @@ contract PositionCalculatorTest is Test {
         );
 
         assertLe(value, 0);
-    }
-
-    function testCalculateDebt() public {
-        uint256 debtValue = DebtCalculator._calculateDebtValue(PRICE_ONE, 1e6, 1e6);
-
-        assertEq(debtValue, 2000000);
     }
 
     function testCalculateMinValue() public {

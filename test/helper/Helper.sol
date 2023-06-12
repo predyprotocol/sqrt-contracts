@@ -36,10 +36,5 @@ contract Helper {
             _isIsolatedMode,
             block.timestamp
         );
-
-        assetStatus.sqrtAssetStatus.borrowPremium0Growth = 1 * Constants.Q128 / 1e2;
-        assetStatus.sqrtAssetStatus.borrowPremium1Growth = 2 * Constants.Q128 / 1e2;
-        assetStatus.sqrtAssetStatus.fee0Growth = 200 * Constants.Q128 / 1e6;
-        assetStatus.sqrtAssetStatus.fee1Growth = 5 * Constants.Q128 / 1e6;
     }
 }

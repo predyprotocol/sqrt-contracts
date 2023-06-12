@@ -18,6 +18,8 @@ contract BaseStrategy is ERC20Upgradeable {
 
     address internal usdc;
 
+    uint256 internal marginRoundedScaler;
+
     uint64 internal pairId;
 
     MinPerValueLimit internal minPerValueLimit;
@@ -51,6 +53,8 @@ contract BaseStrategy is ERC20Upgradeable {
         DataType.PairStatus memory asset = controller.getAsset(pairId);
 
         usdc = asset.stablePool.token;
+
+        marginRoundedScaler = 10 ** controller.getPairGroup().marginRoundedDecimal;
 
         operator = msg.sender;
     }

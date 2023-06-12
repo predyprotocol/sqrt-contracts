@@ -22,7 +22,7 @@ contract TestControllerUpdateParams is TestController {
         );
 
         vm.expectRevert(bytes("Initializable: contract is already initialized"));
-        controller.initialize(address(usdc), addAssetParams);
+        controller.initialize(address(usdc), 4, addAssetParams);
     }
 
     function testAddPair() public {
