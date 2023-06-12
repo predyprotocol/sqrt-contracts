@@ -9,7 +9,7 @@ interface IController {
         external
         returns (DataType.TradeResult memory);
 
-    function updateMargin(int256 _marginAmount) external returns (uint256 vaultId);
+    function updateMargin(int256 _marginAmount, uint256 _vaultId) external returns (uint256 vaultId);
 
     function getSqrtPrice(uint256 _pairId) external view returns (uint160);
 

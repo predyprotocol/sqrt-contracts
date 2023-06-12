@@ -34,9 +34,9 @@ contract TestControllerLiquidationCall is TestController {
         vm.stopPrank();
 
         // create vault
-        vaultId = controller.updateMargin(1e8);
+        vaultId = controller.updateMargin(1e8, 0);
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(1e10);
+        lpVaultId = controller.updateMargin(1e10, 0);
 
         uniswapPool.mint(address(this), -20000, 20000, 1e18, bytes(""));
     }
@@ -94,7 +94,7 @@ contract TestControllerLiquidationCall is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(800 * 1e6, -800 * 1e6));
 
-        controller.updateMargin(-92000000);
+        controller.updateMargin(-92000000, 0);
 
         manipulateVol(40);
         vm.warp(block.timestamp + 1 minutes);
@@ -121,7 +121,7 @@ contract TestControllerLiquidationCall is TestController {
 
         assertEq(vault.margin, 0);
 
-        controller.updateMargin(1e8);
+        controller.updateMargin(1e8, 0);
     }
 
     // cannot exec liquidation call if vault is safe
@@ -143,7 +143,7 @@ contract TestControllerLiquidationCall is TestController {
         {
             // withdraw all margin
             DataType.Vault memory vault = controller.getVault(vaultId);
-            controller.updateMargin(-vault.margin);
+            controller.updateMargin(-vault.margin, 0);
         }
 
         vm.expectRevert(bytes("ND"));

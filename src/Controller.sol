@@ -221,10 +221,22 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     /**
      * @notice Deposit or withdraw margin
      * @param _marginAmount The amount of margin. Positive means deposit and negative means withdraw.
+     * @param _vaultId The id of vault to update margin. If _vaultId is 0, update margin of the main vault.
      * @return vaultId The id of vault created
      */
-    function updateMargin(int256 _marginAmount) external override(IController) nonReentrant returns (uint256 vaultId) {
-        vaultId = ownVaultsMap[msg.sender].mainVaultId;
+    function updateMargin(int256 _marginAmount, uint256 _vaultId)
+        external
+        override(IController)
+        nonReentrant
+        returns (uint256 vaultId)
+    {
+        if (_vaultId > 0) {
+            // isolated vault
+            vaultId = _vaultId;
+        } else {
+            // main vault
+            vaultId = ownVaultsMap[msg.sender].mainVaultId;
+        }
 
         vaultId = createVaultIfNeeded(vaultId, msg.sender, true);
 

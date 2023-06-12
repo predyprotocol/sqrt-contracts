@@ -31,10 +31,10 @@ contract TestControllerTradePerp is TestController {
         vm.stopPrank();
 
         // create vault
-        vaultId = controller.updateMargin(1e10);
+        vaultId = controller.updateMargin(1e10, 0);
 
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(1e10);
+        lpVaultId = controller.updateMargin(1e10, 0);
 
         reader = new Reader(controller);
     }
@@ -54,7 +54,7 @@ contract TestControllerTradePerp is TestController {
                 }
             }
 
-            controller.updateMargin(-controller.getVault(vaultId).margin);
+            controller.updateMargin(-controller.getVault(vaultId).margin, 0);
         }
 
         {
@@ -75,7 +75,7 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             int256 margin = controller.getVault(lpVaultId).margin;
             vm.prank(user2);
-            controller.updateMargin(-margin);
+            controller.updateMargin(-margin, 0);
         }
 
         vm.prank(user2);
@@ -117,7 +117,7 @@ contract TestControllerTradePerp is TestController {
 
     // cannot open position if margin is not safe
     function testCannotTrade_IfVaultIsNotSafe() public {
-        controller.updateMargin(1e6 - 1e10);
+        controller.updateMargin(1e6 - 1e10, 0);
 
         TradePerpLogic.TradeParams memory tradeParams = getTradeParams(-10 * 1e8, 0);
 
