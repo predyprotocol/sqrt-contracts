@@ -165,7 +165,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 _initialPerpAmount,
                 _initialSquartAmount,
                 _tradeParams.lowerSqrtPrice,
@@ -217,7 +217,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 0,
                 _squartAmount,
                 _tradeParams.lowerSqrtPrice,
@@ -287,7 +287,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 tradePerp,
                 tradeSqrt,
                 _tradeParams.lowerSqrtPrice,
@@ -336,7 +336,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         DataType.TradeResult memory tradeResult = controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 -int256(strategyShare) * vault.openPositions[0].perp.amount / int256(SHARE_SCALER),
                 -int256(strategyShare) * vault.openPositions[0].sqrtPerp.amount / int256(SHARE_SCALER),
                 _tradeParams.lowerSqrtPrice,
@@ -420,7 +420,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         controller.tradePerp(
             vaultId,
             pairId,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 -delta, 0, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice, _tradeParams.deadline, false, ""
             )
         );

@@ -22,7 +22,7 @@ library UpdateMarginLogic {
 
         _vault.margin += _marginAmount;
 
-        PositionCalculator.isSafe(_pairs, _rebalanceFeeGrowthCache, _vault, false);
+        PositionCalculator.checkSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
 
         execMarginTransfer(_vault, _pairGroup.stableTokenAddress, _marginAmount);
 

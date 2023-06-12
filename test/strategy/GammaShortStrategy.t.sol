@@ -140,13 +140,13 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         }
 
         controller.tradePerp(
-            lpVaultId, 1, TradeLogic.TradeParams(1e8, -1e8, 0, type(uint160).max, block.timestamp, false, "")
+            lpVaultId, 1, TradePerpLogic.TradeParams(1e8, -1e8, 0, type(uint160).max, block.timestamp, false, "")
         );
 
         vm.warp(block.timestamp + 10 weeks);
 
         controller.tradePerp(
-            lpVaultId, 1, TradeLogic.TradeParams(-1e8, 1e8, 0, type(uint160).max, block.timestamp, false, "")
+            lpVaultId, 1, TradePerpLogic.TradeParams(-1e8, 1e8, 0, type(uint160).max, block.timestamp, false, "")
         );
 
         uint256 withdrawAmount = strategy.withdraw(1e10, address(this), 0, getStrategyTradeParams());

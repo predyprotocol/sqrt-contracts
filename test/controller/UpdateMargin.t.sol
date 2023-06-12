@@ -82,7 +82,7 @@ contract TestControllerUpdateMargin is TestController {
 
     // cannot withdraw margin if vault is not safe
     function testCannotWithdrawMargin_IfVaultHasPosition() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParamsWithTokenId(WETH_ASSET_ID, 1000, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParamsWithTokenId(WETH_ASSET_ID, 1000, 0);
 
         vm.prank(user2);
         controller.tradePerp(vaultId2, WETH_ASSET_ID, tradeParams);

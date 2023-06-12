@@ -25,40 +25,41 @@ library PositionCalculator {
         int256 amountUnderlying;
     }
 
-    function isDanger(
+    function isLiquidatable(
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault memory _vault
-    ) internal view {
-        (int256 minDeposit, int256 vaultValue, bool hasPosition) =
-            calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
-
-        if (!hasPosition) {
-            revert("ND");
-        }
-
-        require(vaultValue < minDeposit || _vault.margin < 0, "ND");
-    }
-
-    function isSafe(
-        mapping(uint256 => DataType.PairStatus) storage _pairs,
-        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
-        DataType.Vault memory _vault,
-        bool _isLiquidationCall
-    ) internal view returns (int256 minDeposit) {
-        int256 vaultValue;
+    ) internal view returns (bool) {
+        bool isSafe;
         bool hasPosition;
 
-        // isSafe does not count unrealized fee
+        (, isSafe, hasPosition) = getIsSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
+
+        return !isSafe && hasPosition;
+    }
+
+    function checkSafe(
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault memory _vault
+    ) internal view returns (int256 minDeposit) {
+        bool isSafe;
+
+        (minDeposit, isSafe,) = getIsSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
+
+        require(isSafe, "NS");
+    }
+
+    function getIsSafe(
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault memory _vault
+    ) internal view returns (int256 minDeposit, bool isSafe, bool hasPosition) {
+        int256 vaultValue;
+
         (minDeposit, vaultValue, hasPosition) = calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
 
-        // if it is liquidationCall and vault has no positions then skip margin check
-        // because it can be insolvent vault
-        if (_isLiquidationCall && !hasPosition) {
-            return 0;
-        }
-
-        require(vaultValue >= minDeposit && _vault.margin >= 0, "NS");
+        isSafe = vaultValue >= minDeposit && _vault.margin >= 0;
     }
 
     function calculateMinDeposit(

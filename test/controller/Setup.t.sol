@@ -128,9 +128,9 @@ contract TestController is Test {
     function getTradeParamsWithTokenId(uint256 _tokenId, int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
-        return TradeLogic.TradeParams(
+        return TradePerpLogic.TradeParams(
             _tradeAmount,
             _tradeSqrtAmount,
             getLowerSqrtPrice(_tokenId),

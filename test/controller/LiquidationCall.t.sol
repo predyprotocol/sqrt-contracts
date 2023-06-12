@@ -44,7 +44,7 @@ contract TestControllerLiquidationCall is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
@@ -139,6 +139,12 @@ contract TestControllerLiquidationCall is TestController {
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e8, 0));
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1e8, 0));
+
+        {
+            // withdraw all margin
+            DataType.Vault memory vault = controller.getVault(vaultId);
+            controller.updateMargin(-vault.margin);
+        }
 
         vm.expectRevert(bytes("ND"));
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);

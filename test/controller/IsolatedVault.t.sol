@@ -39,9 +39,9 @@ contract TestControllerIsolatedVault is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
-        return TradeLogic.TradeParams(
+        return TradePerpLogic.TradeParams(
             _tradeAmount,
             _tradeSqrtAmount,
             getLowerSqrtPrice(WETH_ASSET_ID),
@@ -59,7 +59,7 @@ contract TestControllerIsolatedVault is TestController {
     }
 
     function testCannotOpenIsolatedVault_IfCallerIsNotOwner() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
 
         vm.expectRevert(bytes("V1"));
         controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, tradeParams);
@@ -67,7 +67,7 @@ contract TestControllerIsolatedVault is TestController {
 
     function testCannotOpenIsolatedVault_IfMarginBecomesNegative() public {
         vm.startPrank(user2);
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
         vm.expectRevert(bytes("NS"));
         controller.openIsolatedVault(1e10 + 1, WETH_ASSET_ID, tradeParams);
         vm.stopPrank();

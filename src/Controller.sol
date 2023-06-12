@@ -21,7 +21,7 @@ import "./libraries/logic/ApplyInterestLogic.sol";
 import "./libraries/logic/LiquidationLogic.sol";
 import "./libraries/logic/ReaderLogic.sol";
 import "./libraries/logic/SupplyLogic.sol";
-import "./libraries/logic/TradeLogic.sol";
+import "./libraries/logic/TradePerpLogic.sol";
 import "./libraries/logic/IsolatedVaultLogic.sol";
 import "./libraries/logic/UpdateMarginLogic.sol";
 import "./interfaces/IController.sol";
@@ -241,7 +241,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @return isolatedVaultId The id of isolated vault
      * @return tradeResult The result of perp trade
      */
-    function openIsolatedVault(uint256 _depositAmount, uint64 _pairId, TradeLogic.TradeParams memory _tradeParams)
+    function openIsolatedVault(uint256 _depositAmount, uint64 _pairId, TradePerpLogic.TradeParams memory _tradeParams)
         external
         nonReentrant
         returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
@@ -303,7 +303,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _tradeParams The trade parameters
      * @return TradeResult The result of perp trade
      */
-    function tradePerp(uint256 _vaultId, uint64 _pairId, TradeLogic.TradeParams memory _tradeParams)
+    function tradePerp(uint256 _vaultId, uint64 _pairId, TradePerpLogic.TradeParams memory _tradeParams)
         external
         override(IController)
         nonReentrant
@@ -313,7 +313,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         applyInterest(vaults[_vaultId]);
 
-        return TradeLogic.execTrade(
+        return TradePerpLogic.execTrade(
             pairGroup, pairs, rebalanceFeeGrowthCache, vaults[_vaultId], _pairId, openPosition, _tradeParams
         );
     }

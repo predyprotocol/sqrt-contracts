@@ -72,7 +72,7 @@ contract TestControllerTradePerp is TestController {
                 Perp.UserStatus memory perpTrade = lpVault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
-                    TradeLogic.TradeParams memory tradeParams =
+                    TradePerpLogic.TradeParams memory tradeParams =
                         getTradeParams(-perpTrade.perp.amount, -perpTrade.sqrtPerp.amount);
 
                     vm.prank(user2);
@@ -118,7 +118,7 @@ contract TestControllerTradePerp is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }

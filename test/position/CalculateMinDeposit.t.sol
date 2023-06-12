@@ -95,7 +95,9 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 0);
         assertTrue(hasPosition);
 
-        PositionCalculator.isDanger(assets, rebalanceFeeGrowthCache, vault);
+        (, bool isSafe,) = PositionCalculator.getIsSafe(assets, rebalanceFeeGrowthCache, vault);
+
+        assertFalse(isSafe);
     }
 
     function testCalculateMinDepositGammaShort() public {
@@ -107,7 +109,11 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 0);
         assertTrue(hasPosition);
 
-        PositionCalculator.isDanger(assets, rebalanceFeeGrowthCache, vault);
+        (, bool isSafe,) = PositionCalculator.getIsSafe(assets, rebalanceFeeGrowthCache, vault);
+        bool isLiquidatable = PositionCalculator.isLiquidatable(assets, rebalanceFeeGrowthCache, vault);
+
+        assertFalse(isSafe);
+        assertTrue(isLiquidatable);
     }
 
     function testCalculateMinDepositGammaShortSafe() public {
@@ -119,7 +125,8 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 20000000);
         assertTrue(hasPosition);
 
-        PositionCalculator.isSafe(assets, rebalanceFeeGrowthCache, vault, false);
+        (, bool isSafe,) = PositionCalculator.getIsSafe(assets, rebalanceFeeGrowthCache, vault);
+        assertTrue(isSafe);
     }
 
     function testCalculateMinDepositGammaLong() public {
@@ -131,7 +138,11 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 0);
         assertTrue(hasPosition);
 
-        PositionCalculator.isDanger(assets, rebalanceFeeGrowthCache, vault);
+        (, bool isSafe,) = PositionCalculator.getIsSafe(assets, rebalanceFeeGrowthCache, vault);
+        bool isLiquidatable = PositionCalculator.isLiquidatable(assets, rebalanceFeeGrowthCache, vault);
+
+        assertFalse(isSafe);
+        assertTrue(isLiquidatable);
     }
 
     function testCalculateMinDepositGammaLongSafe() public {
@@ -143,7 +154,8 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 22000000);
         assertTrue(hasPosition);
 
-        PositionCalculator.isSafe(assets, rebalanceFeeGrowthCache, vault, false);
+        (, bool isSafe,) = PositionCalculator.getIsSafe(assets, rebalanceFeeGrowthCache, vault);
+        assertTrue(isSafe);
     }
 
     function testCalculateMinDeposit_MultiAsset() public {
@@ -158,14 +170,17 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         assertEq(vaultValue, 200000000);
         assertTrue(hasPosition);
 
-        PositionCalculator.isSafe(assets, rebalanceFeeGrowthCache, vault, false);
+        (, bool isSafe,) = PositionCalculator.getIsSafe(assets, rebalanceFeeGrowthCache, vault);
+        assertTrue(isSafe);
     }
 
-    function testIsSafe() public {
+    function testMarginIsNegative() public {
         DataType.Vault memory vault = getVault(0, 0, 0, -100);
 
-        PositionCalculator.isSafe(assets, rebalanceFeeGrowthCache, vault, true);
+        (, bool isSafe,) = PositionCalculator.getIsSafe(assets, rebalanceFeeGrowthCache, vault);
+        bool isLiquidatable = PositionCalculator.isLiquidatable(assets, rebalanceFeeGrowthCache, vault);
 
-        assertTrue(true);
+        assertFalse(isSafe);
+        assertFalse(isLiquidatable);
     }
 }

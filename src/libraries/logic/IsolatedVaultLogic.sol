@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./TradeLogic.sol";
+import "./TradePerpLogic.sol";
 
 /*
  * Error Codes
@@ -26,16 +26,16 @@ library IsolatedVaultLogic {
         DataType.Vault storage _isolatedVault,
         uint256 _depositAmount,
         uint64 _pairId,
-        TradeLogic.TradeParams memory _tradeParams
+        TradePerpLogic.TradeParams memory _tradeParams
     ) external returns (DataType.TradeResult memory tradeResult) {
         Perp.UserStatus storage openPosition = VaultLib.getUserStatus(_pairGroup, _pairs, _isolatedVault, _pairId);
 
         _vault.margin -= int256(_depositAmount);
         _isolatedVault.margin += int256(_depositAmount);
 
-        PositionCalculator.isSafe(_pairs, _rebalanceFeeGrowthCache, _vault, false);
+        PositionCalculator.checkSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
 
-        tradeResult = TradeLogic.execTrade(
+        tradeResult = TradePerpLogic.execTrade(
             _pairGroup, _pairs, _rebalanceFeeGrowthCache, _isolatedVault, _pairId, openPosition, _tradeParams
         );
 
@@ -79,14 +79,14 @@ library IsolatedVaultLogic {
         int256 tradeAmount = -openPosition.perp.amount;
         int256 tradeAmountSqrt = -openPosition.sqrtPerp.amount;
 
-        return TradeLogic.execTrade(
+        return TradePerpLogic.execTrade(
             _pairGroup,
             _pairs,
             _rebalanceFeeGrowthCache,
             _vault,
             _pairId,
             openPosition,
-            TradeLogic.TradeParams(
+            TradePerpLogic.TradeParams(
                 tradeAmount,
                 tradeAmountSqrt,
                 _closeParams.lowerSqrtPrice,

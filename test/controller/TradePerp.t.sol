@@ -64,7 +64,7 @@ contract TestControllerTradePerp is TestController {
                 Perp.UserStatus memory perpTrade = lpVault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
-                    TradeLogic.TradeParams memory tradeParams =
+                    TradePerpLogic.TradeParams memory tradeParams =
                         getTradeParams(-perpTrade.perp.amount, -perpTrade.sqrtPerp.amount);
 
                     vm.prank(user2);
@@ -90,14 +90,14 @@ contract TestControllerTradePerp is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
     // cannot trade if vaultId is not existed
     function testCannotTrade_IfVaultIdIsNotExisted() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
 
         vm.expectRevert(bytes("V1"));
         controller.tradePerp(0, WETH_ASSET_ID, tradeParams);
@@ -108,7 +108,7 @@ contract TestControllerTradePerp is TestController {
 
     // cannot trade if caller is not vault owner
     function testCannotTrade_IfCallerIsNotVaultOwner() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
 
         vm.prank(user2);
         vm.expectRevert(bytes("V2"));
@@ -119,7 +119,7 @@ contract TestControllerTradePerp is TestController {
     function testCannotTrade_IfVaultIsNotSafe() public {
         controller.updateMargin(1e6 - 1e10);
 
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(-10 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(-10 * 1e8, 0);
 
         vm.expectRevert(bytes("NS"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -127,7 +127,7 @@ contract TestControllerTradePerp is TestController {
 
     // cannot trade delta because no available supply
     function testCannotOpenLongDelta_IfThereIsNoEnoughSupply() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(1e10, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(1e10, 0);
 
         vm.expectRevert(bytes("S0"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -135,7 +135,7 @@ contract TestControllerTradePerp is TestController {
 
     // deadline
     function testCannotTrade_IfTimeIsGreaterThanDeadline() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             100, 100, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp - 1, false, ""
         );
 
@@ -145,7 +145,7 @@ contract TestControllerTradePerp is TestController {
 
     // slippage
     function testCannotTrade_IfSlippageIsTooMuch() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             100, 100, getLowerSqrtPrice(WETH_ASSET_ID), getLowerSqrtPrice(WETH_ASSET_ID), block.timestamp, false, ""
         );
 
@@ -154,14 +154,14 @@ contract TestControllerTradePerp is TestController {
     }
 
     function testCannotTradePerp_IfAssetIdIsZero() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
         vm.expectRevert(bytes("A0"));
         controller.tradePerp(vaultId, 0, tradeParams);
     }
 
     function testCannotTradePerp_IfAssetIdIsNotExisted() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
         vm.expectRevert(bytes("ASSETID"));
         controller.tradePerp(vaultId, 4, tradeParams);
@@ -268,7 +268,7 @@ contract TestControllerTradePerp is TestController {
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 1 * 1e6));
         vm.stopPrank();
 
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(0, -2 * 1e6);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(0, -2 * 1e6);
 
         vm.expectRevert(bytes("P1"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -555,7 +555,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(currentTick, 1352);
 
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(0, -100);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(0, -100);
 
         vm.expectRevert(bytes("P2"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);

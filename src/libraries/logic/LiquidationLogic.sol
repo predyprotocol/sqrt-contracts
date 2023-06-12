@@ -6,6 +6,7 @@ import "../DataType.sol";
 import "../Perp.sol";
 import "../PositionCalculator.sol";
 import "../ScaledAsset.sol";
+import "../VaultLib.sol";
 import "./TradeLogic.sol";
 
 /*
@@ -42,7 +43,7 @@ library LiquidationLogic {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         // The vault must be danger
-        PositionCalculator.isDanger(_pairs, _rebalanceFeeGrowthCache, _vault);
+        require(PositionCalculator.isLiquidatable(_pairs, _rebalanceFeeGrowthCache, _vault), "ND");
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             Perp.UserStatus storage userStatus = _vault.openPositions[i];
@@ -67,7 +68,7 @@ library LiquidationLogic {
             calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount) * _closeRatio / Constants.ONE);
 
         // The vault must be safe after liquidation call
-        int256 minDeposit = PositionCalculator.isSafe(_pairs, _rebalanceFeeGrowthCache, _vault, true);
+        (int256 minDeposit,,) = PositionCalculator.calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
 
         isClosedAll = (minDeposit == 0);
 
@@ -86,6 +87,14 @@ library LiquidationLogic {
         emit VaultLiquidated(_vault.id, _mainVault.id, uint256(withdrawnMarginAmount), msg.sender, totalPenaltyAmount);
     }
 
+    /**
+     * @notice Calculated liquidation reward
+     * @param reserveBefore margin amount before calculating liquidation reward
+     * @param expectedReward calculated liquidation reward
+     * @return reserveAfter margin amount after calculation
+     * @return payableReward if payableReward is positive then it stands for liquidation reward.
+     *  if negative payableReward stands for insufficient margin amount.
+     */
     function calculatePayableReward(int256 reserveBefore, uint256 expectedReward)
         internal
         pure
