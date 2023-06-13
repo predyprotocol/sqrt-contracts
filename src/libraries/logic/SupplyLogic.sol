@@ -12,20 +12,20 @@ import "../VaultLib.sol";
 library SupplyLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    event TokenSupplied(address account, uint256 pairId, uint256 suppliedAmount);
-    event TokenWithdrawn(address account, uint256 pairId, uint256 finalWithdrawnAmount);
+    event TokenSupplied(address account, uint256 pairId, bool isStable, uint256 suppliedAmount);
+    event TokenWithdrawn(address account, uint256 pairId, bool isStable, uint256 finalWithdrawnAmount);
 
-    function supply(DataType.PairStatus storage _asset, uint256 _amount, bool _isStable)
+    function supply(DataType.PairStatus storage _pair, uint256 _amount, bool _isStable)
         external
         returns (uint256 mintAmount)
     {
         if (_isStable) {
-            mintAmount = _supply(_asset.stablePool, _amount);
+            mintAmount = _supply(_pair.stablePool, _amount);
         } else {
-            mintAmount = _supply(_asset.underlyingPool, _amount);
+            mintAmount = _supply(_pair.underlyingPool, _amount);
         }
 
-        emit TokenSupplied(msg.sender, _asset.id, _amount);
+        emit TokenSupplied(msg.sender, _pair.id, _isStable, _amount);
     }
 
     function _supply(DataType.AssetPoolStatus storage _pool, uint256 _amount) internal returns (uint256 mintAmount) {
@@ -36,17 +36,17 @@ library SupplyLogic {
         ISupplyToken(_pool.supplyTokenAddress).mint(msg.sender, mintAmount);
     }
 
-    function withdraw(DataType.PairStatus storage _asset, uint256 _amount, bool _isStable)
+    function withdraw(DataType.PairStatus storage _pair, uint256 _amount, bool _isStable)
         external
         returns (uint256 finalburntAmount, uint256 finalWithdrawalAmount)
     {
         if (_isStable) {
-            (finalburntAmount, finalWithdrawalAmount) = _withdraw(_asset.stablePool, _amount);
+            (finalburntAmount, finalWithdrawalAmount) = _withdraw(_pair.stablePool, _amount);
         } else {
-            (finalburntAmount, finalWithdrawalAmount) = _withdraw(_asset.underlyingPool, _amount);
+            (finalburntAmount, finalWithdrawalAmount) = _withdraw(_pair.underlyingPool, _amount);
         }
 
-        emit TokenWithdrawn(msg.sender, _asset.id, finalWithdrawalAmount);
+        emit TokenWithdrawn(msg.sender, _pair.id, _isStable, finalWithdrawalAmount);
     }
 
     function _withdraw(DataType.AssetPoolStatus storage _pool, uint256 _amount)
