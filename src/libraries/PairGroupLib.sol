@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./ScaledAsset.sol";
 import "./DataType.sol";
 
 library PairGroupLib {
-    function isAllow(DataType.PairGroup memory _assetGroup, uint256 _pairId) internal pure returns (bool) {
-        return _pairId < _assetGroup.assetsCount;
+    function validatePairGroupId(DataType.GlobalData storage _global, uint256 _pairGroupId) internal view {
+        require(0 < _pairGroupId && _pairGroupId < _global.pairGroupsCount, "INVALID_PG");
     }
 }

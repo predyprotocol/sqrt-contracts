@@ -8,24 +8,34 @@ import "../DataType.sol";
 import "../PositionCalculator.sol";
 import "../ScaledAsset.sol";
 import "../VaultLib.sol";
+import "../ApplyInterestLib.sol";
 
 library SupplyLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    event TokenSupplied(address account, uint256 pairId, uint256 suppliedAmount);
-    event TokenWithdrawn(address account, uint256 pairId, uint256 finalWithdrawnAmount);
+    event TokenSupplied(address account, uint256 pairId, bool isStable, uint256 suppliedAmount);
+    event TokenWithdrawn(address account, uint256 pairId, bool isStable, uint256 finalWithdrawnAmount);
 
-    function supply(DataType.PairStatus storage _asset, uint256 _amount, bool _isStable)
+    function supply(DataType.GlobalData storage _globalData, uint256 _pairId, uint256 _amount, bool _isStable)
         external
         returns (uint256 mintAmount)
     {
+        // Checks pair exists
+        PairLib.validatePairId(_globalData, _pairId);
+        // Checks amount is not 0
+        require(_amount > 0, "AZ");
+        // Updates interest rate related to the pair
+        ApplyInterestLib.applyInterestForToken(_globalData.pairs, _pairId);
+
+        DataType.PairStatus storage pair = _globalData.pairs[_pairId];
+
         if (_isStable) {
-            mintAmount = _supply(_asset.stablePool, _amount);
+            mintAmount = _supply(pair.stablePool, _amount);
         } else {
-            mintAmount = _supply(_asset.underlyingPool, _amount);
+            mintAmount = _supply(pair.underlyingPool, _amount);
         }
 
-        emit TokenSupplied(msg.sender, _asset.id, _amount);
+        emit TokenSupplied(msg.sender, pair.id, _isStable, _amount);
     }
 
     function _supply(DataType.AssetPoolStatus storage _pool, uint256 _amount) internal returns (uint256 mintAmount) {
@@ -36,17 +46,26 @@ library SupplyLogic {
         ISupplyToken(_pool.supplyTokenAddress).mint(msg.sender, mintAmount);
     }
 
-    function withdraw(DataType.PairStatus storage _asset, uint256 _amount, bool _isStable)
+    function withdraw(DataType.GlobalData storage _globalData, uint256 _pairId, uint256 _amount, bool _isStable)
         external
         returns (uint256 finalburntAmount, uint256 finalWithdrawalAmount)
     {
+        // Checks pair exists
+        PairLib.validatePairId(_globalData, _pairId);
+        // Checks amount is not 0
+        require(_amount > 0, "AZ");
+        // Updates interest rate related to the pair
+        ApplyInterestLib.applyInterestForToken(_globalData.pairs, _pairId);
+
+        DataType.PairStatus storage pair = _globalData.pairs[_pairId];
+
         if (_isStable) {
-            (finalburntAmount, finalWithdrawalAmount) = _withdraw(_asset.stablePool, _amount);
+            (finalburntAmount, finalWithdrawalAmount) = _withdraw(pair.stablePool, _amount);
         } else {
-            (finalburntAmount, finalWithdrawalAmount) = _withdraw(_asset.underlyingPool, _amount);
+            (finalburntAmount, finalWithdrawalAmount) = _withdraw(pair.underlyingPool, _amount);
         }
 
-        emit TokenWithdrawn(msg.sender, _asset.id, finalWithdrawalAmount);
+        emit TokenWithdrawn(msg.sender, pair.id, _isStable, finalWithdrawalAmount);
     }
 
     function _withdraw(DataType.AssetPoolStatus storage _pool, uint256 _amount)

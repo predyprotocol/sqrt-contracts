@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
+import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@solmate/utils/FixedPointMathLib.sol";
 import "../DataType.sol";
 import "../Perp.sol";
@@ -8,6 +9,7 @@ import "../PositionCalculator.sol";
 import "../ScaledAsset.sol";
 import "../VaultLib.sol";
 import "./TradeLogic.sol";
+import "../ApplyInterestLib.sol";
 
 /*
  * Error Codes
@@ -32,6 +34,46 @@ library LiquidationLogic {
     );
 
     function execLiquidationCall(
+        DataType.GlobalData storage _globalData,
+        uint256 _vaultId,
+        uint256 _closeRatio,
+        uint256 _sqrtSlippageTolerance
+    ) external {
+        DataType.Vault storage vault = _globalData.vaults[_vaultId];
+        DataType.PairGroup memory pairGroup = _globalData.pairGroups[vault.pairGroupId];
+
+        // Checks vaultId exists
+        VaultLib.validateVaultId(_globalData, _vaultId);
+
+        // Updates interest rate related to the vault
+        ApplyInterestLib.applyInterestForVault(vault, _globalData.pairs);
+
+        uint256 mainVaultId = _globalData.ownVaultsMap[vault.owner][pairGroup.id].mainVaultId;
+
+        (int256 penaltyAmount, bool isClosedAll) = _execLiquidationCall(
+            pairGroup,
+            _globalData.pairs,
+            _globalData.rebalanceFeeGrowthCache,
+            vault,
+            _globalData.vaults[mainVaultId],
+            _closeRatio,
+            _sqrtSlippageTolerance
+        );
+
+        if (isClosedAll) {
+            VaultLib.removeIsolatedVaultId(_globalData.ownVaultsMap[vault.owner][pairGroup.id], vault.id);
+        }
+
+        if (penaltyAmount > 0) {
+            TransferHelper.safeTransfer(pairGroup.stableTokenAddress, msg.sender, uint256(penaltyAmount));
+        } else if (penaltyAmount < 0) {
+            TransferHelper.safeTransferFrom(
+                pairGroup.stableTokenAddress, msg.sender, address(this), uint256(-penaltyAmount)
+            );
+        }
+    }
+
+    function _execLiquidationCall(
         DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
@@ -39,7 +81,7 @@ library LiquidationLogic {
         DataType.Vault storage _mainVault,
         uint256 _closeRatio,
         uint256 _liquidationSlippageSqrtTolerance
-    ) external returns (int256 totalPenaltyAmount, bool isClosedAll) {
+    ) internal returns (int256 totalPenaltyAmount, bool isClosedAll) {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         // The vault must be danger

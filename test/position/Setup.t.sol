@@ -22,6 +22,8 @@ contract TestPositionCalculator is Test, Helper {
     IUniswapV3Pool internal wbtcUniswapPool;
     InterestRateModel.IRMParams internal irmParams;
 
+    uint256 internal constant PAIR_GROUP_ID = 1;
+
     function setUp() public virtual {
         irmParams = InterestRateModel.IRMParams(1e16, 9 * 1e17, 5 * 1e17, 1e18);
 

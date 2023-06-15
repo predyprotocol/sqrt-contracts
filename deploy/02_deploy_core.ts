@@ -38,7 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const LiquidationLogic = await ethers.getContract('LiquidationLogic', deployer)
   const ReaderLogic = await ethers.getContract('ReaderLogic', deployer)
   const SupplyLogic = await ethers.getContract('SupplyLogic', deployer)
-  const TradeLogic = await ethers.getContract('TradeLogic', deployer)
+  const TradePerpLogic = await ethers.getContract('TradePerpLogic', deployer)
   const UpdateMarginLogic = await ethers.getContract('UpdateMarginLogic', deployer)
   const IsolatedVaultLogic = await ethers.getContract('IsolatedVaultLogic', deployer)
 
@@ -53,7 +53,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ReaderLogic: ReaderLogic.address,
       AddAssetLogic: AddAssetLogic.address,
       SupplyLogic: SupplyLogic.address,
-      TradeLogic: TradeLogic.address,
+      TradePerpLogic: TradePerpLogic.address,
       UpdateMarginLogic: UpdateMarginLogic.address,
       IsolatedVaultLogic: IsolatedVaultLogic.address
     },
@@ -62,23 +62,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         init: {
           methodName: 'initialize',
-          args: [
-            usdc,
-            4,
-            [{
-              uniswapPool: networkNameToWethUniswapPool(network.name),
-              isIsolatedMode: false,
-              assetRiskParams: ASSET_RISK_PARAMS_MIDDLE,
-              stableIrmParams: USDC_IRM_PARAMS,
-              underlyingIrmParams: WETH_IRM_PARAMS
-            }, {
-              uniswapPool: networkNameToArbUniswapPool(network.name),
-              isIsolatedMode: false,
-              assetRiskParams: ASSET_RISK_PARAMS_HIGH,
-              stableIrmParams: USDC_IRM_PARAMS,
-              underlyingIrmParams: WETH_IRM_PARAMS
-            }]
-          ],
+          args: [],
         },
       },
     },
@@ -89,6 +73,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (network.name === 'arbitrum') {
       // await controller.setOperator(operatorAddress)
+    } else if (network.name === 'goerliArbitrum') {
+      await controller.addPairGroup(
+        usdc,
+        4
+      );
+
+      await controller.addPair({
+        pairGroupId: 1,
+        uniswapPool: networkNameToWethUniswapPool(network.name),
+        isIsolatedMode: false,
+        assetRiskParams: ASSET_RISK_PARAMS_MIDDLE,
+        stableIrmParams: USDC_IRM_PARAMS,
+        underlyingIrmParams: WETH_IRM_PARAMS
+      });
+
+      await controller.addPair({
+        pairGroupId: 1,
+        uniswapPool: networkNameToArbUniswapPool(network.name),
+        isIsolatedMode: false,
+        assetRiskParams: ASSET_RISK_PARAMS_HIGH,
+        stableIrmParams: USDC_IRM_PARAMS,
+        underlyingIrmParams: WETH_IRM_PARAMS
+      });
+
     }
   }
 }

@@ -28,7 +28,7 @@ contract TestControllerWithdrawToken is TestController {
         vm.stopPrank();
 
         vm.prank(user2);
-        vaultId = controller.updateMargin(1e10, 0);
+        vaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
     }
 
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
@@ -39,17 +39,24 @@ contract TestControllerWithdrawToken is TestController {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
+    function testCannotWithdrawToken_IfAmountIsZero() public {
+        controller.supplyToken(WETH_ASSET_ID, 100, false);
+
+        vm.expectRevert(bytes("AZ"));
+        controller.withdrawToken(WETH_ASSET_ID, 0, false);
+    }
+
     function testCannotWithdrawToken_IfAssetIdIsZero() public {
         controller.supplyToken(WETH_ASSET_ID, 100, false);
 
-        vm.expectRevert(bytes("A0"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.withdrawToken(0, 100, false);
     }
 
     function testCannotWithdrawToken_IfAssetIdIsNotExisted() public {
         controller.supplyToken(WETH_ASSET_ID, 100, false);
 
-        vm.expectRevert(bytes("A0"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.withdrawToken(4, 100, false);
     }
 

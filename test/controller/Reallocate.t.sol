@@ -34,13 +34,13 @@ contract TestControllerReallocate is TestController {
 
         // create vault
         vm.startPrank(user1);
-        vaultId1 = controller.updateMargin(1e10, 0);
+        vaultId1 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         controller.tradePerp(vaultId1, WETH_ASSET_ID, getTradeParams(-20 * 1e6, 100 * 1e6));
         vm.stopPrank();
 
         vm.prank(user2);
-        vaultId2 = controller.updateMargin(1e10, 0);
+        vaultId2 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         uniswapPool.swap(address(this), false, 3 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
     }
@@ -75,12 +75,12 @@ contract TestControllerReallocate is TestController {
     }
 
     function testCannotReallocateStableAsset() public {
-        vm.expectRevert(bytes("A0"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.reallocate(0);
     }
 
     function testCannotReallocateInvalidAssetId() public {
-        vm.expectRevert(bytes("A0"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.reallocate(4);
     }
 

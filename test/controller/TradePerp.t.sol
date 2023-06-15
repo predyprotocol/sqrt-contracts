@@ -31,10 +31,10 @@ contract TestControllerTradePerp is TestController {
         vm.stopPrank();
 
         // create vault
-        vaultId = controller.updateMargin(1e10, 0);
+        vaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(1e10, 0);
+        lpVaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         reader = new Reader(controller);
     }
@@ -54,7 +54,7 @@ contract TestControllerTradePerp is TestController {
                 }
             }
 
-            controller.updateMargin(-controller.getVault(vaultId).margin, 0);
+            controller.updateMargin(PAIR_GROUP_ID, -controller.getVault(vaultId).margin);
         }
 
         {
@@ -75,7 +75,7 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             int256 margin = controller.getVault(lpVaultId).margin;
             vm.prank(user2);
-            controller.updateMargin(-margin, 0);
+            controller.updateMargin(PAIR_GROUP_ID, -margin);
         }
 
         vm.prank(user2);
@@ -117,7 +117,7 @@ contract TestControllerTradePerp is TestController {
 
     // cannot open position if margin is not safe
     function testCannotTrade_IfVaultIsNotSafe() public {
-        controller.updateMargin(1e6 - 1e10, 0);
+        controller.updateMargin(PAIR_GROUP_ID, 1e6 - 1e10);
 
         TradePerpLogic.TradeParams memory tradeParams = getTradeParams(-10 * 1e8, 0);
 
@@ -156,15 +156,22 @@ contract TestControllerTradePerp is TestController {
     function testCannotTradePerp_IfAssetIdIsZero() public {
         TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
-        vm.expectRevert(bytes("A0"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.tradePerp(vaultId, 0, tradeParams);
     }
 
     function testCannotTradePerp_IfAssetIdIsNotExisted() public {
         TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
-        vm.expectRevert(bytes("ASSETID"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.tradePerp(vaultId, 4, tradeParams);
+    }
+
+    function testCannotTradePerp_IfPairBelongsToDifferentGroup() public {
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+
+        vm.expectRevert(bytes("PAIR1"));
+        controller.tradePerp(vaultId, WETH2_ASSET_ID, tradeParams);
     }
 
     // open delta long

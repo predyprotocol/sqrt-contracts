@@ -7,7 +7,8 @@ import "../Perp.sol";
 import "../PositionCalculator.sol";
 import "../Trade.sol";
 import "../VaultLib.sol";
-import "../AssetLib.sol";
+import "../PairLib.sol";
+import "../ApplyInterestLib.sol";
 import "./UpdateMarginLogic.sol";
 import "./TradeLogic.sol";
 
@@ -35,24 +36,51 @@ library TradePerpLogic {
     );
 
     function execTrade(
+        DataType.GlobalData storage _globalData,
+        uint256 _vaultId,
+        uint64 _pairId,
+        TradeParams memory _tradeParams
+    ) external returns (DataType.TradeResult memory tradeResult) {
+        // Checks pairId exists
+        PairLib.validatePairId(_globalData, _pairId);
+
+        // Checks vaultId exists
+        VaultLib.validateVaultId(_globalData, _vaultId);
+
+        DataType.Vault storage vault = _globalData.vaults[_vaultId];
+        DataType.PairGroup memory pairGroup = _globalData.pairGroups[vault.pairGroupId];
+
+        // Checks vault owner is caller
+        VaultLib.checkVault(vault, msg.sender);
+
+        // Checks pair and vault belong to same pairGroup
+        PairLib.checkPairBelongsToPairGroup(_globalData.pairs[_pairId], vault.pairGroupId);
+
+        Perp.UserStatus storage openPosition = VaultLib.createOrGetOpenPosition(_globalData.pairs, vault, _pairId);
+
+        // Updates interest rate related to the vault
+        ApplyInterestLib.applyInterestForVault(vault, _globalData.pairs);
+
+        // Validates trade params
+        return execTradeAndValidate(pairGroup, _globalData, vault, _pairId, openPosition, _tradeParams);
+    }
+
+    function execTradeAndValidate(
         DataType.PairGroup memory _pairGroup,
-        mapping(uint256 => DataType.PairStatus) storage _pairs,
-        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.GlobalData storage _globalData,
         DataType.Vault storage _vault,
         uint256 _pairId,
         Perp.UserStatus storage _openPosition,
         TradeParams memory _tradeParams
     ) public returns (DataType.TradeResult memory tradeResult) {
-        DataType.PairStatus storage pairStatus = _pairs[_pairId];
-
-        AssetLib.checkUnderlyingAsset(pairStatus);
+        DataType.PairStatus storage pairStatus = _globalData.pairs[_pairId];
 
         checkDeadline(_tradeParams.deadline);
 
         tradeResult = TradeLogic.trade(
             _pairGroup,
             pairStatus,
-            _rebalanceFeeGrowthCache,
+            _globalData.rebalanceFeeGrowthCache,
             _openPosition,
             _tradeParams.tradeAmount,
             _tradeParams.tradeAmountSqrt
@@ -78,7 +106,8 @@ library TradePerpLogic {
             UpdateMarginLogic.emitEvent(_vault, marginAmount);
         }
 
-        tradeResult.minDeposit = PositionCalculator.checkSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
+        tradeResult.minDeposit =
+            PositionCalculator.checkSafe(_globalData.pairs, _globalData.rebalanceFeeGrowthCache, _vault);
 
         emit PositionUpdated(
             _vault.id,

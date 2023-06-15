@@ -9,13 +9,13 @@ interface IController {
         external
         returns (DataType.TradeResult memory);
 
-    function updateMargin(int256 _marginAmount, uint256 _vaultId) external returns (uint256 vaultId);
+    function updateMargin(uint64 _pairGroupId, int256 _marginAmount) external returns (uint256 vaultId);
 
     function getSqrtPrice(uint256 _pairId) external view returns (uint160);
 
     function getVault(uint256 _id) external view returns (DataType.Vault memory);
 
-    function getPairGroup() external view returns (DataType.PairGroup memory);
+    function getPairGroup(uint256 _id) external view returns (DataType.PairGroup memory);
 
     function getAsset(uint256 _id) external view returns (DataType.PairStatus memory);
 

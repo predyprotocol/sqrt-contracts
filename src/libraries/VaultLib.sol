@@ -1,31 +1,65 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./PairGroupLib.sol";
 import "./DataType.sol";
 import "./ScaledAsset.sol";
 
 library VaultLib {
-    using PairGroupLib for DataType.PairGroup;
-
     uint256 internal constant MAX_VAULTS = 100;
 
-    function getUserStatus(
-        DataType.PairGroup memory _pairGroup,
+    event VaultCreated(uint256 vaultId, address owner, bool isMainVault);
+
+    function validateVaultId(DataType.GlobalData storage _globalData, uint256 _vaultId) internal view {
+        require(0 < _vaultId && _vaultId < _globalData.vaultCount, "V1");
+    }
+
+    function checkVault(DataType.Vault memory _vault, address _caller) internal pure {
+        require(_vault.owner == _caller, "V2");
+    }
+
+    function checkVaultBelongsToPairGroup(DataType.Vault memory _vault, uint256 _pairGroupId) internal pure {
+        require(_vault.pairGroupId == _pairGroupId, "VAULT0");
+    }
+
+    function createVaultIfNeeded(
+        DataType.GlobalData storage _globalData,
+        uint256 _vaultId,
+        address _caller,
+        uint256 _pairGroupId,
+        bool _isMainVault
+    ) internal returns (uint256 vaultId) {
+        if (_vaultId == 0) {
+            vaultId = _globalData.vaultCount++;
+
+            require(_caller != address(0), "V5");
+
+            _globalData.vaults[vaultId].id = vaultId;
+            _globalData.vaults[vaultId].owner = _caller;
+            _globalData.vaults[vaultId].pairGroupId = _pairGroupId;
+
+            if (_isMainVault) {
+                updateMainVaultId(_globalData.ownVaultsMap[_caller][_pairGroupId], vaultId);
+            } else {
+                addIsolatedVaultId(_globalData.ownVaultsMap[_caller][_pairGroupId], vaultId);
+            }
+
+            emit VaultCreated(vaultId, msg.sender, _isMainVault);
+
+            return vaultId;
+        } else {
+            validateVaultId(_globalData, _vaultId);
+            checkVault(_globalData.vaults[_vaultId], _caller);
+            checkVaultBelongsToPairGroup(_globalData.vaults[_vaultId], _pairGroupId);
+            return _vaultId;
+        }
+    }
+
+    function createOrGetOpenPosition(
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         DataType.Vault storage _vault,
         uint64 _pairId
     ) internal returns (Perp.UserStatus storage userStatus) {
-        checkVault(_vault, msg.sender);
-
-        require(_pairGroup.isAllow(_pairId), "ASSETID");
-
         userStatus = createOrGetUserStatus(_pairs, _vault, _pairId);
-    }
-
-    function checkVault(DataType.Vault memory _vault, address _caller) internal pure {
-        require(_vault.id > 0, "V1");
-        require(_vault.owner == _caller, "V2");
     }
 
     function createOrGetUserStatus(

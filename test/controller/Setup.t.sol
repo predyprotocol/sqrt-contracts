@@ -15,6 +15,9 @@ contract TestController is Test {
 
     uint64 internal constant WETH_ASSET_ID = 1;
     uint64 internal constant WBTC_ASSET_ID = 2;
+    uint64 internal constant WETH2_ASSET_ID = 3;
+    uint64 internal constant PAIR_GROUP_ID = 1;
+    uint64 internal constant INVALID_PAIR_GROUP_ID = 3;
 
     Controller internal controller;
     MockERC20 internal usdc;
@@ -113,16 +116,43 @@ contract TestController is Test {
     }
 
     function initializeController() internal {
-        DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](2);
+        controller.initialize();
 
-        addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
-        );
-        addAssetParams[1] = DataType.AddAssetParams(
-            address(wbtcUniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+        controller.addPairGroup(address(usdc), 4);
+        controller.addPairGroup(address(usdc), 4);
+
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID,
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
         );
 
-        controller.initialize(address(usdc), 4, addAssetParams);
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID,
+                address(wbtcUniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
+        );
+
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID + 1,
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
+        );
     }
 
     function getTradeParamsWithTokenId(uint256 _tokenId, int256 _tradeAmount, int256 _tradeSqrtAmount)

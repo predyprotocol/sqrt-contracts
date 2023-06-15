@@ -33,7 +33,7 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         openPositions[0].sqrtPerp.entryValue = 0;
         openPositions[0].stable.positionAmount = _amountStable;
 
-        return DataType.Vault(1, address(this), _margin, openPositions);
+        return DataType.Vault(1, PAIR_GROUP_ID, address(this), _margin, openPositions);
     }
 
     function getMultiAssetVault(
@@ -62,7 +62,7 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         openPositions[1].sqrtPerp.entryValue = 0;
         openPositions[1].stable.positionAmount = _positionParams2.amountStable;
 
-        return DataType.Vault(1, address(this), _margin, openPositions);
+        return DataType.Vault(1, PAIR_GROUP_ID, address(this), _margin, openPositions);
     }
 
     function testCalculateMinDepositZero() public {

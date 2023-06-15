@@ -10,20 +10,20 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./libraries/DataType.sol";
 import "./libraries/VaultLib.sol";
-import "./libraries/PairGroupLib.sol";
 import "./libraries/PositionCalculator.sol";
 import "./libraries/Perp.sol";
 import "./libraries/ScaledAsset.sol";
 import "./libraries/SwapLib.sol";
 import "./libraries/InterestRateModel.sol";
-import "./libraries/logic/AddAssetLogic.sol";
-import "./libraries/logic/ApplyInterestLogic.sol";
+import "./libraries/ApplyInterestLib.sol";
+import "./libraries/logic/AddPairLogic.sol";
 import "./libraries/logic/LiquidationLogic.sol";
 import "./libraries/logic/ReaderLogic.sol";
 import "./libraries/logic/SupplyLogic.sol";
 import "./libraries/logic/TradePerpLogic.sol";
 import "./libraries/logic/IsolatedVaultLogic.sol";
 import "./libraries/logic/UpdateMarginLogic.sol";
+import "./libraries/logic/ReallocationLogic.sol";
 import "./interfaces/IController.sol";
 
 /**
@@ -36,21 +36,7 @@ import "./interfaces/IController.sol";
  * C5: invalid vault creation
  */
 contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback, IController {
-    using PairGroupLib for DataType.PairGroup;
-    using ScaledAsset for ScaledAsset.TokenStatus;
-
-    DataType.PairGroup internal pairGroup;
-
-    mapping(uint256 => DataType.PairStatus) internal pairs;
-
-    mapping(uint256 => DataType.RebalanceFeeGrowthCache) internal rebalanceFeeGrowthCache;
-
-    mapping(uint256 => DataType.Vault) internal vaults;
-
-    /// @dev account -> vaultId
-    mapping(address => DataType.OwnVaults) internal ownVaultsMap;
-
-    uint256 public vaultCount;
+    DataType.GlobalData public globalData;
 
     address public operator;
 
@@ -60,7 +46,6 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     event OperatorUpdated(address operator);
     event LiquidatorUpdated(address liquidator);
-    event VaultCreated(uint256 vaultId, address owner, bool isMainVault);
 
     modifier onlyOperator() {
         require(operator == msg.sender, "C1");
@@ -97,18 +82,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
     }
 
-    function initialize(
-        address _stableAssetAddress,
-        uint8 _marginRounder,
-        DataType.AddAssetParams[] memory _addAssetParams
-    ) public initializer {
-        vaultCount = 1;
-
+    function initialize() public initializer {
         operator = msg.sender;
 
-        AddAssetLogic.initializeAssetGroup(
-            pairGroup, pairs, allowedUniswapPools, _stableAssetAddress, _marginRounder, _addAssetParams
-        );
+        AddPairLogic.initializeGlobalData(globalData);
+    }
+
+    function vaultCount() external view returns (uint256) {
+        return globalData.vaultCount;
     }
 
     /**
@@ -136,13 +117,23 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     }
 
     /**
+     * @notice Adds an pair group
+     * @param _stableAssetAddress The address of stable asset
+     * @param _marginRounder Margin rounder
+     * @return pairGroupId Pair group id
+     */
+    function addPairGroup(address _stableAssetAddress, uint8 _marginRounder) external onlyOperator returns (uint256) {
+        return AddPairLogic.addPairGroup(globalData, _stableAssetAddress, _marginRounder);
+    }
+
+    /**
      * @notice Adds token pair to the contract
      * @dev Only operator can call this function.
-     * @param _addAssetParam parameters to define asset risk and interest rate model
+     * @param _addPairParam parameters to define asset risk and interest rate model
      * @return pairId The id of pair
      */
-    function addPair(DataType.AddAssetParams memory _addAssetParam) external onlyOperator returns (uint256) {
-        return AddAssetLogic._addPair(pairGroup, pairs, allowedUniswapPools, _addAssetParam);
+    function addPair(DataType.AddPairParams memory _addPairParam) external onlyOperator returns (uint256) {
+        return AddPairLogic.addPair(globalData, allowedUniswapPools, _addPairParam);
     }
 
     /**
@@ -155,7 +146,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         external
         onlyOperator
     {
-        AddAssetLogic.updateAssetRiskParams(pairs[_pairId], _riskParams);
+        AddPairLogic.updateAssetRiskParams(globalData.pairs[_pairId], _riskParams);
     }
 
     /**
@@ -170,7 +161,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         InterestRateModel.IRMParams memory _stableIrmParams,
         InterestRateModel.IRMParams memory _underlyingIrmParams
     ) external onlyOperator {
-        AddAssetLogic.updateIRMParams(pairs[_pairId], _stableIrmParams, _underlyingIrmParams);
+        AddPairLogic.updateIRMParams(globalData.pairs[_pairId], _stableIrmParams, _underlyingIrmParams);
     }
 
     /**
@@ -178,9 +169,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _pairId The id of pair to reallocate.
      */
     function reallocate(uint256 _pairId) external returns (bool, int256) {
-        ApplyInterestLogic.applyInterestForToken(pairs, _pairId);
-
-        return ApplyInterestLogic.reallocate(pairs, rebalanceFeeGrowthCache, _pairId);
+        return ReallocationLogic.reallocate(globalData, _pairId);
     }
 
     /**
@@ -195,9 +184,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         nonReentrant
         returns (uint256 finalMintAmount)
     {
-        ApplyInterestLogic.applyInterestForToken(pairs, _pairId);
-
-        return SupplyLogic.supply(pairs[_pairId], _amount, _isStable);
+        return SupplyLogic.supply(globalData, _pairId, _amount, _isStable);
     }
 
     /**
@@ -213,36 +200,21 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         nonReentrant
         returns (uint256 finalBurnAmount, uint256 finalWithdrawAmount)
     {
-        ApplyInterestLogic.applyInterestForToken(pairs, _pairId);
-
-        return SupplyLogic.withdraw(pairs[_pairId], _amount, _isStable);
+        return SupplyLogic.withdraw(globalData, _pairId, _amount, _isStable);
     }
 
     /**
      * @notice Deposit or withdraw margin
      * @param _marginAmount The amount of margin. Positive means deposit and negative means withdraw.
-     * @param _vaultId The id of vault to update margin. If _vaultId is 0, update margin of the main vault.
      * @return vaultId The id of vault created
      */
-    function updateMargin(int256 _marginAmount, uint256 _vaultId)
+    function updateMargin(uint64 _pairGroupId, int256 _marginAmount)
         external
         override(IController)
         nonReentrant
         returns (uint256 vaultId)
     {
-        if (_vaultId > 0) {
-            // isolated vault
-            vaultId = _vaultId;
-        } else {
-            // main vault
-            vaultId = ownVaultsMap[msg.sender].mainVaultId;
-        }
-
-        vaultId = createVaultIfNeeded(vaultId, msg.sender, true);
-
-        DataType.Vault storage vault = vaults[vaultId];
-
-        UpdateMarginLogic.updateMargin(pairGroup, pairs, rebalanceFeeGrowthCache, vault, _marginAmount);
+        return UpdateMarginLogic.updateMargin(globalData, _pairGroupId, _marginAmount);
     }
 
     /**
@@ -258,26 +230,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         nonReentrant
         returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
     {
-        uint256 vaultId = ownVaultsMap[msg.sender].mainVaultId;
-
-        DataType.Vault storage vault = vaults[vaultId];
-
-        VaultLib.checkVault(vault, msg.sender);
-
-        applyInterest(vault);
-
-        isolatedVaultId = createVaultIfNeeded(0, msg.sender, false);
-
-        tradeResult = IsolatedVaultLogic.openIsolatedVault(
-            pairGroup,
-            pairs,
-            rebalanceFeeGrowthCache,
-            vault,
-            vaults[isolatedVaultId],
-            _depositAmount,
-            _pairId,
-            _tradeParams
-        );
+        return IsolatedVaultLogic.openIsolatedVault(globalData, _depositAmount, _pairId, _tradeParams);
     }
 
     /**
@@ -292,20 +245,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         uint64 _pairId,
         IsolatedVaultLogic.CloseParams memory _closeParams
     ) external nonReentrant returns (DataType.TradeResult memory tradeResult) {
-        uint256 vaultId = ownVaultsMap[msg.sender].mainVaultId;
-
-        DataType.Vault storage vault = vaults[vaultId];
-        DataType.Vault storage isolatedVault = vaults[_isolatedVaultId];
-
-        VaultLib.checkVault(vault, msg.sender);
-
-        applyInterest(isolatedVault);
-
-        tradeResult = IsolatedVaultLogic.closeIsolatedVault(
-            pairGroup, pairs, rebalanceFeeGrowthCache, vault, isolatedVault, _pairId, _closeParams
-        );
-
-        VaultLib.removeIsolatedVaultId(ownVaultsMap[msg.sender], isolatedVault.id);
+        tradeResult = IsolatedVaultLogic.closeIsolatedVault(globalData, _isolatedVaultId, _pairId, _closeParams);
     }
 
     /**
@@ -321,13 +261,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         nonReentrant
         returns (DataType.TradeResult memory)
     {
-        Perp.UserStatus storage openPosition = VaultLib.getUserStatus(pairGroup, pairs, vaults[_vaultId], _pairId);
-
-        applyInterest(vaults[_vaultId]);
-
-        return TradePerpLogic.execTrade(
-            pairGroup, pairs, rebalanceFeeGrowthCache, vaults[_vaultId], _pairId, openPosition, _tradeParams
-        );
+        return TradePerpLogic.execTrade(globalData, _vaultId, _pairId, _tradeParams);
     }
 
     /**
@@ -341,65 +275,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         external
         nonReentrant
     {
-        DataType.Vault storage vault = vaults[_vaultId];
-
-        require(vault.owner != address(0));
         require(msg.sender == liquidator || _sqrtSlippageTolerance == 0);
 
-        applyInterest(vault);
-
-        uint256 mainVaultId = ownVaultsMap[vault.owner].mainVaultId;
-
-        (int256 penaltyAmount, bool isClosedAll) = LiquidationLogic.execLiquidationCall(
-            pairGroup, pairs, rebalanceFeeGrowthCache, vault, vaults[mainVaultId], _closeRatio, _sqrtSlippageTolerance
-        );
-
-        if (isClosedAll) {
-            VaultLib.removeIsolatedVaultId(ownVaultsMap[vault.owner], vault.id);
-        }
-
-        if (penaltyAmount > 0) {
-            TransferHelper.safeTransfer(pairGroup.stableTokenAddress, msg.sender, uint256(penaltyAmount));
-        } else if (penaltyAmount < 0) {
-            TransferHelper.safeTransferFrom(
-                pairGroup.stableTokenAddress, msg.sender, address(this), uint256(-penaltyAmount)
-            );
-        }
+        LiquidationLogic.execLiquidationCall(globalData, _vaultId, _closeRatio, _sqrtSlippageTolerance);
     }
 
     ///////////////////////
     // Private Functions //
     ///////////////////////
-
-    function applyInterest(DataType.Vault memory _vault) internal {
-        ApplyInterestLogic.applyInterestForVault(_vault, pairs);
-    }
-
-    function createVaultIfNeeded(uint256 _vaultId, address _caller, bool _isMainVault)
-        internal
-        returns (uint256 vaultId)
-    {
-        if (_vaultId == 0) {
-            vaultId = vaultCount++;
-
-            require(_caller != address(0), "C5");
-
-            vaults[vaultId].id = vaultId;
-            vaults[vaultId].owner = _caller;
-
-            if (_isMainVault) {
-                VaultLib.updateMainVaultId(ownVaultsMap[_caller], vaultId);
-            } else {
-                VaultLib.addIsolatedVaultId(ownVaultsMap[_caller], vaultId);
-            }
-
-            emit VaultCreated(vaultId, msg.sender, _isMainVault);
-
-            return vaultId;
-        } else {
-            return _vaultId;
-        }
-    }
 
     // Getter functions
 
@@ -408,32 +291,32 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      */
     function getSqrtPrice(uint256 _tokenId) external view override(IController) returns (uint160) {
         return UniHelper.convertSqrtPrice(
-            UniHelper.getSqrtPrice(pairs[_tokenId].sqrtAssetStatus.uniswapPool), pairs[_tokenId].isMarginZero
+            UniHelper.getSqrtPrice(globalData.pairs[_tokenId].sqrtAssetStatus.uniswapPool),
+            globalData.pairs[_tokenId].isMarginZero
         );
     }
 
     function getSqrtIndexPrice(uint256 _tokenId) external view returns (uint160) {
         return UniHelper.convertSqrtPrice(
-            UniHelper.getSqrtTWAP(pairs[_tokenId].sqrtAssetStatus.uniswapPool), pairs[_tokenId].isMarginZero
+            UniHelper.getSqrtTWAP(globalData.pairs[_tokenId].sqrtAssetStatus.uniswapPool),
+            globalData.pairs[_tokenId].isMarginZero
         );
     }
 
-    function getPairGroup() external view override(IController) returns (DataType.PairGroup memory) {
-        return pairGroup;
+    function getPairGroup(uint256 _id) external view override(IController) returns (DataType.PairGroup memory) {
+        return globalData.pairGroups[_id];
     }
 
     function getAsset(uint256 _id) external view override(IController) returns (DataType.PairStatus memory) {
-        return pairs[_id];
+        return globalData.pairs[_id];
     }
 
     function getLatestAssetStatus(uint256 _id) external returns (DataType.PairStatus memory) {
-        ApplyInterestLogic.applyInterestForToken(pairs, _id);
-
-        return pairs[_id];
+        return ReaderLogic.getLatestAssetStatus(globalData, _id);
     }
 
     function getVault(uint256 _id) external view override(IController) returns (DataType.Vault memory) {
-        return vaults[_id];
+        return globalData.vaults[_id];
     }
 
     /**
@@ -442,22 +325,20 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @param _vaultId The id of the vault
      */
     function getVaultStatus(uint256 _vaultId) public returns (DataType.VaultStatusResult memory) {
-        DataType.Vault storage vault = vaults[_vaultId];
+        DataType.Vault storage vault = globalData.vaults[_vaultId];
 
-        applyInterest(vault);
-
-        return ReaderLogic.getVaultStatus(pairs, rebalanceFeeGrowthCache, vault);
+        return ReaderLogic.getVaultStatus(globalData.pairs, globalData.rebalanceFeeGrowthCache, vault);
     }
 
     /**
      * @notice Gets latest main vault status that the caller has.
      * @dev This function should not be called on chain.
      */
-    function getVaultStatusWithAddress()
+    function getVaultStatusWithAddress(uint256 _pairGroupId)
         external
         returns (DataType.VaultStatusResult memory, DataType.VaultStatusResult[] memory)
     {
-        DataType.OwnVaults memory ownVaults = ownVaultsMap[msg.sender];
+        DataType.OwnVaults memory ownVaults = globalData.ownVaultsMap[msg.sender][_pairGroupId];
 
         DataType.VaultStatusResult[] memory vaultStatusResults =
             new DataType.VaultStatusResult[](ownVaults.isolatedVaultIds.length);
