@@ -62,23 +62,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         init: {
           methodName: 'initialize',
-          args: [
-            usdc,
-            4,
-            [{
-              uniswapPool: networkNameToWethUniswapPool(network.name),
-              isIsolatedMode: false,
-              assetRiskParams: ASSET_RISK_PARAMS_MIDDLE,
-              stableIrmParams: USDC_IRM_PARAMS,
-              underlyingIrmParams: WETH_IRM_PARAMS
-            }, {
-              uniswapPool: networkNameToArbUniswapPool(network.name),
-              isIsolatedMode: false,
-              assetRiskParams: ASSET_RISK_PARAMS_HIGH,
-              stableIrmParams: USDC_IRM_PARAMS,
-              underlyingIrmParams: WETH_IRM_PARAMS
-            }]
-          ],
+          args: [],
         },
       },
     },
@@ -89,6 +73,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     if (network.name === 'arbitrum') {
       // await controller.setOperator(operatorAddress)
+    } else if (network.name === 'goerliArbitrum') {
+      await controller.addPairGroup(
+        usdc,
+        4
+      );
+
+      await controller.addPair({
+        pairGroupId: 1,
+        uniswapPool: networkNameToWethUniswapPool(network.name),
+        isIsolatedMode: false,
+        assetRiskParams: ASSET_RISK_PARAMS_MIDDLE,
+        stableIrmParams: USDC_IRM_PARAMS,
+        underlyingIrmParams: WETH_IRM_PARAMS
+      });
+
+      await controller.addPair({
+        pairGroupId: 1,
+        uniswapPool: networkNameToArbUniswapPool(network.name),
+        isIsolatedMode: false,
+        assetRiskParams: ASSET_RISK_PARAMS_HIGH,
+        stableIrmParams: USDC_IRM_PARAMS,
+        underlyingIrmParams: WETH_IRM_PARAMS
+      });
+
     }
   }
 }

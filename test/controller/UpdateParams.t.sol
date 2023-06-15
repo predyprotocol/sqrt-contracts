@@ -22,14 +22,18 @@ contract TestControllerUpdateParams is TestController {
     function testAddPair() public {
         DataType.AddPairParams memory addPairParams = DataType.AddPairParams(
             PAIR_GROUP_ID,
-            address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+            address(uniswapPool),
+            false,
+            DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+            irmParams,
+            irmParams
         );
 
         uint256 assetId = controller.addPair(addPairParams);
 
         DataType.PairStatus memory asset = controller.getAsset(assetId);
 
-        assertEq(asset.id, 3);
+        assertEq(asset.id, 4);
     }
 
     function testCannotUpdateAssetRiskParams_IfAParamIsInvalid() public {

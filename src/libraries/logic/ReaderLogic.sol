@@ -5,16 +5,28 @@ import "../DataType.sol";
 import "../Perp.sol";
 import "../PositionCalculator.sol";
 import "../ScaledAsset.sol";
+import "../ApplyInterestLib.sol";
 
 library ReaderLogic {
     using Perp for Perp.SqrtPerpAssetStatus;
     using ScaledAsset for ScaledAsset.TokenStatus;
 
+    function getLatestAssetStatus(DataType.GlobalData storage _globalData, uint256 _id)
+        external
+        returns (DataType.PairStatus memory)
+    {
+        ApplyInterestLib.applyInterestForToken(_globalData.pairs, _id);
+
+        return _globalData.pairs[_id];
+    }
+
     function getVaultStatus(
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         DataType.Vault memory _vault
-    ) external view returns (DataType.VaultStatusResult memory) {
+    ) external returns (DataType.VaultStatusResult memory) {
+        ApplyInterestLib.applyInterestForVault(_vault, _pairs);
+
         DataType.SubVaultStatusResult[] memory subVaults =
             new DataType.SubVaultStatusResult[](_vault.openPositions.length);
 

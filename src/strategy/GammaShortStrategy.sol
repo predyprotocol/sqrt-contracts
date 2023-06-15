@@ -160,7 +160,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         ERC20(usdc).approve(address(controller), _initialMarginAmount);
 
-        vaultId = controller.updateMargin(1, int256(_initialMarginAmount));
+        vaultId = controller.updateMargin(pairGroupId, int256(_initialMarginAmount));
 
         controller.tradePerp(
             vaultId,
@@ -357,7 +357,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         finalWithdrawAmount = roundDownMargin(uint256(withdrawMarginAmount), marginRoundedScaler);
 
-        controller.updateMargin(1, -int256(finalWithdrawAmount));
+        controller.updateMargin(pairGroupId, -int256(finalWithdrawAmount));
 
         TransferHelper.safeTransfer(usdc, _recepient, finalWithdrawAmount);
 

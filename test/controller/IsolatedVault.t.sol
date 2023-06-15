@@ -44,7 +44,11 @@ contract TestControllerIsolatedVault is TestController {
         isolatedPairId = controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
-                address(uniswapPool), true, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+                address(uniswapPool),
+                true,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
             )
         );
 
@@ -77,7 +81,7 @@ contract TestControllerIsolatedVault is TestController {
     function testCannotOpenIsolatedVault_IfCallerIsNotOwner() public {
         TradePerpLogic.TradeParams memory tradeParams = getTradeParams(-45 * 1e8, 0);
 
-        vm.expectRevert(bytes("V1"));
+        vm.expectRevert(bytes("V2"));
         controller.openIsolatedVault(10 * 1e8, WETH_ASSET_ID, tradeParams);
     }
 

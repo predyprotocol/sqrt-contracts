@@ -156,15 +156,22 @@ contract TestControllerTradePerp is TestController {
     function testCannotTradePerp_IfAssetIdIsZero() public {
         TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
-        vm.expectRevert(bytes("V5"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.tradePerp(vaultId, 0, tradeParams);
     }
 
     function testCannotTradePerp_IfAssetIdIsNotExisted() public {
         TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
-        vm.expectRevert(bytes("V5"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.tradePerp(vaultId, 4, tradeParams);
+    }
+
+    function testCannotTradePerp_IfPairBelongsToDifferentGroup() public {
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+
+        vm.expectRevert(bytes("PAIR1"));
+        controller.tradePerp(vaultId, WETH2_ASSET_ID, tradeParams);
     }
 
     // open delta long

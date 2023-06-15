@@ -4,11 +4,12 @@ pragma solidity ^0.8.19;
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../DataType.sol";
+import "../PairGroupLib.sol";
 import "../../tokenization/SupplyToken.sol";
 
-library AddAssetLogic {
+library AddPairLogic {
     event PairAdded(uint256 pairId, address _uniswapPool);
-    event PAirGroupAdded(uint256 id, address stableAsset);
+    event PairGroupAdded(uint256 id, address stableAsset);
     event AssetRiskParamsUpdated(uint256 pairId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
@@ -18,38 +19,30 @@ library AddAssetLogic {
      * @notice Initialized global data counts
      * @param _global Global data
      */
-    function initializeGlobalData(
-        DataType.GlobalData storage _global
-    ) external {
+    function initializeGlobalData(DataType.GlobalData storage _global) external {
         _global.pairGroupsCount = 1;
         _global.pairsCount = 1;
+        _global.vaultCount = 1;
     }
 
     /**
      * @notice Adds an pair group
      * @param _global Global data
-     * @param _pairGroups Pair groups
      * @param _stableAssetAddress The address of stable asset
      * @param _marginRounder Margin rounder
      * @return pairGroupId Pair group id
      */
-    function addPairGroup(
-        DataType.GlobalData storage _global,
-        mapping(uint256 => DataType.PairGroup) storage _pairGroups,
-        address _stableAssetAddress,
-        uint8 _marginRounder
-    ) external returns (uint256 pairGroupId) {
+    function addPairGroup(DataType.GlobalData storage _global, address _stableAssetAddress, uint8 _marginRounder)
+        external
+        returns (uint256 pairGroupId)
+    {
         pairGroupId = _global.pairGroupsCount;
 
-        _pairGroups[pairGroupId] = DataType.PairGroup(
-            pairGroupId,
-            _stableAssetAddress,
-            _marginRounder
-        );
+        _global.pairGroups[pairGroupId] = DataType.PairGroup(pairGroupId, _stableAssetAddress, _marginRounder);
 
         _global.pairGroupsCount++;
 
-        emit PAirGroupAdded(pairGroupId, _stableAssetAddress);
+        emit PairGroupAdded(pairGroupId, _stableAssetAddress);
     }
 
     /**
@@ -57,26 +50,27 @@ library AddAssetLogic {
      */
     function addPair(
         DataType.GlobalData storage _global,
-        DataType.PairGroup memory _pairGroup,
-        mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(address => bool) storage allowedUniswapPools,
         DataType.AddPairParams memory _addPairParam
-    ) public returns (uint256 pairId) {
+    ) external returns (uint256 pairId) {
         pairId = _global.pairsCount;
 
-        validatePairGroupId(_global, _pairGroup.id);
+        // Checks the pair group exists
+        PairGroupLib.validatePairGroupId(_global, _addPairParam.pairGroupId);
+
+        DataType.PairGroup memory pairGroup = _global.pairGroups[_addPairParam.pairGroupId];
 
         IUniswapV3Pool uniswapPool = IUniswapV3Pool(_addPairParam.uniswapPool);
 
-        address stableTokenAddress = _pairGroup.stableTokenAddress;
+        address stableTokenAddress = pairGroup.stableTokenAddress;
 
         require(uniswapPool.token0() == stableTokenAddress || uniswapPool.token1() == stableTokenAddress, "C3");
 
         bool isMarginZero = uniswapPool.token0() == stableTokenAddress;
 
         _storePairStatus(
-            _pairGroup,
-            _pairs,
+            pairGroup,
+            _global.pairs,
             pairId,
             isMarginZero ? uniswapPool.token1() : uniswapPool.token0(),
             isMarginZero,
@@ -180,12 +174,5 @@ library AddAssetLogic {
                 && _irmParams.slope2 <= 10 * 1e18,
             "C4"
         );
-    }
-
-    function validatePairGroupId(
-        DataType.GlobalData memory _global,
-        uint256 _pairGroupId
-    ) internal pure {
-        require(0 < _pairGroupId && _pairGroupId < _global.pairGroupsCount, "INVALID_PG");
     }
 }

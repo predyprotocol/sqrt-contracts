@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./AssetLib.sol";
+import "./PairLib.sol";
 import "./Perp.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
@@ -109,7 +109,7 @@ library PerpFee {
         Perp.UserStatus memory _userStatus
     ) internal view returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) {
         if (_userStatus.sqrtPerp.amount > 0 && _userStatus.lastNumRebalance < _assetStatus.numRebalance) {
-            uint256 rebalanceId = AssetLib.getRebalanceCacheId(_assetId, _userStatus.lastNumRebalance);
+            uint256 rebalanceId = PairLib.getRebalanceCacheId(_assetId, _userStatus.lastNumRebalance);
 
             rebalanceFeeUnderlying = Math.mulDivDownInt256(
                 _assetStatus.rebalanceFeeGrowthUnderlying - _rebalanceFeeGrowthCache[rebalanceId].underlyingGrowth,

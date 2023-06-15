@@ -14,7 +14,7 @@ contract TestBaseStrategy is Test {
     uint256 internal constant RISK_RATIO = 109544511;
 
     uint64 internal constant WETH_ASSET_ID = 1;
-    uint256 internal constant PAIR_GROUP_ID = 1;
+    uint64 internal constant PAIR_GROUP_ID = 1;
 
     Controller internal controller;
     MockERC20 internal usdc;
@@ -101,15 +101,16 @@ contract TestBaseStrategy is Test {
     function initializeController() internal {
         controller.initialize();
 
-        controller.addPairGroup(
-            address(usdc),
-            4
-        );
+        controller.addPairGroup(address(usdc), 4);
 
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
-                address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
             )
         );
     }

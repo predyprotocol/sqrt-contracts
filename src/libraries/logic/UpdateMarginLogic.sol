@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "../DataType.sol";
+import "../PairGroupLib.sol";
 import "../PositionCalculator.sol";
 import "../ScaledAsset.sol";
 import "../VaultLib.sol";
@@ -10,24 +11,30 @@ import "../VaultLib.sol";
 library UpdateMarginLogic {
     event MarginUpdated(uint256 vaultId, int256 marginAmount);
 
-    function updateMargin(
-        DataType.PairGroup memory _pairGroup,
-        mapping(uint256 => DataType.PairStatus) storage _pairs,
-        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
-        DataType.Vault storage _vault,
-        int256 _marginAmount
-    ) external {
-        require(_marginAmount != 0, "UML0");
-        
-        VaultLib.checkVault(_vault, msg.sender);
+    function updateMargin(DataType.GlobalData storage _globalData, uint64 _pairGroupId, int256 _marginAmount)
+        external
+        returns (uint256 vaultId)
+    {
+        // Checks margin is not 0
+        require(_marginAmount != 0, "AZ");
 
-        _vault.margin += _marginAmount;
+        // Checks pairGroupId exists
+        PairGroupLib.validatePairGroupId(_globalData, _pairGroupId);
 
-        PositionCalculator.checkSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
+        vaultId = _globalData.ownVaultsMap[msg.sender][_pairGroupId].mainVaultId;
 
-        execMarginTransfer(_vault, _pairGroup.stableTokenAddress, _marginAmount);
+        // Checks main vault belongs to pairGroup, or main vault does not exist
+        vaultId = VaultLib.createVaultIfNeeded(_globalData, vaultId, msg.sender, _pairGroupId, true);
 
-        emitEvent(_vault, _marginAmount);
+        DataType.Vault storage vault = _globalData.vaults[vaultId];
+
+        vault.margin += _marginAmount;
+
+        PositionCalculator.checkSafe(_globalData.pairs, _globalData.rebalanceFeeGrowthCache, vault);
+
+        execMarginTransfer(vault, _globalData.pairGroups[_pairGroupId].stableTokenAddress, _marginAmount);
+
+        emitEvent(vault, _marginAmount);
     }
 
     function execMarginTransfer(DataType.Vault memory _vault, address _stable, int256 _marginAmount) public {

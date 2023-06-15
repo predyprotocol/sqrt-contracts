@@ -75,12 +75,12 @@ contract TestControllerReallocate is TestController {
     }
 
     function testCannotReallocateStableAsset() public {
-        vm.expectRevert(bytes("A0"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.reallocate(0);
     }
 
     function testCannotReallocateInvalidAssetId() public {
-        vm.expectRevert(bytes("A0"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.reallocate(4);
     }
 

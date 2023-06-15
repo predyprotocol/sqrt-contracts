@@ -16,6 +16,11 @@ contract VaultLibTest is Test, Helper {
     mapping(uint256 => DataType.PairStatus) internal pairs;
 
     address internal user = vm.addr(uint256(1));
+    address internal user2 = vm.addr(uint256(2));
+
+    uint256 testVaultId;
+
+    DataType.GlobalData internal globalData;
 
     function setUp() public virtual {
         VaultLib.addIsolatedVaultId(ownVaults2, 200);
@@ -30,6 +35,31 @@ contract VaultLibTest is Test, Helper {
 
         vault.id = 1;
         vault.owner = user;
+
+        // Initializes vaultCount
+        globalData.vaultCount = 1;
+
+        testVaultId = VaultLib.createVaultIfNeeded(globalData, 0, user, 1, false);
+    }
+
+    function testCreateVaultIfNeeded() public {
+        uint256 vaultId = VaultLib.createVaultIfNeeded(globalData, 0, user, 1, false);
+
+        assertEq(vaultId, 2);
+
+        assertEq(VaultLib.createVaultIfNeeded(globalData, vaultId, user, 1, false), 2);
+
+        assertEq(globalData.ownVaultsMap[user][1].isolatedVaultIds[1], 2);
+    }
+
+    function testCannotCreateVaultIfNeeded_IfVaultNotFound() public {
+        vm.expectRevert(bytes("V1"));
+        VaultLib.createVaultIfNeeded(globalData, testVaultId + 1, user, 1, false);
+    }
+
+    function testCannotCreateVaultIfNeeded_IfCallerIsNotVaultOwner() public {
+        vm.expectRevert(bytes("V2"));
+        VaultLib.createVaultIfNeeded(globalData, testVaultId, user2, 1, false);
     }
 
     // add pair and get the pair

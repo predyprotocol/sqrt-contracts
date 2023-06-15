@@ -2,11 +2,11 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import "../src/libraries/AssetLib.sol";
+import "../src/libraries/PairLib.sol";
 
-contract AssetLibTest is Test {
+contract PairLibTest is Test {
     function testGetRebalanceId() public {
-        assertEq(AssetLib.getRebalanceCacheId(1, 100), 18446744073709551715);
-        assertEq(AssetLib.getRebalanceCacheId(2, 100), 36893488147419103330);
+        assertEq(PairLib.getRebalanceCacheId(1, 100), 18446744073709551715);
+        assertEq(PairLib.getRebalanceCacheId(2, 100), 36893488147419103330);
     }
 }

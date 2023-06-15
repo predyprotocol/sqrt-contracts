@@ -9,6 +9,13 @@ library DataType {
     struct GlobalData {
         uint256 pairGroupsCount;
         uint256 pairsCount;
+        uint256 vaultCount;
+        mapping(uint256 => DataType.PairGroup) pairGroups;
+        mapping(uint256 => DataType.PairStatus) pairs;
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) rebalanceFeeGrowthCache;
+        mapping(uint256 => DataType.Vault) vaults;
+        /// @dev account -> pairGroupId -> vaultId
+        mapping(address => mapping(uint256 => DataType.OwnVaults)) ownVaultsMap;
     }
 
     struct PairGroup {

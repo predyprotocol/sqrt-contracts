@@ -15,8 +15,9 @@ contract TestController is Test {
 
     uint64 internal constant WETH_ASSET_ID = 1;
     uint64 internal constant WBTC_ASSET_ID = 2;
-    uint256 internal constant PAIR_GROUP_ID = 1;
-    uint256 internal constant INVALID_PAIR_GROUP_ID = 3;
+    uint64 internal constant WETH2_ASSET_ID = 3;
+    uint64 internal constant PAIR_GROUP_ID = 1;
+    uint64 internal constant INVALID_PAIR_GROUP_ID = 3;
 
     Controller internal controller;
     MockERC20 internal usdc;
@@ -117,22 +118,39 @@ contract TestController is Test {
     function initializeController() internal {
         controller.initialize();
 
-        controller.addPairGroup(
-            address(usdc),
-            4
-        );
+        controller.addPairGroup(address(usdc), 4);
+        controller.addPairGroup(address(usdc), 4);
 
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
-                address(uniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
             )
         );
 
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
-                address(wbtcUniswapPool), false, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+                address(wbtcUniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
+        );
+
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID + 1,
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
             )
         );
     }

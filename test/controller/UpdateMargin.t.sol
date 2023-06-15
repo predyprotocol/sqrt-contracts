@@ -57,7 +57,7 @@ contract TestControllerUpdateMargin is TestController {
 
     // Cannot deposit margin with 0
     function testCannotUpdateMargin_IfAmountIsZero() public {
-        vm.expectRevert(bytes("UML0"));
+        vm.expectRevert(bytes("AZ"));
         controller.updateMargin(PAIR_GROUP_ID, 0);
     }
 
@@ -109,7 +109,7 @@ contract TestControllerUpdateMargin is TestController {
         vm.expectRevert(bytes("NS"));
         controller.updateMargin(PAIR_GROUP_ID, -1000 * 1e6);
     }
-    
+
     // withdraw margin
     function testWithdrawMargin() public {
         uint256 beforeUsdcBalance = usdc.balanceOf(user2);
