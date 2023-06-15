@@ -6,9 +6,14 @@ import "./Perp.sol";
 import "./InterestRateModel.sol";
 
 library DataType {
+    struct GlobalData {
+        uint256 pairGroupsCount;
+        uint256 pairsCount;
+    }
+
     struct PairGroup {
+        uint256 id;
         address stableTokenAddress;
-        uint256 assetsCount;
         uint8 marginRoundedDecimal;
     }
 
@@ -17,7 +22,8 @@ library DataType {
         uint256[] isolatedVaultIds;
     }
 
-    struct AddAssetParams {
+    struct AddPairParams {
+        uint256 pairGroupId;
         address uniswapPool;
         bool isIsolatedMode;
         DataType.AssetRiskParams assetRiskParams;
@@ -33,6 +39,7 @@ library DataType {
 
     struct PairStatus {
         uint256 id;
+        uint256 pairGroupId;
         AssetPoolStatus stablePool;
         AssetPoolStatus underlyingPool;
         AssetRiskParams riskParams;
@@ -51,6 +58,7 @@ library DataType {
 
     struct Vault {
         uint256 id;
+        uint256 pairGroupId;
         address owner;
         int256 margin;
         Perp.UserStatus[] openPositions;

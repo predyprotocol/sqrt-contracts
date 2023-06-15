@@ -54,7 +54,7 @@ contract BaseStrategy is ERC20Upgradeable {
 
         usdc = asset.stablePool.token;
 
-        marginRoundedScaler = 10 ** controller.getPairGroup().marginRoundedDecimal;
+        marginRoundedScaler = 10 ** controller.getPairGroup(1).marginRoundedDecimal;
 
         operator = msg.sender;
     }

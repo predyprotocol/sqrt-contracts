@@ -21,6 +21,7 @@ contract Helper {
     {
         assetStatus = DataType.PairStatus(
             _pairId,
+            1,
             DataType.AssetPoolStatus(
                 address(0),
                 address(0),

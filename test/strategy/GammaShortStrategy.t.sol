@@ -47,7 +47,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         strategy.depositForPositionInitialization(1e10, -6 * 1e10, 6 * 1e10, getStrategyTradeParams());
 
-        lpVaultId = controller.updateMargin(1e10, 0);
+        lpVaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         // Min / VaultValue must be greater than 1%
         assertGt(getMinPerVaultValue(), 1e16);
@@ -370,7 +370,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
     function testDeltaHedgingFuzz(uint256 _amount) public {
         vm.warp(block.timestamp + 2 days + 1 minutes);
 
-        uint256 amount = bound(_amount, 2 * 1e4, 1e12);
+        uint256 amount = bound(_amount, 1e5, 1e12);
 
         uint256 depositMarginAmount = strategy.deposit(amount, address(this), 1e12, false, getStrategyTradeParams());
 

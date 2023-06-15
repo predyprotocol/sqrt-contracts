@@ -28,13 +28,13 @@ contract TestControllerIsolatedVault is TestController {
         controller.supplyToken(1, 1e10, false);
         controller.supplyToken(2, 1e10, true);
         controller.supplyToken(2, 1e10, false);
-        vaultId1 = controller.updateMargin(1e10, 0);
+        vaultId1 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
         vm.stopPrank();
 
         // create vault
         vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-        vaultId2 = controller.updateMargin(1e10, 0);
+        vaultId2 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
         vm.stopPrank();
 
         addIsolatedPair();
@@ -42,7 +42,8 @@ contract TestControllerIsolatedVault is TestController {
 
     function addIsolatedPair() internal {
         isolatedPairId = controller.addPair(
-            DataType.AddAssetParams(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID,
                 address(uniswapPool), true, DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
             )
         );

@@ -35,13 +35,13 @@ contract TestControllerTradePerp is TestController {
         vm.stopPrank();
 
         // create vault
-        vaultId = controller.updateMargin(1e10, 0);
+        vaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         vm.prank(user2);
-        vaultId2 = controller.updateMargin(1e10, 0);
+        vaultId2 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         //vm.prank(user3);
-        //vaultId3 = controller.updateMargin(1e10, 0);
+        //vaultId3 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
     }
 
     function withdrawAll() internal {
@@ -62,7 +62,7 @@ contract TestControllerTradePerp is TestController {
                 }
             }
 
-            controller.updateMargin(-controller.getVault(vaultId).margin, 0);
+            controller.updateMargin(PAIR_GROUP_ID, -controller.getVault(vaultId).margin);
         }
 
         {
@@ -83,7 +83,7 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             int256 margin = controller.getVault(vaultId2).margin;
             vm.prank(user2);
-            controller.updateMargin(-margin, 0);
+            controller.updateMargin(PAIR_GROUP_ID, -margin);
         }
 
         console.log(usdc.balanceOf(address(controller)));
@@ -614,9 +614,9 @@ contract TestControllerTradePerp is TestController {
         assertEq(vaultStatus.minDeposit, 3027467);
 
         vm.expectRevert(bytes("NS"));
-        controller.updateMargin(-1e10 + 3 * 1e6, 0);
+        controller.updateMargin(PAIR_GROUP_ID, -1e10 + 3 * 1e6);
 
-        controller.updateMargin(-1e10 + 4 * 1e6, 0);
+        controller.updateMargin(PAIR_GROUP_ID, -1e10 + 4 * 1e6);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -10 * 1e6));
         controller.tradePerp(vaultId, WBTC_ASSET_ID, getTradeParams(10 * 1e6, -2 * 1e6));
@@ -700,7 +700,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(tradeResult.minDeposit, 90103728);
 
-        controller.updateMargin(-9850000000, 0);
+        controller.updateMargin(PAIR_GROUP_ID, -9850000000);
 
         uniswapPool.swap(address(this), false, 4 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 

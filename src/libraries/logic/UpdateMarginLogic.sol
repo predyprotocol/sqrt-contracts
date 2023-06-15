@@ -17,8 +17,9 @@ library UpdateMarginLogic {
         DataType.Vault storage _vault,
         int256 _marginAmount
     ) external {
+        require(_marginAmount != 0, "UML0");
+        
         VaultLib.checkVault(_vault, msg.sender);
-        // settle user fee and balance
 
         _vault.margin += _marginAmount;
 

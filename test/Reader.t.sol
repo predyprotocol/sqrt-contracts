@@ -25,13 +25,13 @@ contract TestReader is TestController {
         weth.approve(address(controller), type(uint256).max);
         controller.supplyToken(1, 1e10, true);
         controller.supplyToken(1, 1e10, false);
-        vaultId1 = controller.updateMargin(1e10, 0);
+        vaultId1 = controller.updateMargin(1, 1e10);
         vm.stopPrank();
 
         // create vault
         vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-        vaultId2 = controller.updateMargin(1e10, 0);
+        vaultId2 = controller.updateMargin(1, 1e10);
         vm.stopPrank();
 
         reader = new Reader(controller);

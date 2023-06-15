@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
-import "./PairGroupLib.sol";
 import "./DataType.sol";
 import "./ScaledAsset.sol";
 
 library VaultLib {
-    using PairGroupLib for DataType.PairGroup;
-
     uint256 internal constant MAX_VAULTS = 100;
 
     function getUserStatus(
@@ -18,7 +15,13 @@ library VaultLib {
     ) internal returns (Perp.UserStatus storage userStatus) {
         checkVault(_vault, msg.sender);
 
-        require(_pairGroup.isAllow(_pairId), "ASSETID");
+        require(
+            _vault.pairGroupId == _pairGroup.id &&
+            _pairs[_pairId].pairGroupId == _pairGroup.id &&
+            _pairGroup.id > 0 &&
+            _pairId > 0,
+            "V5"
+        );
 
         userStatus = createOrGetUserStatus(_pairs, _vault, _pairId);
     }

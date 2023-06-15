@@ -8,51 +8,65 @@ import "../../tokenization/SupplyToken.sol";
 
 library AddAssetLogic {
     event PairAdded(uint256 pairId, address _uniswapPool);
-    event AssetGroupInitialized(address stableAsset, uint256[] assetIds);
+    event PAirGroupAdded(uint256 id, address stableAsset);
     event AssetRiskParamsUpdated(uint256 pairId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
     );
 
     /**
-     * @notice Sets an asset group
-     * @param _stableAssetAddress The address of stable asset
-     * @param _addAssetParams The list of asset parameters
-     * @return assetIds underlying asset ids
+     * @notice Initialized global data counts
+     * @param _global Global data
      */
-    function initializeAssetGroup(
-        DataType.PairGroup storage pairGroup,
-        mapping(uint256 => DataType.PairStatus) storage pairs,
-        mapping(address => bool) storage allowedUniswapPools,
-        address _stableAssetAddress,
-        uint8 _marginRounder,
-        DataType.AddAssetParams[] memory _addAssetParams
-    ) external returns (uint256[] memory assetIds) {
-        pairGroup.stableTokenAddress = _stableAssetAddress;
-        pairGroup.assetsCount = 1;
-        pairGroup.marginRoundedDecimal = _marginRounder;
-
-        assetIds = new uint256[](_addAssetParams.length);
-
-        for (uint256 i; i < _addAssetParams.length; i++) {
-            assetIds[i] = _addPair(pairGroup, pairs, allowedUniswapPools, _addAssetParams[i]);
-        }
-
-        emit AssetGroupInitialized(_stableAssetAddress, assetIds);
+    function initializeGlobalData(
+        DataType.GlobalData storage _global
+    ) external {
+        _global.pairGroupsCount = 1;
+        _global.pairsCount = 1;
     }
 
     /**
-     * @notice add token pair
+     * @notice Adds an pair group
+     * @param _global Global data
+     * @param _pairGroups Pair groups
+     * @param _stableAssetAddress The address of stable asset
+     * @param _marginRounder Margin rounder
+     * @return pairGroupId Pair group id
      */
-    function _addPair(
-        DataType.PairGroup storage _pairGroup,
+    function addPairGroup(
+        DataType.GlobalData storage _global,
+        mapping(uint256 => DataType.PairGroup) storage _pairGroups,
+        address _stableAssetAddress,
+        uint8 _marginRounder
+    ) external returns (uint256 pairGroupId) {
+        pairGroupId = _global.pairGroupsCount;
+
+        _pairGroups[pairGroupId] = DataType.PairGroup(
+            pairGroupId,
+            _stableAssetAddress,
+            _marginRounder
+        );
+
+        _global.pairGroupsCount++;
+
+        emit PAirGroupAdded(pairGroupId, _stableAssetAddress);
+    }
+
+    /**
+     * @notice Adds token pair
+     */
+    function addPair(
+        DataType.GlobalData storage _global,
+        DataType.PairGroup memory _pairGroup,
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         mapping(address => bool) storage allowedUniswapPools,
-        DataType.AddAssetParams memory _addAssetParam
+        DataType.AddPairParams memory _addPairParam
     ) public returns (uint256 pairId) {
-        pairId = _pairGroup.assetsCount;
+        pairId = _global.pairsCount;
 
-        IUniswapV3Pool uniswapPool = IUniswapV3Pool(_addAssetParam.uniswapPool);
+        validatePairGroupId(_global, _pairGroup.id);
+
+        IUniswapV3Pool uniswapPool = IUniswapV3Pool(_addPairParam.uniswapPool);
 
         address stableTokenAddress = _pairGroup.stableTokenAddress;
 
@@ -66,14 +80,14 @@ library AddAssetLogic {
             pairId,
             isMarginZero ? uniswapPool.token1() : uniswapPool.token0(),
             isMarginZero,
-            _addAssetParam
+            _addPairParam
         );
 
-        allowedUniswapPools[_addAssetParam.uniswapPool] = true;
+        allowedUniswapPools[_addPairParam.uniswapPool] = true;
 
-        _pairGroup.assetsCount++;
+        _global.pairsCount++;
 
-        emit PairAdded(pairId, _addAssetParam.uniswapPool);
+        emit PairAdded(pairId, _addPairParam.uniswapPool);
     }
 
     function updateAssetRiskParams(DataType.PairStatus storage _pairStatus, DataType.AssetRiskParams memory _riskParams)
@@ -108,34 +122,35 @@ library AddAssetLogic {
         uint256 _pairId,
         address _tokenAddress,
         bool _isMarginZero,
-        DataType.AddAssetParams memory _addAssetParam
+        DataType.AddPairParams memory _addPairParam
     ) internal {
-        validateRiskParams(_addAssetParam.assetRiskParams);
+        validateRiskParams(_addPairParam.assetRiskParams);
 
         require(_pairs[_pairId].id == 0);
 
         _pairs[_pairId] = DataType.PairStatus(
             _pairId,
+            _pairGroup.id,
             DataType.AssetPoolStatus(
                 _pairGroup.stableTokenAddress,
                 deploySupplyToken(_pairGroup.stableTokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _addAssetParam.stableIrmParams
+                _addPairParam.stableIrmParams
             ),
             DataType.AssetPoolStatus(
                 _tokenAddress,
                 deploySupplyToken(_tokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _addAssetParam.underlyingIrmParams
+                _addPairParam.underlyingIrmParams
             ),
-            _addAssetParam.assetRiskParams,
+            _addPairParam.assetRiskParams,
             Perp.createAssetStatus(
-                _addAssetParam.uniswapPool,
-                -_addAssetParam.assetRiskParams.rangeSize,
-                _addAssetParam.assetRiskParams.rangeSize
+                _addPairParam.uniswapPool,
+                -_addPairParam.assetRiskParams.rangeSize,
+                _addPairParam.assetRiskParams.rangeSize
             ),
             _isMarginZero,
-            _addAssetParam.isIsolatedMode,
+            _addPairParam.isIsolatedMode,
             block.timestamp
         );
     }
@@ -165,5 +180,12 @@ library AddAssetLogic {
                 && _irmParams.slope2 <= 10 * 1e18,
             "C4"
         );
+    }
+
+    function validatePairGroupId(
+        DataType.GlobalData memory _global,
+        uint256 _pairGroupId
+    ) internal pure {
+        require(0 < _pairGroupId && _pairGroupId < _global.pairGroupsCount, "INVALID_PG");
     }
 }
