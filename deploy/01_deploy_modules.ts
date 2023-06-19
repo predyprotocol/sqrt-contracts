@@ -9,7 +9,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deploy } = deployments
 
-  await deploy('AddAssetLogic', {
+  await deploy('AddPairLogic', {
     from: deployer,
     log: true,
   })
@@ -55,11 +55,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   })
 
-  await deploy('ApplyInterestLogic', {
-    from: deployer,
-    log: true,
-  })
-
   await deploy('ReaderLogic', {
     from: deployer,
     log: true,
@@ -69,6 +64,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true,
   })
+
+  await deploy('ReallocationLogic', {
+    from: deployer,
+    log: true,
+  })
+
 }
 
 export default func

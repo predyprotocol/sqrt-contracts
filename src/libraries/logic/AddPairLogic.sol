@@ -8,7 +8,7 @@ import "../PairGroupLib.sol";
 import "../../tokenization/SupplyToken.sol";
 
 library AddPairLogic {
-    event PairAdded(uint256 pairId, address _uniswapPool);
+    event PairAdded(uint256 pairId, uint256 pairGroupId, address _uniswapPool);
     event PairGroupAdded(uint256 id, address stableAsset);
     event AssetRiskParamsUpdated(uint256 pairId, DataType.AssetRiskParams riskParams);
     event IRMParamsUpdated(
@@ -81,7 +81,7 @@ library AddPairLogic {
 
         _global.pairsCount++;
 
-        emit PairAdded(pairId, _addPairParam.uniswapPool);
+        emit PairAdded(pairId, _addPairParam.pairGroupId, _addPairParam.uniswapPool);
     }
 
     function updateAssetRiskParams(DataType.PairStatus storage _pairStatus, DataType.AssetRiskParams memory _riskParams)
@@ -147,6 +147,9 @@ library AddPairLogic {
             _addPairParam.isIsolatedMode,
             block.timestamp
         );
+
+        emit AssetRiskParamsUpdated(_pairId, _addPairParam.assetRiskParams);
+        emit IRMParamsUpdated(_pairId, _addPairParam.stableIrmParams, _addPairParam.underlyingIrmParams);
     }
 
     function deploySupplyToken(address _tokenAddress) internal returns (address) {
