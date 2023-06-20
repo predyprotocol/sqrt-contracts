@@ -122,6 +122,14 @@ library PositionCalculator {
         vaultValue += int256(_vault.margin);
     }
 
+    function hasPosition(DataType.Vault memory _vault) internal view returns (bool hasPosition) {
+        for (uint256 i = 0; i < _vault.openPositions.length; i++) {
+            Perp.UserStatus memory userStatus = _vault.openPositions[i];
+
+            hasPosition = hasPosition || getHasPositionFlag(userStatus);
+        }
+    }
+
     function getSqrtPrice(address _uniswapPool, bool _isMarginZero) internal view returns (uint160 sqrtPriceX96) {
         return UniHelper.convertSqrtPrice(UniHelper.getSqrtTWAP(_uniswapPool), _isMarginZero);
     }

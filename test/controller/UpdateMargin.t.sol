@@ -29,9 +29,8 @@ contract TestControllerUpdateMargin is TestController {
 
         vaultId2 = controller.updateMargin(PAIR_GROUP_ID, 1100 * 1e6);
 
-        (isolatedVaultId,) = controller.openIsolatedVault(
-            100 * 1e6, WETH_ASSET_ID, getTradeParamsWithTokenId(WETH_ASSET_ID, -10 * 1e6, 10 * 1e6)
-        );
+        (isolatedVaultId,) =
+            openIsolatedVault(100 * 1e6, WETH_ASSET_ID, getTradeParamsWithTokenId(WETH_ASSET_ID, -10 * 1e6, 10 * 1e6));
 
         vm.stopPrank();
     }

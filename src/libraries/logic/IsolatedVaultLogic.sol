@@ -4,21 +4,81 @@ pragma solidity ^0.8.19;
 import "../ApplyInterestLib.sol";
 import "./TradePerpLogic.sol";
 
-/*
- * Error Codes
- * I1: vault is not safe
- * I2: vault must not have positions
- */
 library IsolatedVaultLogic {
-    struct CloseParams {
-        uint256 lowerSqrtPrice;
-        uint256 upperSqrtPrice;
-        uint256 deadline;
+    event IsolatedVaultTraded(uint256 mainVaultId, uint256 isolatedVaultId, int256 marginAmount);
+
+    function tradeIsolated(
+        DataType.GlobalData storage _globalData,
+        uint256 _isolatedVaultId,
+        int256 _marginAmount,
+        uint64 _pairId,
+        TradePerpLogic.TradeParams memory _tradeParams
+    ) external returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult) {
+        // Checks pairId exists
+        PairLib.validatePairId(_globalData, _pairId);
+
+        DataType.PairGroup memory pairGroup;
+        DataType.Vault storage vault;
+
+        {
+            uint256 pairGroupId = _globalData.pairs[_pairId].pairGroupId;
+            uint256 vaultId = _globalData.ownVaultsMap[msg.sender][pairGroupId].mainVaultId;
+
+            pairGroup = _globalData.pairGroups[pairGroupId];
+            vault = _globalData.vaults[vaultId];
+
+            // Checks account has mainVault
+            VaultLib.checkVault(vault, msg.sender);
+
+            // Checks pair and main vault belong to same pairGroup
+            VaultLib.checkVaultBelongsToPairGroup(vault, pairGroupId);
+
+            // Update interest rate related to main vault
+            ApplyInterestLib.applyInterestForVault(vault, _globalData.pairs);
+
+            isolatedVaultId =
+                VaultLib.createVaultIfNeeded(_globalData, _isolatedVaultId, msg.sender, pairGroupId, false);
+        }
+
+        // trade
+
+        DataType.Vault storage isolatedVault = _globalData.vaults[isolatedVaultId];
+
+        if (_isolatedVaultId == 0) {
+            isolatedVault.autoTransferDisabled = true;
+        }
+
+        Perp.UserStatus storage openPosition =
+            VaultLib.createOrGetOpenPosition(_globalData.pairs, isolatedVault, _pairId);
+
+        // update margin
+        vault.margin -= _marginAmount;
+        isolatedVault.margin += _marginAmount;
+
+        // Checks main vault safety
+        PositionCalculator.checkSafe(_globalData.pairs, _globalData.rebalanceFeeGrowthCache, vault);
+
+        tradeResult = TradePerpLogic.execTradeAndValidate(
+            pairGroup, _globalData, isolatedVault, _pairId, openPosition, _tradeParams
+        );
+
+        // remove vault if empty
+        if (isolatedVault.autoTransferDisabled && tradeResult.minDeposit == 0) {
+            // _isolatedVault.margin must be greater than 0
+
+            int256 withdrawnMargin = isolatedVault.margin;
+
+            vault.margin += isolatedVault.margin;
+
+            isolatedVault.margin = 0;
+
+            VaultLib.removeIsolatedVaultId(_globalData.ownVaultsMap[msg.sender][vault.pairGroupId], isolatedVault.id);
+        }
+
+        emit IsolatedVaultTraded(vault.id, isolatedVault.id, _marginAmount);
     }
 
-    event IsolatedVaultOpened(uint256 vaultId, uint256 isolatedVaultId, uint256 marginAmount);
-    event IsolatedVaultClosed(uint256 vaultId, uint256 isolatedVaultId, uint256 marginAmount);
-
+    /*
     function openIsolatedVault(
         DataType.GlobalData storage _globalData,
         uint256 _depositAmount,
@@ -151,4 +211,5 @@ library IsolatedVaultLogic {
             )
         );
     }
+    */
 }

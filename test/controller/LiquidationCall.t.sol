@@ -69,7 +69,7 @@ contract TestControllerLiquidationCall is TestController {
     }
 
     function testLiquidationCall_IsolatedVault() public {
-        (uint256 isolatedVaultId,) = controller.openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+        (uint256 isolatedVaultId,) = openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 
@@ -196,7 +196,7 @@ contract TestControllerLiquidationCall is TestController {
     }
 
     function testLiquidationCallPartially_IsolatedVault() public {
-        (uint256 isolatedVaultId,) = controller.openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+        (uint256 isolatedVaultId,) = openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 

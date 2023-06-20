@@ -50,19 +50,9 @@ library LiquidationLogic {
 
         uint256 mainVaultId = _globalData.ownVaultsMap[vault.owner][pairGroup.id].mainVaultId;
 
-        (int256 penaltyAmount, bool isClosedAll) = _execLiquidationCall(
-            pairGroup,
-            _globalData.pairs,
-            _globalData.rebalanceFeeGrowthCache,
-            vault,
-            _globalData.vaults[mainVaultId],
-            _closeRatio,
-            _sqrtSlippageTolerance
+        (int256 penaltyAmount) = _execLiquidationCall(
+            pairGroup, _globalData, vault, _globalData.vaults[mainVaultId], _closeRatio, _sqrtSlippageTolerance
         );
-
-        if (isClosedAll) {
-            VaultLib.removeIsolatedVaultId(_globalData.ownVaultsMap[vault.owner][pairGroup.id], vault.id);
-        }
 
         if (penaltyAmount > 0) {
             TransferHelper.safeTransfer(pairGroup.stableTokenAddress, msg.sender, uint256(penaltyAmount));
@@ -75,17 +65,16 @@ library LiquidationLogic {
 
     function _execLiquidationCall(
         DataType.PairGroup memory _pairGroup,
-        mapping(uint256 => DataType.PairStatus) storage _pairs,
-        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.GlobalData storage _globalData,
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
         uint256 _closeRatio,
         uint256 _liquidationSlippageSqrtTolerance
-    ) internal returns (int256 totalPenaltyAmount, bool isClosedAll) {
+    ) internal returns (int256 totalPenaltyAmount) {
         require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         // The vault must be danger
-        require(PositionCalculator.isLiquidatable(_pairs, _rebalanceFeeGrowthCache, _vault), "ND");
+        require(PositionCalculator.isLiquidatable(_globalData.pairs, _globalData.rebalanceFeeGrowthCache, _vault), "ND");
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
             Perp.UserStatus storage userStatus = _vault.openPositions[i];
@@ -93,8 +82,8 @@ library LiquidationLogic {
             (int256 totalPayoff, uint256 penaltyAmount) = closePerp(
                 _vault.id,
                 _pairGroup,
-                _pairs[userStatus.pairId],
-                _rebalanceFeeGrowthCache,
+                _globalData.pairs[userStatus.pairId],
+                _globalData.rebalanceFeeGrowthCache,
                 userStatus,
                 _closeRatio,
                 _liquidationSlippageSqrtTolerance
@@ -110,19 +99,22 @@ library LiquidationLogic {
             calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount) * _closeRatio / Constants.ONE);
 
         // The vault must be safe after liquidation call
-        (int256 minDeposit,,) = PositionCalculator.calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
-
-        isClosedAll = (minDeposit == 0);
+        bool hasPosition = PositionCalculator.hasPosition(_vault);
 
         int256 withdrawnMarginAmount;
 
         // If the vault is isolated and margin is not negative, the contract moves vault's margin to the main vault.
-        if (isClosedAll && _mainVault.id > 0 && _vault.id != _mainVault.id && _vault.margin > 0) {
+        if (
+            !_vault.autoTransferDisabled && !hasPosition && _mainVault.id > 0 && _vault.id != _mainVault.id
+                && _vault.margin > 0
+        ) {
             withdrawnMarginAmount = _vault.margin;
 
             _mainVault.margin += _vault.margin;
 
             _vault.margin = 0;
+
+            VaultLib.removeIsolatedVaultId(_globalData.ownVaultsMap[_mainVault.owner][_pairGroup.id], _vault.id);
         }
 
         // withdrawnMarginAmount is always positive because it's checked in before lines
