@@ -9,6 +9,7 @@ interface IStrategyVault {
     }
 
     function deposit(
+        uint256 _strategyId,
         uint256 _strategyTokenAmount,
         address _recepient,
         uint256 _maxMarginAmount,

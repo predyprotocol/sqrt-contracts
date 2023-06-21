@@ -58,7 +58,7 @@ library UpdateMarginLogic {
                 _moveFromMainVault && !isolatedVault.autoTransferDisabled && _updateMarginAmount == 0
                     && isolatedVault.margin > 0
             ) {
-                bool hasPosition = PositionCalculator.hasPosition(isolatedVault);
+                bool hasPosition = PositionCalculator.getHasPosition(isolatedVault);
 
                 if (!hasPosition) {
                     updateMarginAmount = -isolatedVault.margin;

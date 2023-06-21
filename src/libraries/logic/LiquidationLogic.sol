@@ -99,7 +99,7 @@ library LiquidationLogic {
             calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount) * _closeRatio / Constants.ONE);
 
         // The vault must be safe after liquidation call
-        bool hasPosition = PositionCalculator.hasPosition(_vault);
+        bool hasPosition = PositionCalculator.getHasPosition(_vault);
 
         int256 withdrawnMarginAmount;
 
