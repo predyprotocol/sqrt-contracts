@@ -45,16 +45,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   })
 
-  const TradePerpLogic = await ethers.getContract('TradePerpLogic', deployer)
-
-  await deploy('IsolatedVaultLogic', {
-    from: deployer,
-    log: true,
-    libraries: {
-      TradePerpLogic: TradePerpLogic.address
-    }
-  })
-
   await deploy('ReaderLogic', {
     from: deployer,
     log: true,

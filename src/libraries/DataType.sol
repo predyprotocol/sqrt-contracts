@@ -68,6 +68,7 @@ library DataType {
         uint256 pairGroupId;
         address owner;
         int256 margin;
+        bool autoTransferDisabled;
         Perp.UserStatus[] openPositions;
     }
 

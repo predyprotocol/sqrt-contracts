@@ -123,7 +123,7 @@ contract TestControllerTradePerp is TestController {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
-    function getCloseParams() internal view returns (IsolatedVaultLogic.CloseParams memory) {
+    function getCloseParams() internal view returns (CloseParams memory) {
         return getCloseParamsWithTokenId(WETH_ASSET_ID);
     }
 
@@ -146,21 +146,19 @@ contract TestControllerTradePerp is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         {
-            (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
 
             uniswapPool.swap(address(this), true, -1 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         {
-            (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6));
+            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6));
 
             uniswapPool.swap(address(this), true, -2 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1 * 1e6, 1 * 1e6 + 123));
@@ -188,23 +186,21 @@ contract TestControllerTradePerp is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         {
-            (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
 
             uniswapPool.swap(address(this), false, 2 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         {
-            (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
 
             uniswapPool.swap(address(this), true, -3 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 
             checkTick(629);
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1 * 1e6, 10 * 1e6));

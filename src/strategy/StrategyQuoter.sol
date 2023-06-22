@@ -14,12 +14,13 @@ contract StrategyQuoter {
     }
 
     function quoteDeposit(
+        uint256 _strategyId,
         uint256 _strategyTokenAmount,
         address _recepient,
         uint256 _maxMarginAmount,
         IStrategyVault.StrategyTradeParams memory _tradeParams
     ) external returns (uint256 finalDepositMargin) {
-        try strategy.deposit(_strategyTokenAmount, _recepient, _maxMarginAmount, true, _tradeParams) {}
+        try strategy.deposit(_strategyId, _strategyTokenAmount, _recepient, _maxMarginAmount, true, _tradeParams) {}
         catch (bytes memory reason) {
             return handleRevert(reason);
         }

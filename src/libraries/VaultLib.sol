@@ -7,7 +7,7 @@ import "./ScaledAsset.sol";
 library VaultLib {
     uint256 internal constant MAX_VAULTS = 100;
 
-    event VaultCreated(uint256 vaultId, address owner, bool isMainVault);
+    event VaultCreated(uint256 vaultId, address owner, bool isMainVault, uint256 pairGroupId);
 
     function validateVaultId(DataType.GlobalData storage _globalData, uint256 _vaultId) internal view {
         require(0 < _vaultId && _vaultId < _globalData.vaultCount, "V1");
@@ -43,7 +43,7 @@ library VaultLib {
                 addIsolatedVaultId(_globalData.ownVaultsMap[_caller][_pairGroupId], vaultId);
             }
 
-            emit VaultCreated(vaultId, msg.sender, _isMainVault);
+            emit VaultCreated(vaultId, msg.sender, _isMainVault, _pairGroupId);
 
             return vaultId;
         } else {

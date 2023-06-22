@@ -11,6 +11,12 @@ import "../../src/libraries/InterestRateModel.sol";
 import "../mocks/MockERC20.sol";
 
 contract TestController is Test {
+    struct CloseParams {
+        uint256 lowerSqrtPrice;
+        uint256 upperSqrtPrice;
+        uint256 deadline;
+    }
+
     uint256 internal constant RISK_RATIO = 109544511;
 
     uint64 internal constant WETH_ASSET_ID = 1;
@@ -171,12 +177,48 @@ contract TestController is Test {
         );
     }
 
-    function getCloseParamsWithTokenId(uint256 _tokenId)
+    function getCloseParamsWithTokenId(uint256 _tokenId) internal view returns (CloseParams memory) {
+        return CloseParams(getLowerSqrtPrice(_tokenId), getUpperSqrtPrice(_tokenId), block.timestamp);
+    }
+
+    function openIsolatedVault(uint256 _depositAmount, uint64 _pairId, TradePerpLogic.TradeParams memory _tradeParams)
         internal
-        view
-        returns (IsolatedVaultLogic.CloseParams memory)
+        returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
     {
-        return IsolatedVaultLogic.CloseParams(getLowerSqrtPrice(_tokenId), getUpperSqrtPrice(_tokenId), block.timestamp);
+        return controller.openIsolatedPosition(0, _pairId, _tradeParams, _depositAmount);
+    }
+
+    function closeIsolatedVault(uint256 _isolatedVaultId, uint64 _pairId, CloseParams memory _closeParams)
+        internal
+        returns (DataType.TradeResult memory tradeResult)
+    {
+        Perp.UserStatus memory openPosition;
+
+        DataType.Vault memory vault = controller.getVault(_isolatedVaultId);
+
+        for (uint256 i; i < vault.openPositions.length; i++) {
+            if (vault.openPositions[i].pairId == _pairId) {
+                openPosition = vault.openPositions[i];
+            }
+        }
+
+        int256 tradeAmount = -openPosition.perp.amount;
+        int256 tradeAmountSqrt = -openPosition.sqrtPerp.amount;
+
+        tradeResult = controller.closeIsolatedPosition(
+            _isolatedVaultId,
+            _pairId,
+            TradePerpLogic.TradeParams(
+                tradeAmount,
+                tradeAmountSqrt,
+                _closeParams.lowerSqrtPrice,
+                _closeParams.upperSqrtPrice,
+                _closeParams.deadline,
+                false,
+                ""
+            ),
+            0
+        );
     }
 
     function getLowerSqrtPrice(uint256 _tokenId) internal view returns (uint160) {

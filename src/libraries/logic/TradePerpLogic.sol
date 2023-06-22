@@ -59,6 +59,7 @@ library TradePerpLogic {
         Perp.UserStatus storage openPosition = VaultLib.createOrGetOpenPosition(_globalData.pairs, vault, _pairId);
 
         // Updates interest rate related to the vault
+        // New trade pairId is already included in openPositions.
         ApplyInterestLib.applyInterestForVault(vault, _globalData.pairs);
 
         // Validates trade params

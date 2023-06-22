@@ -21,7 +21,6 @@ import "./libraries/logic/LiquidationLogic.sol";
 import "./libraries/logic/ReaderLogic.sol";
 import "./libraries/logic/SupplyLogic.sol";
 import "./libraries/logic/TradePerpLogic.sol";
-import "./libraries/logic/IsolatedVaultLogic.sol";
 import "./libraries/logic/UpdateMarginLogic.sol";
 import "./libraries/logic/ReallocationLogic.sol";
 import "./interfaces/IController.sol";
@@ -205,6 +204,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Deposit or withdraw margin
+     * @param _pairGroupId The id of pair group
      * @param _marginAmount The amount of margin. Positive means deposit and negative means withdraw.
      * @return vaultId The id of vault created
      */
@@ -217,35 +217,49 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         return UpdateMarginLogic.updateMargin(globalData, _pairGroupId, _marginAmount);
     }
 
-    /**
-     * @notice Creates new isolated vault and open perp positions.
-     * @param _depositAmount The amount of margin to deposit from main vault.
-     * @param _pairId The id of asset pair
-     * @param _tradeParams The trade parameters
-     * @return isolatedVaultId The id of isolated vault
-     * @return tradeResult The result of perp trade
-     */
-    function openIsolatedVault(uint256 _depositAmount, uint64 _pairId, TradePerpLogic.TradeParams memory _tradeParams)
-        external
-        nonReentrant
-        returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
-    {
-        return IsolatedVaultLogic.openIsolatedVault(globalData, _depositAmount, _pairId, _tradeParams);
+    function updateMarginOfIsolated(
+        uint64 _pairGroupId,
+        uint256 _isolatedVaultId,
+        int256 _marginAmount,
+        bool _moveFromMainVault
+    ) external override(IController) nonReentrant returns (uint256 isolatedVaultId) {
+        return UpdateMarginLogic.updateMarginOfIsolated(
+            globalData, _pairGroupId, _isolatedVaultId, _marginAmount, _moveFromMainVault
+        );
     }
 
-    /**
-     * @notice Close positions in the isolated vault and move margin to main vault.
-     * @param _isolatedVaultId The id of isolated vault
-     * @param _pairId The id of asset pair
-     * @param _closeParams The close parameters
-     * @return tradeResult The result of perp trade
-     */
-    function closeIsolatedVault(
-        uint256 _isolatedVaultId,
+    function openIsolatedPosition(
+        uint256 _vaultId,
         uint64 _pairId,
-        IsolatedVaultLogic.CloseParams memory _closeParams
+        TradePerpLogic.TradeParams memory _tradeParams,
+        uint256 _depositAmount
+    ) external nonReentrant returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult) {
+        uint256 pairGroupId = globalData.pairs[_pairId].pairGroupId;
+
+        if (_depositAmount > 0) {
+            isolatedVaultId = UpdateMarginLogic.updateMarginOfIsolated(
+                globalData, uint64(pairGroupId), _vaultId, int256(_depositAmount), true
+            );
+        } else {
+            isolatedVaultId = _vaultId;
+        }
+
+        tradeResult = TradePerpLogic.execTrade(globalData, isolatedVaultId, _pairId, _tradeParams);
+    }
+
+    function closeIsolatedPosition(
+        uint256 _vaultId,
+        uint64 _pairId,
+        TradePerpLogic.TradeParams memory _tradeParams,
+        uint256 _withdrawAmount
     ) external nonReentrant returns (DataType.TradeResult memory tradeResult) {
-        tradeResult = IsolatedVaultLogic.closeIsolatedVault(globalData, _isolatedVaultId, _pairId, _closeParams);
+        uint256 pairGroupId = globalData.pairs[_pairId].pairGroupId;
+
+        tradeResult = TradePerpLogic.execTrade(globalData, _vaultId, _pairId, _tradeParams);
+
+        UpdateMarginLogic.updateMarginOfIsolated(
+            globalData, uint64(pairGroupId), _vaultId, -int256(_withdrawAmount), true
+        );
     }
 
     /**
@@ -262,6 +276,12 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         returns (DataType.TradeResult memory)
     {
         return TradePerpLogic.execTrade(globalData, _vaultId, _pairId, _tradeParams);
+    }
+
+    function setAutoTransfer(uint256 _isolatedVaultId, bool _autoTransferDisabled) external {
+        VaultLib.checkVault(globalData.vaults[_isolatedVaultId], msg.sender);
+
+        globalData.vaults[_isolatedVaultId].autoTransferDisabled = _autoTransferDisabled;
     }
 
     /**

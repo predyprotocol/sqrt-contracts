@@ -69,7 +69,7 @@ contract TestControllerLiquidationCall is TestController {
     }
 
     function testLiquidationCall_IsolatedVault() public {
-        (uint256 isolatedVaultId,) = controller.openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+        (uint256 isolatedVaultId,) = openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 
@@ -84,6 +84,23 @@ contract TestControllerLiquidationCall is TestController {
 
         // check liquidation reward
         assertEq(usdc.balanceOf(liquidator), 1000000);
+    }
+
+    function testLiquidationCall_IsolatedVault_AutoTransferDisabled() public {
+        (uint256 isolatedVaultId,) = openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+
+        controller.setAutoTransfer(isolatedVaultId, true);
+
+        uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        vm.warp(block.timestamp + 1 hours);
+
+        vm.prank(liquidator);
+        controller.liquidationCall(isolatedVaultId, DEFAULT_CLOSE_RATIO, 0);
+
+        DataType.Vault memory vault = controller.getVault(isolatedVaultId);
+
+        assertGt(vault.margin, 0);
     }
 
     // liquidation call with interest paid
@@ -196,7 +213,7 @@ contract TestControllerLiquidationCall is TestController {
     }
 
     function testLiquidationCallPartially_IsolatedVault() public {
-        (uint256 isolatedVaultId,) = controller.openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
+        (uint256 isolatedVaultId,) = openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-4 * 1e8, 0));
 
         uniswapPool.swap(address(this), false, 1e17, TickMath.MAX_SQRT_RATIO - 1, "");
 
