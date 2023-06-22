@@ -1,7 +1,7 @@
 {
   "name": "@predy/v4-contracts",
   "version": "1.0.0",
-  "description": "predy-v3.2 =====",
+  "description": "predy-v4 =====",
   "main": "index.js",
   "directories": {
     "lib": "lib",
