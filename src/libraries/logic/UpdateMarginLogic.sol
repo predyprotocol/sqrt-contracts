@@ -66,10 +66,6 @@ library UpdateMarginLogic {
             }
         }
 
-        if (updateMarginAmount == 0) {
-            return _isolatedVaultId;
-        }
-
         return
             _updateMarginOfIsolated(_globalData, _pairGroupId, _isolatedVaultId, updateMarginAmount, _moveFromMainVault);
     }

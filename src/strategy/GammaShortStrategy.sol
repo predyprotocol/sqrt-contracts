@@ -151,6 +151,8 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
             strategy.pairGroupId, strategy.vaultId, int256(_initialMarginAmount), false
         );
 
+        controller.setAutoTransfer(strategy.vaultId, true);
+
         controller.tradePerp(
             strategy.vaultId,
             strategy.pairId,

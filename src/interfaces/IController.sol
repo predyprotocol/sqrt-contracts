@@ -18,6 +18,8 @@ interface IController {
         bool _moveFromMainVault
     ) external returns (uint256 isolatedVaultId);
 
+    function setAutoTransfer(uint256 _isolatedVaultId, bool _autoTransferDisabled) external;
+
     function getSqrtPrice(uint256 _pairId) external view returns (uint160);
 
     function getVault(uint256 _id) external view returns (DataType.Vault memory);
