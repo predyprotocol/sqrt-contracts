@@ -44,7 +44,7 @@ library UpdateMarginLogic {
 
     function updateMarginOfIsolated(
         DataType.GlobalData storage _globalData,
-        uint64 _pairGroupId,
+        uint256 _pairGroupId,
         uint256 _isolatedVaultId,
         int256 _updateMarginAmount,
         bool _moveFromMainVault
@@ -72,7 +72,7 @@ library UpdateMarginLogic {
 
     function _updateMarginOfIsolated(
         DataType.GlobalData storage _globalData,
-        uint64 _pairGroupId,
+        uint256 _pairGroupId,
         uint256 _isolatedVaultId,
         int256 _updateMarginAmount,
         bool _moveFromMainVault

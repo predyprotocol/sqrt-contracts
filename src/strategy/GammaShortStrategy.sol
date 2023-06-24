@@ -398,6 +398,10 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         return isTimeHedge(strategies[_strategyId].hedgeStatus);
     }
 
+    function getTotalSupply(uint256 _strategyId) external view returns (uint256) {
+        return totalSupply(strategies[_strategyId]);
+    }
+
     ///////////////////////
     // Private Functions //
     ///////////////////////

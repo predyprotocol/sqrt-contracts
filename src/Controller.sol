@@ -238,7 +238,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
         if (_depositAmount > 0) {
             isolatedVaultId = UpdateMarginLogic.updateMarginOfIsolated(
-                globalData, uint64(pairGroupId), _vaultId, int256(_depositAmount), true
+                globalData, pairGroupId, _vaultId, SafeCast.toInt256(_depositAmount), true
             );
         } else {
             isolatedVaultId = _vaultId;
@@ -258,7 +258,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         tradeResult = TradePerpLogic.execTrade(globalData, _vaultId, _pairId, _tradeParams);
 
         UpdateMarginLogic.updateMarginOfIsolated(
-            globalData, uint64(pairGroupId), _vaultId, -int256(_withdrawAmount), true
+            globalData, pairGroupId, _vaultId, -SafeCast.toInt256(_withdrawAmount), true
         );
     }
 

@@ -60,6 +60,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
+  await deploy('DeployStrategyTokenLogic', {
+    from: deployer,
+    log: true,
+  })
 }
 
 export default func

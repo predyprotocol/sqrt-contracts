@@ -9,10 +9,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const Controller = await ethers.getContract('Controller', deployer)
   const Reader = await ethers.getContract('Reader', deployer)
+  const DeployStrategyTokenLogic = await ethers.getContract('DeployStrategyTokenLogic', deployer)
 
   await deploy('GammaShortStrategy', {
     from: deployer,
     args: [],
+    libraries: {
+      DeployStrategyTokenLogic: DeployStrategyTokenLogic.address
+    },
     log: true,
     proxy: {
       execute: {

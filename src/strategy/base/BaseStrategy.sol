@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../../interfaces/IController.sol";
 import "../../libraries/Constants.sol";
-import "../../tokenization/SupplyToken.sol";
+import "./DeployStrategyTokenLogic.sol";
 
 contract BaseStrategy is Initializable {
     struct HedgeStatus {
@@ -42,6 +42,7 @@ contract BaseStrategy is Initializable {
     address public operator;
 
     event OperatorUpdated(address operator);
+    event StrategyAdded(uint256 strategyId, uint256 pairId);
 
     modifier onlyOperator() {
         require(operator == msg.sender, "BaseStrategy: caller is not operator");
@@ -91,11 +92,11 @@ contract BaseStrategy is Initializable {
         strategies[strategyId] = Strategy(
             strategyId,
             uint64(pairGroup.id),
-            uint64(_pairId),
+            _pairId,
             0,
             pairGroup.stableTokenAddress,
             10 ** pairGroup.marginRoundedDecimal,
-            deployStrategyToken(pairGroup.stableTokenAddress, pair.underlyingPool.token),
+            DeployStrategyTokenLogic.deployStrategyToken(pairGroup.stableTokenAddress, pair.underlyingPool.token),
             HedgeStatus(
                 block.timestamp,
                 // square root of 7.5% scaled by 1e18
@@ -106,27 +107,9 @@ contract BaseStrategy is Initializable {
             )
         );
 
+        emit StrategyAdded(strategyId, _pairId);
+
         strategyCount++;
-    }
-
-    function deployStrategyToken(address _marginTokenAddress, address _tokenAddress) internal returns (address) {
-        IERC20Metadata marginToken = IERC20Metadata(_marginTokenAddress);
-        IERC20Metadata erc20 = IERC20Metadata(_tokenAddress);
-
-        return address(
-            new SupplyToken(
-                address(this),
-                string.concat(
-                    string.concat("Predy-ST-", erc20.name()),
-                    string.concat("-", marginToken.name())
-                ),
-                string.concat(
-                    string.concat("pst", erc20.symbol()),
-                    string.concat("-", marginToken.symbol())
-                ),
-                marginToken.decimals()
-            )
-        );
     }
 
     function validateStrategyId(uint256 _strategyId) internal view {
