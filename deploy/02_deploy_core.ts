@@ -3,6 +3,8 @@ import { DeployFunction } from 'hardhat-deploy/types'
 import { networkNameToUSDC, networkNameToArbUniswapPool, networkNameToWethUniswapPool } from '../tasks/utils'
 
 const operatorAddress = '0xb8d843c8E6e0E90eD2eDe80550856b64da92ee30'
+const botAddress = '0xc622fd7adfe9aafa97d9bc6f269c186f07b59f0f'
+
 const USDC_IRM_PARAMS = {
   baseRate: '10000000000000000',
   kinkRate: '900000000000000000',
@@ -70,7 +72,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const controller = await ethers.getContract('Controller', deployer)
 
     if (network.name === 'arbitrum') {
-      // await controller.setOperator(operatorAddress)
+      await controller.setLiquidator(botAddress)
+      await controller.setOperator(operatorAddress)
     } else if (network.name === 'goerliArbitrum') {
       await controller.addPairGroup(
         usdc,

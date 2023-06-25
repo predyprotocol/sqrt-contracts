@@ -130,6 +130,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
      * @param _initialPerpAmount initial perp amount
      * @param _initialSquartAmount initial squart amount
      * @param _tradeParams trade parameters
+     * @param _sqrtPriceThreshold hedge threshold
      */
     function depositForPositionInitialization(
         uint256 _strategyId,
@@ -137,11 +138,14 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         uint256 _initialMarginAmount,
         int256 _initialPerpAmount,
         int256 _initialSquartAmount,
-        IStrategyVault.StrategyTradeParams memory _tradeParams
+        IStrategyVault.StrategyTradeParams memory _tradeParams,
+        uint256 _sqrtPriceThreshold
     ) external onlyOperator nonReentrant returns (uint256) {
         Strategy storage strategy = addOrGetStrategy(_strategyId, _pairId);
 
         require(totalSupply(strategy) == 0, "GSS0");
+
+        saveHedgePriceThreshold(strategy, _sqrtPriceThreshold);
 
         TransferHelper.safeTransferFrom(strategy.marginToken, msg.sender, address(this), _initialMarginAmount);
 
@@ -180,11 +184,8 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
      */
     function updateHedgePriceThreshold(uint256 _strategyId, uint256 _newSqrtPriceThreshold) external onlyOperator {
         validateStrategyId(_strategyId);
-        require(1e18 <= _newSqrtPriceThreshold && _newSqrtPriceThreshold < 2 * 1e18);
 
-        strategies[_strategyId].hedgeStatus.hedgeSqrtPriceThreshold = _newSqrtPriceThreshold;
-
-        emit HedgePriceThresholdUpdated(_strategyId, _newSqrtPriceThreshold);
+        saveHedgePriceThreshold(strategies[_strategyId], _newSqrtPriceThreshold);
     }
 
     /**
@@ -202,23 +203,26 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
     /**
      * @notice Changes gamma size per share.
-     * @param _squartAmount squart amount
+     * @param _sqrtAmount squart amount
      * @param _tradeParams trade parameters
      */
     function updateGamma(
         uint256 _strategyId,
-        int256 _squartAmount,
+        int256 _sqrtAmount,
         IStrategyVault.StrategyTradeParams memory _tradeParams
     ) external onlyOperator {
         validateStrategyId(_strategyId);
         Strategy memory strategy = strategies[_strategyId];
 
+        uint256 sqrtPrice = controller.getSqrtPrice(strategy.pairId);
+        int256 perpAmount = -ReaderLogic.calculateDelta(sqrtPrice, _sqrtAmount, 0);
+
         controller.tradePerp(
             strategy.vaultId,
             strategy.pairId,
             TradePerpLogic.TradeParams(
-                0,
-                _squartAmount,
+                perpAmount,
+                _sqrtAmount,
                 _tradeParams.lowerSqrtPrice,
                 _tradeParams.upperSqrtPrice,
                 _tradeParams.deadline,
@@ -405,6 +409,14 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
     ///////////////////////
     // Private Functions //
     ///////////////////////
+
+    function saveHedgePriceThreshold(Strategy storage _strategy, uint256 _newSqrtPriceThreshold) internal {
+        require(1e18 <= _newSqrtPriceThreshold && _newSqrtPriceThreshold < 2 * 1e18);
+
+        _strategy.hedgeStatus.hedgeSqrtPriceThreshold = _newSqrtPriceThreshold;
+
+        emit HedgePriceThresholdUpdated(_strategy.id, _newSqrtPriceThreshold);
+    }
 
     function createTradeParams(
         Strategy memory _strategy,

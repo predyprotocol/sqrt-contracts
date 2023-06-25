@@ -76,8 +76,6 @@ library ReaderLogic {
         );
     }
 
-    // getInterest
-
     function getDelta(uint256 _pairId, DataType.Vault memory _vault, uint160 _sqrtPrice)
         internal
         pure

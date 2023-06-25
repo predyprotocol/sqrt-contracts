@@ -20,6 +20,8 @@ contract TestGammaShortStrategy is TestBaseStrategy {
     uint256 strategyId;
     uint256 vaultId;
 
+    uint256 constant PRICE_THRESHOLD = 10368220676 * 1e8;
+
     function setUp() public override {
         TestBaseStrategy.setUp();
 
@@ -30,7 +32,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         strategy = new GammaShortStrategy();
 
-        strategy.initialize(address(controller), address(reader), BaseStrategy.MinPerValueLimit(10 * 1e16, 40 * 1e16));
+        strategy.initialize(address(controller), address(reader), BaseStrategy.MinPerValueLimit(10 * 1e16, 50 * 1e16));
         quoter = new StrategyQuoter(strategy);
 
         strategy.setHedger(address(this));
@@ -42,7 +44,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         usdc.approve(address(strategy), type(uint256).max);
 
         strategyId = strategy.depositForPositionInitialization(
-            strategyId, WETH_ASSET_ID, 1e10, -6 * 1e10, 6 * 1e10, getStrategyTradeParams()
+            strategyId, WETH_ASSET_ID, 1e10, -6 * 1e10, 6 * 1e10, getStrategyTradeParams(), PRICE_THRESHOLD
         );
 
         (,,, vaultId,,,,) = strategy.strategies(strategyId);
@@ -69,7 +71,9 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         GammaShortStrategy.StrategyTradeParams memory tradeParams = getStrategyTradeParams();
 
         vm.expectRevert(bytes("GSS0"));
-        strategy.depositForPositionInitialization(strategyId, WETH_ASSET_ID, 1e10, -1e9, 1e9, tradeParams);
+        strategy.depositForPositionInitialization(
+            strategyId, WETH_ASSET_ID, 1e10, -1e9, 1e9, tradeParams, PRICE_THRESHOLD
+        );
     }
 
     function testCannotInitialize_IfCallerIsNotOwner() public {
@@ -77,7 +81,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         vm.prank(user);
         vm.expectRevert(bytes("BaseStrategy: caller is not operator"));
-        strategy.depositForPositionInitialization(0, WETH_ASSET_ID, 1e10, -1e9, 1e9, tradeParams);
+        strategy.depositForPositionInitialization(0, WETH_ASSET_ID, 1e10, -1e9, 1e9, tradeParams, PRICE_THRESHOLD);
     }
 
     function testCannotDeposit_IfDepositAmountIsTooLarge() public {
@@ -399,25 +403,21 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         GammaShortStrategy.StrategyTradeParams memory tradeParams = getStrategyTradeParams();
 
         vm.expectRevert(bytes("GSS4"));
-        strategy.updateGamma(strategyId, 10 * 1e10, tradeParams);
+        strategy.updateGamma(strategyId, 100 * 1e10, tradeParams);
     }
 
     function testUpdateGamma() public {
         uint256 depositMarginAmount =
             strategy.deposit(strategyId, 1e10, address(this), 1e10, false, getStrategyTradeParams());
 
-        uniswapPool.swap(address(this), false, -2 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
-
-        strategy.updateGamma(strategyId, 1e10, getStrategyTradeParams());
-
-        uniswapPool.swap(address(this), true, 2 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+        strategy.updateGamma(strategyId, 10 * 1e10, getStrategyTradeParams());
 
         vm.warp(block.timestamp + 1 days);
 
         uint256 withdrawMarginAmount = strategy.withdraw(strategyId, 1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawMarginAmount, 9974850000);
+        assertEq(withdrawMarginAmount, 9999690000);
     }
 
     function testSetOperator() public {
