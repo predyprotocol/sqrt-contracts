@@ -50,6 +50,11 @@ library VaultLib {
             validateVaultId(_globalData, _vaultId);
             checkVault(_globalData.vaults[_vaultId], _caller);
             checkVaultBelongsToPairGroup(_globalData.vaults[_vaultId], _pairGroupId);
+
+            if (!_isMainVault) {
+                require(_globalData.ownVaultsMap[_caller][_pairGroupId].mainVaultId != _vaultId, "V6");
+            }
+
             return _vaultId;
         }
     }
@@ -151,5 +156,25 @@ library VaultLib {
         require(index <= MAX_VAULTS, "V3");
 
         return index;
+    }
+
+    function getDoesExistsPairId(
+        DataType.GlobalData storage _globalData,
+        DataType.OwnVaults memory _ownVaults,
+        uint256 _pairId
+    ) internal view returns (bool) {
+        for (uint256 i = 0; i < _ownVaults.isolatedVaultIds.length; i++) {
+            DataType.Vault memory vault = _globalData.vaults[_ownVaults.isolatedVaultIds[i]];
+
+            for (uint256 j = 0; j < vault.openPositions.length; j++) {
+                Perp.UserStatus memory openPosition = vault.openPositions[j];
+
+                if (openPosition.pairId == _pairId) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

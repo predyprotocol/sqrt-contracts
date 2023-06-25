@@ -66,8 +66,18 @@ library UpdateMarginLogic {
             }
         }
 
-        return
+        isolatedVaultId =
             _updateMarginOfIsolated(_globalData, _pairGroupId, _isolatedVaultId, updateMarginAmount, _moveFromMainVault);
+
+        // remove isolated vault if the vault is empty
+        if (updateMarginAmount < 0) {
+            DataType.Vault memory isolatedVault = _globalData.vaults[isolatedVaultId];
+            bool hasPosition = PositionCalculator.getHasPosition(isolatedVault);
+
+            if (!hasPosition && isolatedVault.margin == 0) {
+                VaultLib.removeIsolatedVaultId(_globalData.ownVaultsMap[msg.sender][_pairGroupId], _isolatedVaultId);
+            }
+        }
     }
 
     function _updateMarginOfIsolated(
@@ -120,12 +130,6 @@ library UpdateMarginLogic {
             }
 
             emitEvent(mainVault, -_updateMarginAmount);
-
-            // auto move
-
-            if (isolatedVault.margin == 0) {
-                VaultLib.removeIsolatedVaultId(ownVaults, isolatedVaultId);
-            }
         } else {
             execMarginTransfer(
                 isolatedVault, _globalData.pairGroups[_pairGroupId].stableTokenAddress, _updateMarginAmount

@@ -217,6 +217,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         return UpdateMarginLogic.updateMargin(globalData, _pairGroupId, _marginAmount);
     }
 
+    /**
+     * @notice Deposit margin to the isolated vault or withdraw margin from the isolated vault.
+     * @param _pairGroupId The id of pair group
+     * @param _isolatedVaultId The id of an isolated vault
+     * @param _marginAmount The amount of margin. Positive means deposit and negative means withdraw.
+     * @param _moveFromMainVault If true margin is moved from the main vault, if false the margin is transfered from the account.
+     * @return isolatedVaultId The id of vault created
+     */
     function updateMarginOfIsolated(
         uint64 _pairGroupId,
         uint256 _isolatedVaultId,
@@ -232,9 +240,17 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         uint256 _vaultId,
         uint64 _pairId,
         TradePerpLogic.TradeParams memory _tradeParams,
-        uint256 _depositAmount
+        uint256 _depositAmount,
+        bool _revertOnDupPair
     ) external nonReentrant returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult) {
         uint256 pairGroupId = globalData.pairs[_pairId].pairGroupId;
+
+        // check duplication
+        require(
+            !_revertOnDupPair
+                || !VaultLib.getDoesExistsPairId(globalData, globalData.ownVaultsMap[msg.sender][pairGroupId], _pairId),
+            "DUP_PAIR"
+        );
 
         if (_depositAmount > 0) {
             isolatedVaultId = UpdateMarginLogic.updateMarginOfIsolated(

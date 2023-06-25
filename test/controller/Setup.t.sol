@@ -185,7 +185,7 @@ contract TestController is Test {
         internal
         returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
     {
-        return controller.openIsolatedPosition(0, _pairId, _tradeParams, _depositAmount);
+        return controller.openIsolatedPosition(0, _pairId, _tradeParams, _depositAmount, true);
     }
 
     function closeIsolatedVault(uint256 _isolatedVaultId, uint64 _pairId, CloseParams memory _closeParams)
