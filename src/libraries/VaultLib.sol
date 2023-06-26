@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
+import "./Constants.sol";
 import "./DataType.sol";
 import "./ScaledAsset.sol";
 
 library VaultLib {
-    uint256 internal constant MAX_VAULTS = 100;
+    uint256 internal constant MAX_ISOLATED_VAULTS = 100;
 
     event VaultCreated(uint256 vaultId, address owner, bool isMainVault, uint256 pairGroupId);
 
@@ -30,6 +31,8 @@ library VaultLib {
     ) internal returns (uint256 vaultId) {
         if (_vaultId == 0) {
             vaultId = _globalData.vaultCount++;
+
+            require(vaultId < Constants.MAX_VAULTS, "MAXV");
 
             require(_caller != address(0), "V5");
 
@@ -119,7 +122,7 @@ library VaultLib {
 
         _ownVaults.isolatedVaultIds.push(_newIsolatedVaultId);
 
-        require(_ownVaults.isolatedVaultIds.length <= MAX_VAULTS, "V3");
+        require(_ownVaults.isolatedVaultIds.length <= MAX_ISOLATED_VAULTS, "V3");
     }
 
     function removeIsolatedVaultId(DataType.OwnVaults storage _ownVaults, uint256 _vaultId) internal {
@@ -153,7 +156,7 @@ library VaultLib {
             }
         }
 
-        require(index <= MAX_VAULTS, "V3");
+        require(index <= MAX_ISOLATED_VAULTS, "V3");
 
         return index;
     }

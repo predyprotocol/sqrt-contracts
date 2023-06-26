@@ -55,6 +55,8 @@ library AddPairLogic {
     ) external returns (uint256 pairId) {
         pairId = _global.pairsCount;
 
+        require(pairId < Constants.MAX_PAIRS, "MAXP");
+
         // Checks the pair group exists
         PairGroupLib.validatePairGroupId(_global, _addPairParam.pairGroupId);
 

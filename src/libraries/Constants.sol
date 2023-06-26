@@ -4,6 +4,9 @@ pragma solidity ^0.8.19;
 library Constants {
     uint256 internal constant ONE = 1e18;
 
+    uint256 internal constant MAX_VAULTS = 18446744073709551616;
+    uint256 internal constant MAX_PAIRS = 18446744073709551616;
+
     // Margin option
     int256 internal constant MIN_MARGIN_AMOUNT = 1e6;
 

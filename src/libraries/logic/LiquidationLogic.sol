@@ -71,7 +71,7 @@ library LiquidationLogic {
         uint256 _closeRatio,
         uint256 _liquidationSlippageSqrtTolerance
     ) internal returns (int256 totalPenaltyAmount) {
-        require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
+        require(1e17 <= _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         // The vault must be danger
         require(PositionCalculator.isLiquidatable(_globalData.pairs, _globalData.rebalanceFeeGrowthCache, _vault), "ND");
@@ -95,8 +95,7 @@ library LiquidationLogic {
 
         _vault.cleanOpenPosition();
 
-        (_vault.margin, totalPenaltyAmount) =
-            calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount) * _closeRatio / Constants.ONE);
+        (_vault.margin, totalPenaltyAmount) = calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount));
 
         // The vault must be safe after liquidation call
         bool hasPosition = PositionCalculator.getHasPosition(_vault);
@@ -169,6 +168,11 @@ library LiquidationLogic {
 
             uint256 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(_sqrtSlippageTolerance);
             penaltyAmount = calculatePenaltyAmount(_pairGroup.marginRoundedDecimal);
+            penaltyAmount = uint256(
+                Trade.roundMargin(
+                    int256(penaltyAmount * _closeRatio / Constants.ONE), 10 ** _pairGroup.marginRoundedDecimal
+                )
+            );
 
             require(
                 sqrtTwap * 1e6 / (1e6 + liquidationSlippageSqrtTolerance) <= sqrtPrice
