@@ -62,6 +62,14 @@ library VaultLib {
         }
     }
 
+    function removeVault(DataType.OwnVaults storage _ownVaults, DataType.Vault storage _vault) internal {
+        if (_ownVaults.mainVaultId == _vault.id) {
+            return;
+        }
+
+        removeIsolatedVaultId(_ownVaults, _vault.id);
+    }
+
     function createOrGetOpenPosition(
         mapping(uint256 => DataType.PairStatus) storage _pairs,
         DataType.Vault storage _vault,
@@ -132,9 +140,12 @@ library VaultLib {
             return;
         }
 
+        // if there is no item, skip removing
         uint256 index = getIsolatedVaultIndex(_ownVaults, _vaultId);
 
-        removeIsolatedVaultIdWithIndex(_ownVaults, index);
+        if (index <= MAX_ISOLATED_VAULTS) {
+            removeIsolatedVaultIdWithIndex(_ownVaults, index);
+        }
     }
 
     function removeIsolatedVaultIdWithIndex(DataType.OwnVaults storage _ownVaults, uint256 _index) internal {
@@ -155,8 +166,6 @@ library VaultLib {
                 break;
             }
         }
-
-        require(index <= MAX_ISOLATED_VAULTS, "V3");
 
         return index;
     }

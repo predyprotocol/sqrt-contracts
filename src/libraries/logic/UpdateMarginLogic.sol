@@ -71,11 +71,11 @@ library UpdateMarginLogic {
 
         // remove isolated vault if the vault is empty
         if (updateMarginAmount < 0) {
-            DataType.Vault memory isolatedVault = _globalData.vaults[isolatedVaultId];
+            DataType.Vault storage isolatedVault = _globalData.vaults[isolatedVaultId];
             bool hasPosition = PositionCalculator.getHasPosition(isolatedVault);
 
             if (!hasPosition && isolatedVault.margin == 0) {
-                VaultLib.removeIsolatedVaultId(_globalData.ownVaultsMap[msg.sender][_pairGroupId], _isolatedVaultId);
+                VaultLib.removeVault(_globalData.ownVaultsMap[msg.sender][_pairGroupId], isolatedVault);
             }
         }
     }

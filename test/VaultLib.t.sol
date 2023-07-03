@@ -185,9 +185,10 @@ contract VaultLibTest is Test, Helper {
         assertEq(ownVaults2.isolatedVaultIds.length, 0);
     }
 
-    function testCannotRemoveIsolatedVaultId_IfNotFound() public {
-        vm.expectRevert(bytes("V3"));
+    function testRemoveIsolatedVaultId_IfNotFound() public {
         VaultLib.removeIsolatedVaultId(ownVaults2, 123);
+
+        assertEq(ownVaults2.isolatedVaultIds.length, 1);
     }
 
     function testCannotRemoveIsolatedVaultId_IfVaultIdIsZero() public {
