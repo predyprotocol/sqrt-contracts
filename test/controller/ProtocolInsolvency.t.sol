@@ -113,6 +113,9 @@ contract TestControllerTradePerp is TestController {
 
             assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
         }
+
+        assertLt(usdc.balanceOf(address(controller)), 100);
+        assertLt(weth.balanceOf(address(controller)), 100);
     }
 
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
@@ -303,7 +306,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10010294743);
+        assertEq(vault.margin, 10010294746);
 
         withdrawAll();
     }
@@ -646,7 +649,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999839387);
+        assertEq(vault.margin, 9999839388);
 
         withdrawAll();
     }
@@ -718,7 +721,7 @@ contract TestControllerTradePerp is TestController {
     }
 
     function testContinuousReallocation() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-15 * 1e6, 15 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-16 * 1e6, 16 * 1e6));
 
         for (uint256 i = 0; i < 2; i++) {
             uniswapPool.swap(address(this), false, 37 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");

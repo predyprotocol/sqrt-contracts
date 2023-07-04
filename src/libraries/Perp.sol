@@ -62,7 +62,6 @@ library Perp {
     }
 
     struct SqrtPerpAssetStatus {
-        // if it is stable then uniswapPool is address(0)
         address uniswapPool;
         int24 tickLower;
         int24 tickUpper;
@@ -144,18 +143,16 @@ library Perp {
     }
 
     function updateRebalanceFeeGrowth(
-        DataType.PairStatus memory _assetStatusUnderlying,
+        DataType.PairStatus memory _pairStatus,
         SqrtPerpAssetStatus storage _sqrtAssetStatus
     ) internal {
         // settle fee for rebalance position
         if (_sqrtAssetStatus.lastRebalanceTotalSquartAmount > 0) {
-            _sqrtAssetStatus.rebalanceFeeGrowthUnderlying += _assetStatusUnderlying
-                .underlyingPool
-                .tokenStatus
-                .settleUserFee(_sqrtAssetStatus.rebalancePositionUnderlying) * 1e18
-                / int256(_sqrtAssetStatus.lastRebalanceTotalSquartAmount);
+            _sqrtAssetStatus.rebalanceFeeGrowthUnderlying += _pairStatus.underlyingPool.tokenStatus.settleUserFee(
+                _sqrtAssetStatus.rebalancePositionUnderlying
+            ) * 1e18 / int256(_sqrtAssetStatus.lastRebalanceTotalSquartAmount);
 
-            _sqrtAssetStatus.rebalanceFeeGrowthStable += _assetStatusUnderlying.stablePool.tokenStatus.settleUserFee(
+            _sqrtAssetStatus.rebalanceFeeGrowthStable += _pairStatus.stablePool.tokenStatus.settleUserFee(
                 _sqrtAssetStatus.rebalancePositionStable
             ) * 1e18 / int256(_sqrtAssetStatus.lastRebalanceTotalSquartAmount);
         }
@@ -600,6 +597,14 @@ library Perp {
             return (0, 0);
         }
 
+        if (_assetStatus.lastRebalanceTotalSquartAmount == 0) {
+            // last user who settles rebalance position
+            return (
+                _assetStatus.rebalancePositionUnderlying.positionAmount,
+                _assetStatus.rebalancePositionStable.positionAmount
+            );
+        }
+
         int256 deltaPosition0 = LPMath.calculateAmount0ForLiquidityWithTicks(
             _assetStatus.tickUpper,
             _userStatus.rebalanceLastTickUpper,
@@ -828,5 +833,10 @@ library Perp {
                 sqrtAsset.rebalancePositionStable, _updateAmount1, _pairStatus.id, true
             );
         }
+    }
+
+    function finalizeReallocation(SqrtPerpAssetStatus storage _sqrtPerpStatus) internal {
+        _sqrtPerpStatus.lastRebalanceTotalSquartAmount = _sqrtPerpStatus.totalAmount + _sqrtPerpStatus.borrowedAmount;
+        _sqrtPerpStatus.numRebalance++;
     }
 }

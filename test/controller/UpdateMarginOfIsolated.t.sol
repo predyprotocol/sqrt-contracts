@@ -109,6 +109,14 @@ contract TestControllerupdateMarginOfIsolated is TestController {
         assertEq(vault2.margin, 900 * 1e6);
     }
 
+    function testDepositMargin_AnotherPairGroup() public {
+        vm.prank(user2);
+        uint256 vaultId = controller.updateMarginOfIsolated(PAIR_GROUP_ID + 1, 0, 100 * 1e6, false);
+
+        assertEq(vaultId, 3);
+        assertEq(controller.vaultCount(), 4);
+    }
+
     // deposit margin if vault is insolvent
 
     ////////////////

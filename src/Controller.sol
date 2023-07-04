@@ -91,6 +91,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         return globalData.vaultCount;
     }
 
+    function updateDebug(uint256 _pairId, uint256 _amount) external {
+        globalData.pairs[_pairId].sqrtAssetStatus.lastRebalanceTotalSquartAmount = _amount;
+    }
+
     /**
      * @notice Sets new operator
      * @dev Only operator can call this function.

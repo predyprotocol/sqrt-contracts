@@ -108,17 +108,19 @@ library PerpFee {
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus memory _userStatus
     ) internal view returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) {
-        if (_userStatus.sqrtPerp.amount > 0 && _userStatus.lastNumRebalance < _assetStatus.numRebalance) {
+        if (_userStatus.sqrtPerp.amount != 0 && _userStatus.lastNumRebalance < _assetStatus.numRebalance) {
             uint256 rebalanceId = PairLib.getRebalanceCacheId(_assetId, _userStatus.lastNumRebalance);
+
+            uint256 rebalanceAmount = Math.abs(_userStatus.sqrtPerp.amount);
 
             rebalanceFeeUnderlying = Math.mulDivDownInt256(
                 _assetStatus.rebalanceFeeGrowthUnderlying - _rebalanceFeeGrowthCache[rebalanceId].underlyingGrowth,
-                uint256(_userStatus.sqrtPerp.amount),
+                rebalanceAmount,
                 Constants.ONE
             );
             rebalanceFeeStable = Math.mulDivDownInt256(
                 _assetStatus.rebalanceFeeGrowthStable - _rebalanceFeeGrowthCache[rebalanceId].stableGrowth,
-                uint256(_userStatus.sqrtPerp.amount),
+                rebalanceAmount,
                 Constants.ONE
             );
         }
@@ -130,11 +132,13 @@ library PerpFee {
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _userStatus
     ) internal returns (int256 rebalanceFeeUnderlying, int256 rebalanceFeeStable) {
-        if (_userStatus.sqrtPerp.amount > 0 && _userStatus.lastNumRebalance < _assetStatus.numRebalance) {
+        if (_userStatus.sqrtPerp.amount != 0 && _userStatus.lastNumRebalance < _assetStatus.numRebalance) {
             (rebalanceFeeUnderlying, rebalanceFeeStable) =
                 computeRebalanceEntryFee(_assetId, _assetStatus, _rebalanceFeeGrowthCache, _userStatus);
 
-            _assetStatus.lastRebalanceTotalSquartAmount -= uint256(_userStatus.sqrtPerp.amount);
+            uint256 rebalanceAmount = Math.abs(_userStatus.sqrtPerp.amount);
+
+            _assetStatus.lastRebalanceTotalSquartAmount -= rebalanceAmount;
         }
 
         _userStatus.lastNumRebalance = _assetStatus.numRebalance;

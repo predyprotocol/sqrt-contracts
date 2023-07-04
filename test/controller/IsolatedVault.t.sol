@@ -28,6 +28,8 @@ contract TestControllerIsolatedVault is TestController {
         controller.supplyToken(1, 1e10, false);
         controller.supplyToken(2, 1e10, true);
         controller.supplyToken(2, 1e10, false);
+        controller.supplyToken(3, 1e10, true);
+        controller.supplyToken(3, 1e10, false);
         vaultId1 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
         vm.stopPrank();
 
@@ -101,6 +103,15 @@ contract TestControllerIsolatedVault is TestController {
         assertEq(tradeResult.payoff.sqrtEntryUpdate, 0);
         assertGt(tradeResult.minDeposit, 0);
         assertEq(controller.vaultCount(), 4);
+    }
+
+    function testOpenIsolatedVault_AnotherPairGroup() public {
+        vm.startPrank(user2);
+        usdc.approve(address(controller), type(uint256).max);
+        vaultId2 = controller.updateMargin(PAIR_GROUP_ID + 1, 1e10);
+
+        openIsolatedVault(10 * 1e8, WETH2_ASSET_ID, getTradeParams(-10 * 1e6, 10 * 1e6));
+        vm.stopPrank();
     }
 
     function testCannotAddPosition_IfExistingPositionIsIsolatedPair() public {

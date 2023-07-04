@@ -269,6 +269,44 @@ contract TestControllerTradePerp is TestController {
         assertEq(vault.margin, 9999980000);
     }
 
+    // short to long
+    function testCloseShortAndOpenLongSqrt() public {
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(-1e6, 2 * 1e6));
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 days);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e6, -1e6));
+
+        manipulateVol(10);
+        vm.warp(block.timestamp + 1 days);
+
+        uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+        assertEq(currentTick, 970);
+
+        (bool reallocationHappened,) = controller.reallocate(WETH_ASSET_ID);
+
+        assertTrue(reallocationHappened);
+
+        vm.warp(block.timestamp + 1 days);
+
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(-1e4, 0));
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 days);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-2 * 1e6, 2 * 1e6));
+
+        DataType.Vault memory vault = controller.getVault(vaultId);
+
+        assertEq(vault.margin, 9999990000);
+    }
+
     // cannot open short sqrt if there is no enough liquidity
     function testCannotOpenShortSqrt_IfNoLiquidity() public {
         vm.startPrank(user2);
@@ -583,7 +621,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10013924328);
+        assertEq(vault.margin, 10013924333);
 
         withdrawAll();
     }
@@ -603,7 +641,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999541600);
+        assertEq(vault.margin, 9999541603);
 
         withdrawAll();
     }

@@ -30,8 +30,8 @@ library ReallocationLogic {
                 pairStatus.sqrtAssetStatus.rebalanceFeeGrowthStable,
                 pairStatus.sqrtAssetStatus.rebalanceFeeGrowthUnderlying
             );
-            pairStatus.sqrtAssetStatus.lastRebalanceTotalSquartAmount = pairStatus.sqrtAssetStatus.totalAmount;
-            pairStatus.sqrtAssetStatus.numRebalance++;
+
+            Perp.finalizeReallocation(pairStatus.sqrtAssetStatus);
         }
 
         if (profit < 0) {

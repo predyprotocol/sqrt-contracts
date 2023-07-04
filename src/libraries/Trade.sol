@@ -22,10 +22,8 @@ library Trade {
     ) internal returns (DataType.TradeResult memory tradeResult) {
         Perp.updateRebalanceFeeGrowth(_pairStatus, _pairStatus.sqrtAssetStatus);
 
-        int256 underlyingFee;
-        int256 stableFee;
-
-        (underlyingFee, stableFee) = settleUserBalanceAndFee(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
+        (int256 underlyingFee, int256 stableFee) =
+            settleUserBalanceAndFee(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
 
         (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) = Perp.computeRequiredAmounts(
             _pairStatus.sqrtAssetStatus, _pairStatus.isMarginZero, _perpUserStatus, _tradeAmountSqrt
