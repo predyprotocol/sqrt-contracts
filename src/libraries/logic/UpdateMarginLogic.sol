@@ -68,16 +68,6 @@ library UpdateMarginLogic {
 
         isolatedVaultId =
             _updateMarginOfIsolated(_globalData, _pairGroupId, _isolatedVaultId, updateMarginAmount, _moveFromMainVault);
-
-        // remove isolated vault if the vault is empty
-        if (updateMarginAmount < 0) {
-            DataType.Vault storage isolatedVault = _globalData.vaults[isolatedVaultId];
-            bool hasPosition = PositionCalculator.getHasPosition(isolatedVault);
-
-            if (!hasPosition && isolatedVault.margin == 0) {
-                VaultLib.removeVault(_globalData.ownVaultsMap[msg.sender][_pairGroupId], isolatedVault);
-            }
-        }
     }
 
     function _updateMarginOfIsolated(

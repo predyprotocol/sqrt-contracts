@@ -112,8 +112,6 @@ library LiquidationLogic {
             _mainVault.margin += _vault.margin;
 
             _vault.margin = 0;
-
-            VaultLib.removeVault(_globalData.ownVaultsMap[_mainVault.owner][_pairGroup.id], _vault);
         }
 
         // withdrawnMarginAmount is always positive because it's checked in before lines

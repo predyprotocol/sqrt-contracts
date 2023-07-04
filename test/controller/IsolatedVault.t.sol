@@ -114,6 +114,30 @@ contract TestControllerIsolatedVault is TestController {
         vm.stopPrank();
     }
 
+    function testOpenIsolatedVault_AfterClose() public {
+        vm.startPrank(user2);
+
+        (uint256 isolatedVaultId1,) = openIsolatedVault(1e8, WETH_ASSET_ID, getTradeParams(-1e8, 1e8));
+
+        DataType.TradeResult memory tradeResult = closeIsolatedVault(isolatedVaultId1, WETH_ASSET_ID, getCloseParams());
+
+        (uint256 isolatedVaultId2,) =
+            controller.openIsolatedPosition(isolatedVaultId1, WETH_ASSET_ID, getTradeParams(-1e8, 1e8), 2 * 1e8, true);
+
+        vm.stopPrank();
+
+        assertEq(isolatedVaultId1, isolatedVaultId2);
+
+        DataType.Vault memory mainVault = controller.getVault(vaultId2);
+        DataType.Vault memory isolatedVault = controller.getVault(isolatedVaultId1);
+
+        assertEq(isolatedVault.openPositions.length, 1);
+        assertEq(isolatedVault.margin, 2 * 1e8);
+
+        assertEq(mainVault.openPositions.length, 0);
+        assertEq(mainVault.margin, 9799999996);
+    }
+
     function testCannotAddPosition_IfExistingPositionIsIsolatedPair() public {
         vm.startPrank(user2);
         (uint256 isolatedVaultId,) =
@@ -171,5 +195,12 @@ contract TestControllerIsolatedVault is TestController {
 
         DataType.Vault memory vault = controller.getVault(isolatedVaultId);
         assertEq(vault.margin, 0);
+
+        vm.startPrank(user2);
+
+        (, DataType.VaultStatusResult[] memory results) = controller.getVaultStatusWithAddress(PAIR_GROUP_ID);
+        assertEq(results.length, 1);
+
+        vm.stopPrank();
     }
 }
