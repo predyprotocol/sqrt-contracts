@@ -461,7 +461,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.openPositions.length, 0);
+        assertEq(vault.openPositions.length, 1);
 
         assertEq(vault.margin, 10000189893);
 

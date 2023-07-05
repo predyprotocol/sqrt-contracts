@@ -93,8 +93,6 @@ library LiquidationLogic {
             totalPenaltyAmount += int256(penaltyAmount);
         }
 
-        _vault.cleanOpenPosition();
-
         (_vault.margin, totalPenaltyAmount) = calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount));
 
         // The vault must be safe after liquidation call

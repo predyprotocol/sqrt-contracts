@@ -87,9 +87,6 @@ library TradePerpLogic {
             _tradeParams.tradeAmountSqrt
         );
 
-        // remove the open position from the vault
-        _vault.cleanOpenPosition();
-
         _vault.margin += tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
         checkPrice(pairStatus.sqrtAssetStatus.uniswapPool, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice);

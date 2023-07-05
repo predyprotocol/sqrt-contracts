@@ -122,7 +122,7 @@ contract TestControllerIsolatedVault is TestController {
         DataType.TradeResult memory tradeResult = closeIsolatedVault(isolatedVaultId1, WETH_ASSET_ID, getCloseParams());
 
         (uint256 isolatedVaultId2,) =
-            controller.openIsolatedPosition(isolatedVaultId1, WETH_ASSET_ID, getTradeParams(-1e8, 1e8), 2 * 1e8, true);
+            controller.openIsolatedPosition(isolatedVaultId1, WETH_ASSET_ID, getTradeParams(-1e8, 1e8), 2 * 1e8, false);
 
         vm.stopPrank();
 

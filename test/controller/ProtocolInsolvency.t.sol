@@ -149,7 +149,8 @@ contract TestControllerTradePerp is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         {
-            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+            (uint256 isolatedVaultId,) =
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6), 1e9, true);
 
             uniswapPool.swap(address(this), true, -1 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
@@ -157,7 +158,8 @@ contract TestControllerTradePerp is TestController {
         }
 
         {
-            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6));
+            (uint256 isolatedVaultId,) =
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6), 1e9, false);
 
             uniswapPool.swap(address(this), true, -2 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
@@ -189,7 +191,8 @@ contract TestControllerTradePerp is TestController {
         vm.warp(block.timestamp + 1 hours);
 
         {
-            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+            (uint256 isolatedVaultId,) =
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6), 1e9, false);
 
             uniswapPool.swap(address(this), false, 2 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
 
@@ -197,7 +200,8 @@ contract TestControllerTradePerp is TestController {
         }
 
         {
-            (uint256 isolatedVaultId,) = openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+            (uint256 isolatedVaultId,) =
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6), 1e9, false);
 
             uniswapPool.swap(address(this), true, -3 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 
