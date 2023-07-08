@@ -122,37 +122,39 @@ library UniHelper {
         uint256 feeGrowthBelow0X128;
         uint256 feeGrowthBelow1X128;
 
-        {
-            (,, uint256 lowerFeeGrowthOutside0X128, uint256 lowerFeeGrowthOutside1X128,,,,) =
-                IUniswapV3Pool(_uniswapPool).ticks(_tickLower);
+        unchecked {
+            {
+                (,, uint256 lowerFeeGrowthOutside0X128, uint256 lowerFeeGrowthOutside1X128,,,,) =
+                    IUniswapV3Pool(_uniswapPool).ticks(_tickLower);
 
-            if (tickCurrent >= _tickLower) {
-                feeGrowthBelow0X128 = lowerFeeGrowthOutside0X128;
-                feeGrowthBelow1X128 = lowerFeeGrowthOutside1X128;
-            } else {
-                feeGrowthBelow0X128 = feeGrowthGlobal0X128 - lowerFeeGrowthOutside0X128;
-                feeGrowthBelow1X128 = feeGrowthGlobal1X128 - lowerFeeGrowthOutside1X128;
+                if (tickCurrent >= _tickLower) {
+                    feeGrowthBelow0X128 = lowerFeeGrowthOutside0X128;
+                    feeGrowthBelow1X128 = lowerFeeGrowthOutside1X128;
+                } else {
+                    feeGrowthBelow0X128 = feeGrowthGlobal0X128 - lowerFeeGrowthOutside0X128;
+                    feeGrowthBelow1X128 = feeGrowthGlobal1X128 - lowerFeeGrowthOutside1X128;
+                }
             }
-        }
 
-        // calculate fee growth above
-        uint256 feeGrowthAbove0X128;
-        uint256 feeGrowthAbove1X128;
+            // calculate fee growth above
+            uint256 feeGrowthAbove0X128;
+            uint256 feeGrowthAbove1X128;
 
-        {
-            (,, uint256 upperFeeGrowthOutside0X128, uint256 upperFeeGrowthOutside1X128,,,,) =
-                IUniswapV3Pool(_uniswapPool).ticks(_tickUpper);
+            {
+                (,, uint256 upperFeeGrowthOutside0X128, uint256 upperFeeGrowthOutside1X128,,,,) =
+                    IUniswapV3Pool(_uniswapPool).ticks(_tickUpper);
 
-            if (tickCurrent < _tickUpper) {
-                feeGrowthAbove0X128 = upperFeeGrowthOutside0X128;
-                feeGrowthAbove1X128 = upperFeeGrowthOutside1X128;
-            } else {
-                feeGrowthAbove0X128 = feeGrowthGlobal0X128 - upperFeeGrowthOutside0X128;
-                feeGrowthAbove1X128 = feeGrowthGlobal1X128 - upperFeeGrowthOutside1X128;
+                if (tickCurrent < _tickUpper) {
+                    feeGrowthAbove0X128 = upperFeeGrowthOutside0X128;
+                    feeGrowthAbove1X128 = upperFeeGrowthOutside1X128;
+                } else {
+                    feeGrowthAbove0X128 = feeGrowthGlobal0X128 - upperFeeGrowthOutside0X128;
+                    feeGrowthAbove1X128 = feeGrowthGlobal1X128 - upperFeeGrowthOutside1X128;
+                }
             }
-        }
 
-        feeGrowthInside0X128 = feeGrowthGlobal0X128 - feeGrowthBelow0X128 - feeGrowthAbove0X128;
-        feeGrowthInside1X128 = feeGrowthGlobal1X128 - feeGrowthBelow1X128 - feeGrowthAbove1X128;
+            feeGrowthInside0X128 = feeGrowthGlobal0X128 - feeGrowthBelow0X128 - feeGrowthAbove0X128;
+            feeGrowthInside1X128 = feeGrowthGlobal1X128 - feeGrowthBelow1X128 - feeGrowthAbove1X128;
+        }
     }
 }
