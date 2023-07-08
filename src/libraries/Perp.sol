@@ -376,8 +376,14 @@ library Perp {
         (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
             UniHelper.getFeeGrowthInside(_assetStatus.uniswapPool, _assetStatus.tickLower, _assetStatus.tickUpper);
 
-        uint256 f0 = feeGrowthInside0X128 - _assetStatus.lastFee0Growth;
-        uint256 f1 = feeGrowthInside1X128 - _assetStatus.lastFee1Growth;
+        uint256 f0;
+        uint256 f1;
+
+        // overflow of feeGrowth is unchecked in Uniswap V3
+        unchecked {
+            f0 = feeGrowthInside0X128 - _assetStatus.lastFee0Growth;
+            f1 = feeGrowthInside1X128 - _assetStatus.lastFee1Growth;
+        }
 
         if (f0 == 0 && f1 == 0) {
             return;
