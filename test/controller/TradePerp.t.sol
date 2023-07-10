@@ -2,12 +2,14 @@
 pragma solidity ^0.8.19;
 
 import "./Setup.t.sol";
+import "../../src/Reader.sol";
 import "forge-std/console.sol";
 
 /*
  * https://docs.google.com/spreadsheets/d/101wXPKNGG0vqm7M6Op9WIf1GUKvvdKiCO4riO5D_iFc/edit?usp=sharing
  */
 contract TestControllerTradePerp is TestController {
+    Reader reader;
     uint256 vaultId;
     uint256 lpVaultId;
 
@@ -20,22 +22,21 @@ contract TestControllerTradePerp is TestController {
         usdc.mint(user2, type(uint128).max);
         weth.mint(user2, type(uint128).max);
 
-        vm.prank(user2);
+        vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-
-        vm.prank(user2);
         weth.approve(address(controller), type(uint256).max);
 
-        vm.prank(user2);
-        controller.supplyToken(1, 1e10);
-        vm.prank(user2);
-        controller.supplyToken(2, 1e10);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, false);
+        vm.stopPrank();
 
         // create vault
-        vaultId = controller.updateMargin(1e10);
+        vaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         vm.prank(user2);
-        lpVaultId = controller.updateMargin(1e10);
+        lpVaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
+
+        reader = new Reader(controller);
     }
 
     function withdrawAll() internal {
@@ -44,7 +45,7 @@ contract TestControllerTradePerp is TestController {
         {
             DataType.Vault memory vault = controller.getVault(vaultId);
             for (uint256 i; i < vault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = vault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = vault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
                     controller.tradePerp(
@@ -53,17 +54,17 @@ contract TestControllerTradePerp is TestController {
                 }
             }
 
-            controller.updateMargin(-controller.getVault(vaultId).margin);
+            controller.updateMargin(PAIR_GROUP_ID, -controller.getVault(vaultId).margin);
         }
 
         {
             vm.prank(user2);
             DataType.Vault memory lpVault = controller.getVault(lpVaultId);
             for (uint256 i; i < lpVault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = lpVault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = lpVault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
-                    TradeLogic.TradeParams memory tradeParams =
+                    TradePerpLogic.TradeParams memory tradeParams =
                         getTradeParams(-perpTrade.perp.amount, -perpTrade.sqrtPerp.amount);
 
                     vm.prank(user2);
@@ -74,29 +75,13 @@ contract TestControllerTradePerp is TestController {
             vm.prank(user2);
             int256 margin = controller.getVault(lpVaultId).margin;
             vm.prank(user2);
-            controller.updateMargin(-margin);
+            controller.updateMargin(PAIR_GROUP_ID, -margin);
         }
 
         vm.prank(user2);
-        controller.withdrawToken(1, 1e18);
+        controller.withdrawToken(1, 1e18, true);
         vm.prank(user2);
-        controller.withdrawToken(2, 1e18);
-
-        {
-            DataType.AssetStatus memory asset = controller.getAsset(1);
-
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(1, asset.accumulatedProtocolRevenue);
-            }
-        }
-
-        {
-            DataType.AssetStatus memory asset = controller.getAsset(2);
-
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(2, asset.accumulatedProtocolRevenue);
-            }
-        }
+        controller.withdrawToken(1, 1e18, false);
 
         assertLt(usdc.balanceOf(address(controller)), 100);
         assertLt(weth.balanceOf(address(controller)), 100);
@@ -105,14 +90,14 @@ contract TestControllerTradePerp is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
     // cannot trade if vaultId is not existed
     function testCannotTrade_IfVaultIdIsNotExisted() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
 
         vm.expectRevert(bytes("V1"));
         controller.tradePerp(0, WETH_ASSET_ID, tradeParams);
@@ -123,7 +108,7 @@ contract TestControllerTradePerp is TestController {
 
     // cannot trade if caller is not vault owner
     function testCannotTrade_IfCallerIsNotVaultOwner() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(1 * 1e8, 0);
 
         vm.prank(user2);
         vm.expectRevert(bytes("V2"));
@@ -132,9 +117,9 @@ contract TestControllerTradePerp is TestController {
 
     // cannot open position if margin is not safe
     function testCannotTrade_IfVaultIsNotSafe() public {
-        controller.updateMargin(1e6 - 1e10);
+        controller.updateMargin(PAIR_GROUP_ID, 1e6 - 1e10);
 
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(-10 * 1e8, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(-10 * 1e8, 0);
 
         vm.expectRevert(bytes("NS"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -142,7 +127,7 @@ contract TestControllerTradePerp is TestController {
 
     // cannot trade delta because no available supply
     function testCannotOpenLongDelta_IfThereIsNoEnoughSupply() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(1e10, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(1e10, 0);
 
         vm.expectRevert(bytes("S0"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -150,7 +135,7 @@ contract TestControllerTradePerp is TestController {
 
     // deadline
     function testCannotTrade_IfTimeIsGreaterThanDeadline() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             100, 100, getLowerSqrtPrice(WETH_ASSET_ID), getUpperSqrtPrice(WETH_ASSET_ID), block.timestamp - 1, false, ""
         );
 
@@ -160,7 +145,7 @@ contract TestControllerTradePerp is TestController {
 
     // slippage
     function testCannotTrade_IfSlippageIsTooMuch() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             100, 100, getLowerSqrtPrice(WETH_ASSET_ID), getLowerSqrtPrice(WETH_ASSET_ID), block.timestamp, false, ""
         );
 
@@ -168,18 +153,25 @@ contract TestControllerTradePerp is TestController {
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
     }
 
-    function testCannotTradePerp_IfAssetIdIsStable() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+    function testCannotTradePerp_IfAssetIdIsZero() public {
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
-        vm.expectRevert(bytes("ASSETID"));
-        controller.tradePerp(vaultId, STABLE_ASSET_ID, tradeParams);
+        vm.expectRevert(bytes("PAIR0"));
+        controller.tradePerp(vaultId, 0, tradeParams);
     }
 
     function testCannotTradePerp_IfAssetIdIsNotExisted() public {
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
 
-        vm.expectRevert(bytes("ASSETID"));
+        vm.expectRevert(bytes("PAIR0"));
         controller.tradePerp(vaultId, 4, tradeParams);
+    }
+
+    function testCannotTradePerp_IfPairBelongsToDifferentGroup() public {
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(100, 0);
+
+        vm.expectRevert(bytes("PAIR1"));
+        controller.tradePerp(vaultId, WETH2_ASSET_ID, tradeParams);
     }
 
     // open delta long
@@ -200,7 +192,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999998998);
 
         withdrawAll();
     }
@@ -216,12 +208,14 @@ contract TestControllerTradePerp is TestController {
 
     // close delta short
     function testCloseShortDelta() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1e6, 0));
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e6, 0));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 100 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100 * 1e6, 0));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999940000);
+        assertEq(vault.openPositions[0].perp.amount, 0);
+        assertEq(vault.openPositions[0].perp.entryValue, 0);
     }
 
     // open sqrt long
@@ -240,7 +234,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999998996);
     }
 
     // open sqrt short
@@ -264,11 +258,49 @@ contract TestControllerTradePerp is TestController {
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -1 * 1e6));
 
-        (uint256 ur,) = controller.getUtilizationRatio(WETH_ASSET_ID);
+        (uint256 ur,,) = reader.getUtilizationRatio(WETH_ASSET_ID);
 
         assertEq(ur, 1e18);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 1 * 1e6));
+
+        DataType.Vault memory vault = controller.getVault(vaultId);
+
+        assertEq(vault.margin, 9999980000);
+    }
+
+    // short to long
+    function testCloseShortAndOpenLongSqrt() public {
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(-1e6, 2 * 1e6));
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 days);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e6, -1e6));
+
+        manipulateVol(10);
+        vm.warp(block.timestamp + 1 days);
+
+        uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+        assertEq(currentTick, 970);
+
+        (bool reallocationHappened,) = controller.reallocate(WETH_ASSET_ID);
+
+        assertTrue(reallocationHappened);
+
+        vm.warp(block.timestamp + 1 days);
+
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(-1e4, 0));
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 days);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-2 * 1e6, 2 * 1e6));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
@@ -281,7 +313,7 @@ contract TestControllerTradePerp is TestController {
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 1 * 1e6));
         vm.stopPrank();
 
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(0, -2 * 1e6);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(0, -2 * 1e6);
 
         vm.expectRevert(bytes("P1"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -303,7 +335,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999999996);
     }
 
     // pay interest
@@ -316,22 +348,41 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999930000);
+        assertEq(vault.margin, 9999948272);
     }
 
     function testPayPremium() public {
         vm.startPrank(user2);
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
         vm.stopPrank();
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -50 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(50 * 1e6, -50 * 1e6));
 
-        vm.warp(block.timestamp + 1 weeks);
+        manipulateVol(50);
+        vm.warp(block.timestamp + 1 hours);
 
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 50 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-50 * 1e6, 50 * 1e6));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999670000);
+        assertEq(vault.margin, 9999830000);
+
+        withdrawAll();
+    }
+
+    function testPayPremiumWithFullUtilization() public {
+        vm.startPrank(user2);
+        controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
+        vm.stopPrank();
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100 * 1e6, -100 * 1e6));
+
+        manipulateVol(50);
+        vm.warp(block.timestamp + 1 hours);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 100 * 1e6));
+
+        DataType.Vault memory vault = controller.getVault(vaultId);
+
+        assertEq(vault.margin, 9999420000);
 
         withdrawAll();
     }
@@ -350,7 +401,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10098040000);
+        assertEq(vault.margin, 10098052535);
 
         withdrawAll();
     }
@@ -369,7 +420,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000190000);
+        assertEq(vault.margin, 10000190794);
     }
 
     function testShortDeltaAndPriceBecomesHigh() public {
@@ -385,7 +436,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999880000);
+        assertEq(vault.margin, 9999889746);
     }
 
     function testLongSqrtAndPriceBecomesHigh() public {
@@ -410,9 +461,9 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.openPositions[0].perpTrade.underlying.positionAmount, 0);
+        assertEq(vault.openPositions.length, 1);
 
-        assertEq(vault.margin, 10000180000);
+        assertEq(vault.margin, 10000189893);
 
         withdrawAll();
     }
@@ -435,7 +486,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999870000);
+        assertEq(vault.margin, 9999860000);
     }
 
     function testShortGammaAndPriceBecomesHigh() public {
@@ -451,7 +502,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999999507);
     }
 
     // after rebalance
@@ -472,7 +523,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10007890000);
+        assertEq(vault.margin, 10007895971);
 
         withdrawAll();
     }
@@ -509,16 +560,16 @@ contract TestControllerTradePerp is TestController {
         //
         // 207995284 - 200050029
 
-        assertEq(tradeResult.payoff.sqrtPayoff, 7990000);
+        assertEq(tradeResult.payoff.sqrtPayoff, 7998013);
 
         withdrawAll();
     }
 
     function getSqrtEntryValue(uint256 _vaultId) internal view returns (int256) {
         DataType.Vault memory vault = controller.getVault(_vaultId);
-        DataType.UserStatus memory userStatus = vault.openPositions[0];
+        Perp.UserStatus memory userStatus = vault.openPositions[0];
 
-        return userStatus.perpTrade.sqrtPerp.entryValue; //  + userStatus.perpTrade.sqrtPerp.rebalanceEntryValue;
+        return userStatus.sqrtPerp.entryValue; //  + userStatus.perpTrade.sqrtPerp.rebalanceEntryValue;
     }
 
     function testGammaAfterRebalance() public {
@@ -535,7 +586,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999830000);
+        assertEq(vault.margin, 9999840077);
 
         withdrawAll();
     }
@@ -549,7 +600,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(currentTick, 1352);
 
-        TradeLogic.TradeParams memory tradeParams = getTradeParams(0, -100);
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(0, -100);
 
         vm.expectRevert(bytes("P2"));
         controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
@@ -570,7 +621,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10013910000);
+        assertEq(vault.margin, 10013924333);
 
         withdrawAll();
     }
@@ -590,7 +641,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999530000);
+        assertEq(vault.margin, 9999541603);
 
         withdrawAll();
     }
@@ -614,7 +665,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9985900000);
+        assertEq(vault.margin, 9985890000);
 
         withdrawAll();
     }
@@ -638,7 +689,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000480000);
+        assertEq(vault.margin, 10000470000);
 
         withdrawAll();
     }
@@ -660,7 +711,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 9999838139);
+        assertEq(vaultStatus.vaultValue, 9999840124);
 
         withdrawAll();
     }
@@ -681,7 +732,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(tradeResult.minDeposit, 1000000);
 
-        (uint256 ur,) = controller.getUtilizationRatio(WETH_ASSET_ID);
+        (uint256 ur,,) = reader.getUtilizationRatio(WETH_ASSET_ID);
 
         assertEq(ur, 5 * 1e17);
 
@@ -689,6 +740,6 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999990000);
+        assertEq(vault.margin, 9999980000);
     }
 }

@@ -6,9 +6,22 @@ import "./Perp.sol";
 import "./InterestRateModel.sol";
 
 library DataType {
-    struct AssetGroup {
-        uint256 stableAssetId;
-        uint256[] assetIds;
+    struct GlobalData {
+        uint256 pairGroupsCount;
+        uint256 pairsCount;
+        uint256 vaultCount;
+        mapping(uint256 => DataType.PairGroup) pairGroups;
+        mapping(uint256 => DataType.PairStatus) pairs;
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) rebalanceFeeGrowthCache;
+        mapping(uint256 => DataType.Vault) vaults;
+        /// @dev account -> pairGroupId -> vaultId
+        mapping(address => mapping(uint256 => DataType.OwnVaults)) ownVaultsMap;
+    }
+
+    struct PairGroup {
+        uint256 id;
+        address stableTokenAddress;
+        uint8 marginRoundedDecimal;
     }
 
     struct OwnVaults {
@@ -16,11 +29,13 @@ library DataType {
         uint256[] isolatedVaultIds;
     }
 
-    struct AddAssetParams {
+    struct AddPairParams {
+        uint256 pairGroupId;
         address uniswapPool;
+        bool isIsolatedMode;
         DataType.AssetRiskParams assetRiskParams;
-        InterestRateModel.IRMParams irmParams;
-        InterestRateModel.IRMParams squartIRMParams;
+        InterestRateModel.IRMParams stableIrmParams;
+        InterestRateModel.IRMParams underlyingIrmParams;
     }
 
     struct AssetRiskParams {
@@ -29,35 +44,37 @@ library DataType {
         int24 rebalanceThreshold;
     }
 
-    struct AssetStatus {
+    struct PairStatus {
         uint256 id;
-        address token;
-        address supplyTokenAddress;
+        uint256 pairGroupId;
+        AssetPoolStatus stablePool;
+        AssetPoolStatus underlyingPool;
         AssetRiskParams riskParams;
-        ScaledAsset.TokenStatus tokenStatus;
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
-        InterestRateModel.IRMParams irmParams;
-        InterestRateModel.IRMParams squartIRMParams;
+        bool isIsolatedMode;
         uint256 lastUpdateTimestamp;
-        uint256 accumulatedProtocolRevenue;
+    }
+
+    struct AssetPoolStatus {
+        address token;
+        address supplyTokenAddress;
+        ScaledAsset.TokenStatus tokenStatus;
+        InterestRateModel.IRMParams irmParams;
     }
 
     struct Vault {
         uint256 id;
+        uint256 pairGroupId;
         address owner;
         int256 margin;
-        UserStatus[] openPositions;
+        bool autoTransferDisabled;
+        Perp.UserStatus[] openPositions;
     }
 
-    struct UserStatus {
-        uint256 assetId;
-        Perp.UserStatus perpTrade;
-    }
-
-    struct AssetParams {
-        uint256 assetGroupId;
-        uint256 assetId;
+    struct RebalanceFeeGrowthCache {
+        int256 stableGrowth;
+        int256 underlyingGrowth;
     }
 
     struct TradeResult {
@@ -67,7 +84,7 @@ library DataType {
     }
 
     struct SubVaultStatusResult {
-        uint256 assetId;
+        uint256 pairId;
         Perp.UserStatus position;
         int256 delta;
         int256 unrealizedFee;
@@ -75,7 +92,6 @@ library DataType {
 
     struct VaultStatusResult {
         uint256 vaultId;
-        bool isMainVault;
         int256 vaultValue;
         int256 margin;
         int256 positionValue;

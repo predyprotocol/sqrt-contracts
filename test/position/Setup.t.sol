@@ -8,10 +8,9 @@ import "@uniswap/v3-core/contracts/interfaces/pool/IUniswapV3PoolActions.sol";
 import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "../../src/libraries/InterestRateModel.sol";
 import "../mocks/MockERC20.sol";
+import "../helper/Helper.sol";
 
-contract TestPositionCalculator is Test {
-    uint256 internal constant RISK_RATIO = 109544511;
-
+contract TestPositionCalculator is Test, Helper {
     MockERC20 internal usdc;
     MockERC20 internal weth;
     MockERC20 internal wbtc;
@@ -22,6 +21,8 @@ contract TestPositionCalculator is Test {
     IUniswapV3Pool internal uniswapPool;
     IUniswapV3Pool internal wbtcUniswapPool;
     InterestRateModel.IRMParams internal irmParams;
+
+    uint256 internal constant PAIR_GROUP_ID = 1;
 
     function setUp() public virtual {
         irmParams = InterestRateModel.IRMParams(1e16, 9 * 1e17, 5 * 1e17, 1e18);

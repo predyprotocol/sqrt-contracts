@@ -15,31 +15,42 @@ contract TestControllerUpdateParams is TestController {
     }
 
     function testCannotInitializeTwice() public {
-        DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](1);
+        vm.expectRevert(bytes("Initializable: contract is already initialized"));
+        controller.initialize();
+    }
 
-        addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+    function testAddPair() public {
+        DataType.AddPairParams memory addPairParams = DataType.AddPairParams(
+            PAIR_GROUP_ID,
+            address(uniswapPool),
+            false,
+            DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+            irmParams,
+            irmParams
         );
 
-        vm.expectRevert(bytes("Initializable: contract is already initialized"));
-        controller.initialize(address(usdc), irmParams, addAssetParams);
+        uint256 assetId = controller.addPair(addPairParams);
+
+        DataType.PairStatus memory asset = controller.getAsset(assetId);
+
+        assertEq(asset.id, 4);
     }
 
     function testCannotUpdateAssetRiskParams_IfAParamIsInvalid() public {
         vm.expectRevert(bytes("C0"));
-        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(1e8, 10, 5));
+        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(1e8, 10, 5), false);
     }
 
     function testCannotUpdateAssetRiskParams_IfCallerIsNotOperator() public {
         vm.prank(user);
         vm.expectRevert(bytes("C1"));
-        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(RISK_RATIO, 10, 5));
+        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(RISK_RATIO, 10, 5), false);
     }
 
     function testUpdateAssetRiskParams() public {
-        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(110000000, 20, 10));
+        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(110000000, 20, 10), false);
 
-        DataType.AssetStatus memory asset = controller.getAsset(WETH_ASSET_ID);
+        DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
 
         assertEq(asset.riskParams.riskRatio, 110000000);
         assertEq(asset.riskParams.rangeSize, 20);
@@ -62,15 +73,15 @@ contract TestControllerUpdateParams is TestController {
     function testUpdateAssetIRMParams() public {
         controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams);
 
-        DataType.AssetStatus memory asset = controller.getAsset(WETH_ASSET_ID);
+        DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
 
-        assertEq(asset.irmParams.baseRate, 2 * 1e16);
-        assertEq(asset.irmParams.kinkRate, 10 * 1e17);
-        assertEq(asset.irmParams.slope1, 10 * 1e17);
-        assertEq(asset.irmParams.slope2, 2 * 1e18);
-        assertEq(asset.squartIRMParams.baseRate, 2 * 1e16);
-        assertEq(asset.squartIRMParams.kinkRate, 10 * 1e17);
-        assertEq(asset.squartIRMParams.slope1, 10 * 1e17);
-        assertEq(asset.squartIRMParams.slope2, 2 * 1e18);
+        assertEq(asset.stablePool.irmParams.baseRate, 2 * 1e16);
+        assertEq(asset.stablePool.irmParams.kinkRate, 10 * 1e17);
+        assertEq(asset.stablePool.irmParams.slope1, 10 * 1e17);
+        assertEq(asset.stablePool.irmParams.slope2, 2 * 1e18);
+        assertEq(asset.underlyingPool.irmParams.baseRate, 2 * 1e16);
+        assertEq(asset.underlyingPool.irmParams.kinkRate, 10 * 1e17);
+        assertEq(asset.underlyingPool.irmParams.slope1, 10 * 1e17);
+        assertEq(asset.underlyingPool.irmParams.slope2, 2 * 1e18);
     }
 }

@@ -72,7 +72,7 @@ const config: HardhatUserConfig = {
     },
     goerliArbitrum: {
       url: 'https://goerli-rollup.arbitrum.io/rpc',
-      gasPrice: 200000000, // 0.03 gwei
+      gasPrice: 2000000000, // 0.2 gwei
       gas: 50_000_000,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       companionNetworks: {

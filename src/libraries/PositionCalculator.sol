@@ -25,49 +25,52 @@ library PositionCalculator {
         int256 amountUnderlying;
     }
 
-    function isDanger(mapping(uint256 => DataType.AssetStatus) storage _assets, DataType.Vault memory _vault)
-        internal
-        view
-    {
-        (int256 minDeposit, int256 vaultValue, bool hasPosition) = calculateMinDeposit(_assets, _vault, true);
-
-        if (!hasPosition) {
-            revert("ND");
-        }
-
-        require(vaultValue < minDeposit || _vault.margin < 0, "ND");
-    }
-
-    function isSafe(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
-        DataType.Vault memory _vault,
-        bool _isLiquidationCall
-    ) internal view returns (int256 minDeposit) {
-        int256 vaultValue;
+    function isLiquidatable(
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault memory _vault
+    ) internal view returns (bool) {
+        bool isSafe;
         bool hasPosition;
 
-        // isSafe does not count unrealized fee
-        (minDeposit, vaultValue, hasPosition) = calculateMinDeposit(_assets, _vault, false);
+        (, isSafe, hasPosition) = getIsSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
 
-        // if it is liquidationCall and vault has no positions then skip margin check
-        // because it can be insolvent vault
-        if (_isLiquidationCall && !hasPosition) {
-            return 0;
-        }
+        return !isSafe && hasPosition;
+    }
 
-        require(vaultValue >= minDeposit && _vault.margin >= 0, "NS");
+    function checkSafe(
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault memory _vault
+    ) internal view returns (int256 minDeposit) {
+        bool isSafe;
+
+        (minDeposit, isSafe,) = getIsSafe(_pairs, _rebalanceFeeGrowthCache, _vault);
+
+        require(isSafe, "NS");
+    }
+
+    function getIsSafe(
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault memory _vault
+    ) internal view returns (int256 minDeposit, bool isSafe, bool hasPosition) {
+        int256 vaultValue;
+
+        (minDeposit, vaultValue, hasPosition) = calculateMinDeposit(_pairs, _rebalanceFeeGrowthCache, _vault);
+
+        isSafe = vaultValue >= minDeposit && _vault.margin >= 0;
     }
 
     function calculateMinDeposit(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
-        DataType.Vault memory _vault,
-        bool _enableUnrealizedFeeCalculation
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault memory _vault
     ) internal view returns (int256 minDeposit, int256 vaultValue, bool hasPosition) {
         int256 minValue;
         uint256 debtValue;
 
-        (minValue, vaultValue, debtValue, hasPosition) =
-            calculateMinValue(_assets, _vault, _enableUnrealizedFeeCalculation);
+        (minValue, vaultValue, debtValue, hasPosition) = calculateMinValue(_pairs, _rebalanceFeeGrowthCache, _vault);
 
         int256 minMinValue = SafeCast.toInt256(calculateRequiredCollateralWithDebt() * debtValue / 1e6);
 
@@ -84,40 +87,34 @@ library PositionCalculator {
 
     /**
      * @notice Calculates min value of the vault.
-     * @param _assets The mapping of assets
+     * @param _pairs The mapping of assets
+     * @param _rebalanceFeeGrowthCache rebalance fee growth cache
      * @param _vault The target vault for calculation
-     * @param _enableUnrealizedFeeCalculation If true calculation count unrealized fee.
      */
     function calculateMinValue(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
-        DataType.Vault memory _vault,
-        bool _enableUnrealizedFeeCalculation
+        mapping(uint256 => DataType.PairStatus) storage _pairs,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
+        DataType.Vault memory _vault
     ) internal view returns (int256 minValue, int256 vaultValue, uint256 debtValue, bool hasPosition) {
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            DataType.UserStatus memory userStatus = _vault.openPositions[i];
+            Perp.UserStatus memory userStatus = _vault.openPositions[i];
 
-            uint256 assetId = userStatus.assetId;
+            uint256 pairId = userStatus.pairId;
 
-            if (_assets[assetId].sqrtAssetStatus.uniswapPool != address(0)) {
+            if (_pairs[pairId].sqrtAssetStatus.uniswapPool != address(0)) {
                 uint160 sqrtPrice =
-                    getSqrtPrice(_assets[assetId].sqrtAssetStatus.uniswapPool, _assets[assetId].isMarginZero);
+                    getSqrtPrice(_pairs[pairId].sqrtAssetStatus.uniswapPool, _pairs[pairId].isMarginZero);
 
-                PositionParams memory positionParams;
-                if (_enableUnrealizedFeeCalculation) {
-                    positionParams = getPositionWithUnrealizedFee(
-                        _assets[Constants.STABLE_ASSET_ID], _assets[assetId], userStatus.perpTrade
-                    );
-                } else {
-                    positionParams = getPosition(userStatus.perpTrade);
-                }
+                PositionParams memory positionParams =
+                    getPositionWithUnrealizedFee(_pairs[pairId], _rebalanceFeeGrowthCache, userStatus);
 
-                minValue += calculateMinValue(sqrtPrice, positionParams, _assets[assetId].riskParams.riskRatio);
+                minValue += calculateMinValue(sqrtPrice, positionParams, _pairs[pairId].riskParams.riskRatio);
 
                 vaultValue += calculateValue(sqrtPrice, positionParams);
 
-                debtValue += calculateSquartDebtValue(sqrtPrice, userStatus.perpTrade);
+                debtValue += calculateSquartDebtValue(sqrtPrice, userStatus);
 
-                hasPosition = hasPosition || getHasPositionFlag(userStatus.perpTrade);
+                hasPosition = hasPosition || getHasPositionFlag(userStatus);
             }
         }
 
@@ -125,17 +122,25 @@ library PositionCalculator {
         vaultValue += int256(_vault.margin);
     }
 
+    function getHasPosition(DataType.Vault memory _vault) internal pure returns (bool hasPosition) {
+        for (uint256 i = 0; i < _vault.openPositions.length; i++) {
+            Perp.UserStatus memory userStatus = _vault.openPositions[i];
+
+            hasPosition = hasPosition || getHasPositionFlag(userStatus);
+        }
+    }
+
     function getSqrtPrice(address _uniswapPool, bool _isMarginZero) internal view returns (uint160 sqrtPriceX96) {
         return UniHelper.convertSqrtPrice(UniHelper.getSqrtTWAP(_uniswapPool), _isMarginZero);
     }
 
     function getPositionWithUnrealizedFee(
-        DataType.AssetStatus memory _stableAsset,
-        DataType.AssetStatus memory _underlyingAsset,
+        DataType.PairStatus memory _underlyingAsset,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus memory _perpUserStatus
-    ) internal pure returns (PositionParams memory positionParams) {
+    ) internal view returns (PositionParams memory positionParams) {
         (int256 unrealizedFeeUnderlying, int256 unrealizedFeeStable) =
-            PerpFee.computeUserFee(_underlyingAsset, _stableAsset.tokenStatus, _perpUserStatus);
+            PerpFee.computeUserFee(_underlyingAsset, _rebalanceFeeGrowthCache, _perpUserStatus);
 
         return PositionParams(
             _perpUserStatus.perp.entryValue + _perpUserStatus.sqrtPerp.entryValue + unrealizedFeeStable,

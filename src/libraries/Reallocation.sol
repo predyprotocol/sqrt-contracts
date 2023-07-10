@@ -16,29 +16,29 @@ library Reallocation {
     /**
      * @notice Gets new available range
      */
-    function getNewRange(
-        DataType.AssetStatus memory _assetStatusUnderlying,
-        ScaledAsset.TokenStatus memory _assetStatusStable,
-        int24 _currentTick
-    ) internal view returns (int24 lower, int24 upper) {
+    function getNewRange(DataType.PairStatus memory _assetStatusUnderlying, int24 _currentTick)
+        internal
+        view
+        returns (int24 lower, int24 upper)
+    {
         int24 tickSpacing = IUniswapV3Pool(_assetStatusUnderlying.sqrtAssetStatus.uniswapPool).tickSpacing();
 
         ScaledAsset.TokenStatus memory token0Status;
         ScaledAsset.TokenStatus memory token1Status;
 
         if (_assetStatusUnderlying.isMarginZero) {
-            token0Status = _assetStatusStable;
-            token1Status = _assetStatusUnderlying.tokenStatus;
+            token0Status = _assetStatusUnderlying.stablePool.tokenStatus;
+            token1Status = _assetStatusUnderlying.underlyingPool.tokenStatus;
         } else {
-            token0Status = _assetStatusUnderlying.tokenStatus;
-            token1Status = _assetStatusStable;
+            token0Status = _assetStatusUnderlying.underlyingPool.tokenStatus;
+            token1Status = _assetStatusUnderlying.stablePool.tokenStatus;
         }
 
         return _getNewRange(_assetStatusUnderlying, token0Status, token1Status, _currentTick, tickSpacing);
     }
 
     function _getNewRange(
-        DataType.AssetStatus memory _assetStatusUnderlying,
+        DataType.PairStatus memory _assetStatusUnderlying,
         ScaledAsset.TokenStatus memory _token0Status,
         ScaledAsset.TokenStatus memory _token1Status,
         int24 _currentTick,

@@ -8,11 +8,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
 
   const Controller = await ethers.getContract('Controller', deployer)
+  const ReaderLogic = await ethers.getContract('ReaderLogic', deployer)
 
   await deploy('Reader', {
     from: deployer,
     args: [Controller.address],
     log: true,
+    libraries: {
+      ReaderLogic: ReaderLogic.address
+    }
   })
 }
 

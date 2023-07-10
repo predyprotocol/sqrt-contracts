@@ -10,9 +10,9 @@ contract TestCalculateSqrtPerpOffset is Test {
     Perp.UserStatus internal shortUserStatus;
 
     function setUp() public virtual {
-        userStatus = Perp.createPerpUserStatus();
-        longUserStatus = Perp.createPerpUserStatus();
-        shortUserStatus = Perp.createPerpUserStatus();
+        userStatus = Perp.createPerpUserStatus(1);
+        longUserStatus = Perp.createPerpUserStatus(1);
+        shortUserStatus = Perp.createPerpUserStatus(1);
 
         longUserStatus.sqrtPerp.amount = 100;
         shortUserStatus.sqrtPerp.amount = -100;

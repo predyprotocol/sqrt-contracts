@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity ^0.8.19;
 
+import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@solmate/utils/FixedPointMathLib.sol";
 import "../DataType.sol";
 import "../Perp.sol";
 import "../PositionCalculator.sol";
-import "../DebtCalculator.sol";
 import "../ScaledAsset.sol";
+import "../VaultLib.sol";
 import "./TradeLogic.sol";
+import "../ApplyInterestLib.sol";
 
 /*
  * Error Codes
@@ -18,53 +20,91 @@ import "./TradeLogic.sol";
  */
 library LiquidationLogic {
     using ScaledAsset for ScaledAsset.TokenStatus;
+    using VaultLib for DataType.Vault;
 
     event PositionLiquidated(
-        uint256 vaultId, uint256 assetId, int256 tradeAmount, int256 tradeSqrtAmount, Perp.Payoff payoff, int256 fee
+        uint256 vaultId, uint256 pairId, int256 tradeAmount, int256 tradeSqrtAmount, Perp.Payoff payoff, int256 fee
     );
     event VaultLiquidated(
         uint256 vaultId,
         uint256 mainVaultId,
         uint256 withdrawnMarginAmount,
         address liquidator,
-        uint256 totalPenaltyAmount
+        int256 totalPenaltyAmount
     );
 
     function execLiquidationCall(
-        mapping(uint256 => DataType.AssetStatus) storage _assets,
+        DataType.GlobalData storage _globalData,
+        uint256 _vaultId,
+        uint256 _closeRatio,
+        uint256 _sqrtSlippageTolerance
+    ) external {
+        DataType.Vault storage vault = _globalData.vaults[_vaultId];
+        DataType.PairGroup memory pairGroup = _globalData.pairGroups[vault.pairGroupId];
+
+        // Checks vaultId exists
+        VaultLib.validateVaultId(_globalData, _vaultId);
+
+        // Updates interest rate related to the vault
+        ApplyInterestLib.applyInterestForVault(vault, _globalData.pairs);
+
+        uint256 mainVaultId = _globalData.ownVaultsMap[vault.owner][pairGroup.id].mainVaultId;
+
+        (int256 penaltyAmount) = _execLiquidationCall(
+            pairGroup, _globalData, vault, _globalData.vaults[mainVaultId], _closeRatio, _sqrtSlippageTolerance
+        );
+
+        if (penaltyAmount > 0) {
+            TransferHelper.safeTransfer(pairGroup.stableTokenAddress, msg.sender, uint256(penaltyAmount));
+        } else if (penaltyAmount < 0) {
+            TransferHelper.safeTransferFrom(
+                pairGroup.stableTokenAddress, msg.sender, address(this), uint256(-penaltyAmount)
+            );
+        }
+    }
+
+    function _execLiquidationCall(
+        DataType.PairGroup memory _pairGroup,
+        DataType.GlobalData storage _globalData,
         DataType.Vault storage _vault,
         DataType.Vault storage _mainVault,
-        uint256 _closeRatio
-    ) external returns (uint256 totalPenaltyAmount, bool isClosedAll) {
-        require(0 < _closeRatio && _closeRatio <= Constants.ONE, "L4");
-
-        DataType.AssetStatus storage stableAssetStatus = _assets[Constants.STABLE_ASSET_ID];
+        uint256 _closeRatio,
+        uint256 _liquidationSlippageSqrtTolerance
+    ) internal returns (int256 totalPenaltyAmount) {
+        require(1e17 <= _closeRatio && _closeRatio <= Constants.ONE, "L4");
 
         // The vault must be danger
-        PositionCalculator.isDanger(_assets, _vault);
+        require(PositionCalculator.isLiquidatable(_globalData.pairs, _globalData.rebalanceFeeGrowthCache, _vault), "ND");
 
         for (uint256 i = 0; i < _vault.openPositions.length; i++) {
-            DataType.UserStatus storage userStatus = _vault.openPositions[i];
+            Perp.UserStatus storage userStatus = _vault.openPositions[i];
 
-            (int256 totalPayoff, uint256 penaltyAmount) =
-                closePerp(_vault.id, _assets[userStatus.assetId], stableAssetStatus, userStatus.perpTrade, _closeRatio);
+            (int256 totalPayoff, uint256 penaltyAmount) = closePerp(
+                _vault.id,
+                _pairGroup,
+                _globalData.pairs[userStatus.pairId],
+                _globalData.rebalanceFeeGrowthCache,
+                userStatus,
+                _closeRatio,
+                _liquidationSlippageSqrtTolerance
+            );
 
             _vault.margin += totalPayoff;
-            totalPenaltyAmount += penaltyAmount;
+            totalPenaltyAmount += int256(penaltyAmount);
         }
 
-        (_vault.margin, totalPenaltyAmount) =
-            calculatePayableReward(_vault.margin, totalPenaltyAmount * _closeRatio / Constants.ONE);
+        (_vault.margin, totalPenaltyAmount) = calculatePayableReward(_vault.margin, uint256(totalPenaltyAmount));
 
         // The vault must be safe after liquidation call
-        int256 minDeposit = PositionCalculator.isSafe(_assets, _vault, true);
-
-        isClosedAll = (minDeposit == 0);
+        bool hasPosition = PositionCalculator.getHasPosition(_vault);
 
         int256 withdrawnMarginAmount;
 
         // If the vault is isolated and margin is not negative, the contract moves vault's margin to the main vault.
-        if (isClosedAll && _mainVault.id > 0 && _vault.id != _mainVault.id && _vault.margin > 0) {
+        if (
+            !_vault.autoTransferDisabled && !hasPosition && _mainVault.id > 0 && _vault.id != _mainVault.id
+                && _vault.margin > 0
+        ) {
             withdrawnMarginAmount = _vault.margin;
 
             _mainVault.margin += _vault.margin;
@@ -76,44 +116,59 @@ library LiquidationLogic {
         emit VaultLiquidated(_vault.id, _mainVault.id, uint256(withdrawnMarginAmount), msg.sender, totalPenaltyAmount);
     }
 
+    /**
+     * @notice Calculated liquidation reward
+     * @param reserveBefore margin amount before calculating liquidation reward
+     * @param expectedReward calculated liquidation reward
+     * @return reserveAfter margin amount after calculation
+     * @return payableReward if payableReward is positive then it stands for liquidation reward.
+     *  if negative payableReward stands for insufficient margin amount.
+     */
     function calculatePayableReward(int256 reserveBefore, uint256 expectedReward)
         internal
         pure
-        returns (int256 reserveAfter, uint256 payableReward)
+        returns (int256 reserveAfter, int256 payableReward)
     {
         if (reserveBefore >= int256(expectedReward)) {
-            return (reserveBefore - int256(expectedReward), expectedReward);
+            return (reserveBefore - int256(expectedReward), int256(expectedReward));
         } else if (reserveBefore >= 0) {
-            return (0, uint256(reserveBefore));
+            return (0, reserveBefore);
         } else {
-            return (reserveBefore, 0);
+            return (0, reserveBefore);
         }
     }
 
     function closePerp(
         uint256 _vaultId,
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
+        DataType.PairGroup memory _pairGroup,
+        DataType.PairStatus storage _pairStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
-        uint256 _closeRatio
+        uint256 _closeRatio,
+        uint256 _sqrtSlippageTolerance
     ) internal returns (int256 totalPayoff, uint256 penaltyAmount) {
         int256 tradeAmount = -_perpUserStatus.perp.amount * int256(_closeRatio) / int256(Constants.ONE);
         int256 tradeAmountSqrt = -_perpUserStatus.sqrtPerp.amount * int256(_closeRatio) / int256(Constants.ONE);
 
-        uint160 sqrtTwap = UniHelper.getSqrtTWAP(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
-        uint256 debtValue = DebtCalculator.calculateDebtValue(_underlyingAssetStatus, _perpUserStatus, sqrtTwap);
+        uint160 sqrtTwap = UniHelper.getSqrtTWAP(_pairStatus.sqrtAssetStatus.uniswapPool);
 
-        DataType.TradeResult memory tradeResult =
-            TradeLogic.trade(_underlyingAssetStatus, _stableAssetStatus, _perpUserStatus, tradeAmount, tradeAmountSqrt);
+        DataType.TradeResult memory tradeResult = TradeLogic.trade(
+            _pairGroup, _pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus, tradeAmount, tradeAmountSqrt
+        );
 
         totalPayoff = tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
         {
             // reverts if price is out of slippage threshold
-            uint256 sqrtPrice = UniHelper.getSqrtPrice(_underlyingAssetStatus.sqrtAssetStatus.uniswapPool);
+            uint256 sqrtPrice = UniHelper.getSqrtPrice(_pairStatus.sqrtAssetStatus.uniswapPool);
 
-            uint256 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(debtValue);
-            penaltyAmount = calculatePenaltyAmount(debtValue);
+            uint256 liquidationSlippageSqrtTolerance = calculateLiquidationSlippageTolerance(_sqrtSlippageTolerance);
+            penaltyAmount = calculatePenaltyAmount(_pairGroup.marginRoundedDecimal);
+            penaltyAmount = uint256(
+                Trade.roundMargin(
+                    int256(penaltyAmount * _closeRatio / Constants.ONE), 10 ** _pairGroup.marginRoundedDecimal
+                )
+            );
 
             require(
                 sqrtTwap * 1e6 / (1e6 + liquidationSlippageSqrtTolerance) <= sqrtPrice
@@ -123,29 +178,21 @@ library LiquidationLogic {
         }
 
         emit PositionLiquidated(
-            _vaultId, _underlyingAssetStatus.id, tradeAmount, tradeAmountSqrt, tradeResult.payoff, tradeResult.fee
+            _vaultId, _pairStatus.id, tradeAmount, tradeAmountSqrt, tradeResult.payoff, tradeResult.fee
         );
     }
 
-    function calculateLiquidationSlippageTolerance(uint256 _debtValue) internal pure returns (uint256) {
-        uint256 liquidationSlippageSqrtTolerance = Math.max(
-            Constants.LIQ_SLIPPAGE_SQRT_SLOPE * (FixedPointMathLib.sqrt(_debtValue * 1e6)) / 1e6
-                + Constants.LIQ_SLIPPAGE_SQRT_BASE,
-            Constants.BASE_LIQ_SLIPPAGE_SQRT_TOLERANCE
-        );
-
-        if (liquidationSlippageSqrtTolerance > 1e6) {
-            return 1e6;
+    function calculateLiquidationSlippageTolerance(uint256 _sqrtSlippageTolerance) internal pure returns (uint256) {
+        if (_sqrtSlippageTolerance == 0) {
+            return Constants.BASE_LIQ_SLIPPAGE_SQRT_TOLERANCE;
+        } else if (_sqrtSlippageTolerance <= Constants.MAX_LIQ_SLIPPAGE_SQRT_TOLERANCE) {
+            return _sqrtSlippageTolerance;
+        } else {
+            return Constants.MAX_LIQ_SLIPPAGE_SQRT_TOLERANCE;
         }
-
-        return liquidationSlippageSqrtTolerance;
     }
 
-    function calculatePenaltyAmount(uint256 _debtValue) internal pure returns (uint256) {
-        // penalty amount is 0.05% of debt value
-        return Math.max(
-            ((_debtValue / 2000) / Constants.MARGIN_ROUNDED_DECIMALS) * Constants.MARGIN_ROUNDED_DECIMALS,
-            Constants.MIN_PENALTY
-        );
+    function calculatePenaltyAmount(uint8 _marginRoundedDecimal) internal pure returns (uint256) {
+        return 100 * (10 ** _marginRoundedDecimal);
     }
 }

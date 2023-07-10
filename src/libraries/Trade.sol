@@ -12,90 +12,75 @@ import "./ScaledAsset.sol";
 library Trade {
     using ScaledAsset for ScaledAsset.TokenStatus;
 
-    function settleFee(
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
-        Perp.UserStatus storage _perpUserStatus
-    ) internal returns (int256 fee, bool isSettled) {
-        Perp.updateRebalanceFeeGrowth(
-            _underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus
-        );
-
-        int256 underlyingFee;
-        int256 stableFee;
-
-        (underlyingFee, stableFee, isSettled) =
-            settleUserBalanceAndFee(_underlyingAssetStatus, _stableAssetStatus.tokenStatus, _perpUserStatus);
-
-        // swap
-        SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
-            _underlyingAssetStatus.sqrtAssetStatus.uniswapPool,
-            SwapLib.SwapUnderlyingParams(0, 0, underlyingFee),
-            _underlyingAssetStatus.isMarginZero
-        );
-
-        fee = roundAndAddProtocolFee(_stableAssetStatus, stableFee + swapResult.fee);
-    }
-
     function trade(
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        DataType.AssetStatus storage _stableAssetStatus,
+        DataType.PairGroup memory _pairGroup,
+        DataType.PairStatus storage _pairStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage _rebalanceFeeGrowthCache,
         Perp.UserStatus storage _perpUserStatus,
         int256 _tradeAmount,
         int256 _tradeAmountSqrt
     ) internal returns (DataType.TradeResult memory tradeResult) {
-        Perp.updateRebalanceFeeGrowth(
-            _underlyingAssetStatus, _stableAssetStatus.tokenStatus, _underlyingAssetStatus.sqrtAssetStatus
+        Perp.updateRebalanceFeeGrowth(_pairStatus, _pairStatus.sqrtAssetStatus);
+
+        (int256 underlyingFee, int256 stableFee) =
+            settleUserBalanceAndFee(_pairStatus, _rebalanceFeeGrowthCache, _perpUserStatus);
+
+        (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) = Perp.computeRequiredAmounts(
+            _pairStatus.sqrtAssetStatus, _pairStatus.isMarginZero, _perpUserStatus, _tradeAmountSqrt
         );
-
-        int256 underlyingFee;
-        int256 stableFee;
-
-        (underlyingFee, stableFee,) =
-            settleUserBalanceAndFee(_underlyingAssetStatus, _stableAssetStatus.tokenStatus, _perpUserStatus);
-
-        (int256 underlyingAmountForSqrt, int256 stableAmountForSqrt) =
-            Perp.computeRequiredAmounts(_underlyingAssetStatus, _perpUserStatus, _tradeAmountSqrt);
 
         // swap
         SwapLib.SwapStableResult memory swapResult = SwapLib.swap(
-            _underlyingAssetStatus.sqrtAssetStatus.uniswapPool,
+            _pairStatus.sqrtAssetStatus.uniswapPool,
             SwapLib.SwapUnderlyingParams(-_tradeAmount, underlyingAmountForSqrt, underlyingFee),
-            _underlyingAssetStatus.isMarginZero
+            _pairStatus.isMarginZero
         );
 
         // update position
         tradeResult.payoff = Perp.updatePosition(
-            _underlyingAssetStatus,
-            _stableAssetStatus.tokenStatus,
+            _pairStatus,
             _perpUserStatus,
             Perp.UpdatePerpParams(_tradeAmount, swapResult.amountPerp),
             Perp.UpdateSqrtPerpParams(_tradeAmountSqrt, swapResult.amountSqrtPerp + stableAmountForSqrt)
         );
 
-        tradeResult.payoff.perpPayoff = roundAndAddProtocolFee(_stableAssetStatus, tradeResult.payoff.perpPayoff);
-        tradeResult.payoff.sqrtPayoff = roundAndAddProtocolFee(_stableAssetStatus, tradeResult.payoff.sqrtPayoff);
+        tradeResult.payoff.perpPayoff =
+            roundAndAddToFeeGrowth(_pairStatus, tradeResult.payoff.perpPayoff, _pairGroup.marginRoundedDecimal);
+        tradeResult.payoff.sqrtPayoff =
+            roundAndAddToFeeGrowth(_pairStatus, tradeResult.payoff.sqrtPayoff, _pairGroup.marginRoundedDecimal);
 
-        tradeResult.fee = roundAndAddProtocolFee(_stableAssetStatus, stableFee + swapResult.fee);
+        tradeResult.fee =
+            roundAndAddToFeeGrowth(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
     }
 
     function settleUserBalanceAndFee(
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        ScaledAsset.TokenStatus storage _stableAssetStatus,
+        DataType.PairStatus storage _pairStatus,
+        mapping(uint256 => DataType.RebalanceFeeGrowthCache) storage rebalanceFeeGrowthCache,
         Perp.UserStatus storage _userStatus
-    ) internal returns (int256 underlyingFee, int256 stableFee, bool isSettled) {
-        (underlyingFee, stableFee) = PerpFee.settleUserFee(_underlyingAssetStatus, _stableAssetStatus, _userStatus);
+    ) internal returns (int256 underlyingFee, int256 stableFee) {
+        (underlyingFee, stableFee) = PerpFee.settleUserFee(_pairStatus, rebalanceFeeGrowthCache, _userStatus);
 
-        isSettled = Perp.settleUserBalance(_underlyingAssetStatus, _stableAssetStatus, _userStatus);
+        Perp.settleUserBalance(_pairStatus, _userStatus);
     }
 
-    function roundAndAddProtocolFee(DataType.AssetStatus storage _stableAssetStatus, int256 _amount)
-        internal
-        returns (int256)
-    {
-        int256 rounded = roundMargin(_amount, Constants.MARGIN_ROUNDED_DECIMALS);
+    function roundAndAddToFeeGrowth(
+        DataType.PairStatus storage _pairStatus,
+        int256 _amount,
+        uint8 _marginRoundedDecimal
+    ) internal returns (int256) {
+        int256 rounded = roundMargin(_amount, 10 ** _marginRoundedDecimal);
         if (_amount > rounded) {
-            _stableAssetStatus.accumulatedProtocolRevenue += uint256(_amount - rounded);
+            if (_pairStatus.sqrtAssetStatus.totalAmount > 0) {
+                uint256 deltaFee = uint256(_amount - rounded) * Constants.Q128 / _pairStatus.sqrtAssetStatus.totalAmount;
+
+                if (_pairStatus.isMarginZero) {
+                    _pairStatus.sqrtAssetStatus.fee0Growth += deltaFee;
+                } else {
+                    _pairStatus.sqrtAssetStatus.fee1Growth += deltaFee;
+                }
+            } else {
+                return _amount;
+            }
         }
         return rounded;
     }

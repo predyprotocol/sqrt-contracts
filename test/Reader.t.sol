@@ -23,15 +23,15 @@ contract TestReader is TestController {
         vm.startPrank(user1);
         usdc.approve(address(controller), type(uint256).max);
         weth.approve(address(controller), type(uint256).max);
-        controller.supplyToken(1, 1e10);
-        controller.supplyToken(2, 1e10);
-        vaultId1 = controller.updateMargin(1e10);
+        controller.supplyToken(1, 1e10, true);
+        controller.supplyToken(1, 1e10, false);
+        vaultId1 = controller.updateMargin(1, 1e10);
         vm.stopPrank();
 
         // create vault
         vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-        vaultId2 = controller.updateMargin(1e10);
+        vaultId2 = controller.updateMargin(1, 1e10);
         vm.stopPrank();
 
         reader = new Reader(controller);
@@ -40,7 +40,7 @@ contract TestReader is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
@@ -54,14 +54,15 @@ contract TestReader is TestController {
         controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(800 * 1e6, -800 * 1e6));
         vm.stopPrank();
 
-        vm.warp(block.timestamp + 11 weeks);
+        manipulateVol(10);
+        vm.warp(block.timestamp + 1 weeks);
 
         vm.startPrank(user2);
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId2);
         vm.stopPrank();
 
-        assertEq(vaultStatus.vaultValue, 9930806394);
-        assertEq(vaultStatus.minDeposit, 8000000);
+        assertEq(vaultStatus.vaultValue, 9999303495);
+        assertEq(vaultStatus.minDeposit, 7998021);
     }
 
     function testGetDelta1() public {

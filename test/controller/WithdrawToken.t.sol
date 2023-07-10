@@ -28,36 +28,43 @@ contract TestControllerWithdrawToken is TestController {
         vm.stopPrank();
 
         vm.prank(user2);
-        vaultId = controller.updateMargin(1e10);
+        vaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
     }
 
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
-    function testCannotWithdrawToken_IfAssetIdIsZero() public {
-        controller.supplyToken(WETH_ASSET_ID, 100);
+    function testCannotWithdrawToken_IfAmountIsZero() public {
+        controller.supplyToken(WETH_ASSET_ID, 100, false);
 
-        vm.expectRevert(bytes("A0"));
-        controller.withdrawToken(0, 100);
+        vm.expectRevert(bytes("AZ"));
+        controller.withdrawToken(WETH_ASSET_ID, 0, false);
+    }
+
+    function testCannotWithdrawToken_IfAssetIdIsZero() public {
+        controller.supplyToken(WETH_ASSET_ID, 100, false);
+
+        vm.expectRevert(bytes("PAIR0"));
+        controller.withdrawToken(0, 100, false);
     }
 
     function testCannotWithdrawToken_IfAssetIdIsNotExisted() public {
-        controller.supplyToken(WETH_ASSET_ID, 100);
+        controller.supplyToken(WETH_ASSET_ID, 100, false);
 
-        vm.expectRevert(bytes("A0"));
-        controller.withdrawToken(4, 100);
+        vm.expectRevert(bytes("PAIR0"));
+        controller.withdrawToken(4, 100, false);
     }
 
     // withdraw token
     function testWithdrawToken() public {
-        controller.supplyToken(WETH_ASSET_ID, 100);
+        controller.supplyToken(WETH_ASSET_ID, 100, false);
 
-        controller.withdrawToken(WETH_ASSET_ID, 100);
+        controller.withdrawToken(WETH_ASSET_ID, 100, false);
 
         assertEq(IERC20(getSupplyTokenAddress(WETH_ASSET_ID)).balanceOf(address(this)), 0);
     }
@@ -65,7 +72,7 @@ contract TestControllerWithdrawToken is TestController {
     // cannot withdraw token if asset utilization is not 0
     function testCannotWithdrawTokenIfNoEnoughUnderlyingAsset() public {
         vm.prank(user1);
-        controller.supplyToken(WETH_ASSET_ID, 1e6);
+        controller.supplyToken(WETH_ASSET_ID, 1e6, false);
 
         vm.startPrank(user2);
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100, 0));
@@ -73,13 +80,13 @@ contract TestControllerWithdrawToken is TestController {
 
         vm.prank(user1);
         vm.expectRevert(bytes("S0"));
-        controller.withdrawToken(WETH_ASSET_ID, 1e6);
+        controller.withdrawToken(WETH_ASSET_ID, 1e6, false);
     }
 
     // cannot withdraw token if asset utilization is not 0
     function testCannotWithdrawTokenIfNoEnoughStableAsset() public {
         vm.prank(user1);
-        controller.supplyToken(STABLE_ASSET_ID, 1e6);
+        controller.supplyToken(WETH_ASSET_ID, 1e6, true);
 
         vm.startPrank(user2);
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100, 0));
@@ -87,6 +94,6 @@ contract TestControllerWithdrawToken is TestController {
 
         vm.prank(user1);
         vm.expectRevert(bytes("S0"));
-        controller.withdrawToken(STABLE_ASSET_ID, 1e6);
+        controller.withdrawToken(WETH_ASSET_ID, 1e6, true);
     }
 }

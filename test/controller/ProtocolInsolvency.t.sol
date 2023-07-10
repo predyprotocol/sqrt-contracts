@@ -23,30 +23,25 @@ contract TestControllerTradePerp is TestController {
         weth.mint(user2, type(uint128).max);
         wbtc.mint(user2, type(uint128).max);
 
-        vm.prank(user2);
+        vm.startPrank(user2);
         usdc.approve(address(controller), type(uint256).max);
-
-        vm.prank(user2);
         weth.approve(address(controller), type(uint256).max);
-
-        vm.prank(user2);
         wbtc.approve(address(controller), type(uint256).max);
 
-        vm.prank(user2);
-        controller.supplyToken(STABLE_ASSET_ID, 1e10);
-        vm.prank(user2);
-        controller.supplyToken(WETH_ASSET_ID, 1e10);
-        vm.prank(user2);
-        controller.supplyToken(WBTC_ASSET_ID, 1e10);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, false);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, true);
+        controller.supplyToken(WBTC_ASSET_ID, 1e10, false);
+        vm.stopPrank();
 
         // create vault
-        vaultId = controller.updateMargin(1e10);
+        vaultId = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         vm.prank(user2);
-        vaultId2 = controller.updateMargin(1e10);
+        vaultId2 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
 
         //vm.prank(user3);
-        //vaultId3 = controller.updateMargin(1e10);
+        //vaultId3 = controller.updateMargin(PAIR_GROUP_ID, 1e10);
     }
 
     function withdrawAll() internal {
@@ -56,63 +51,67 @@ contract TestControllerTradePerp is TestController {
         {
             DataType.Vault memory vault = controller.getVault(vaultId);
             for (uint256 i; i < vault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = vault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = vault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
                     controller.tradePerp(
                         vaultId,
-                        vault.openPositions[i].assetId,
+                        vault.openPositions[i].pairId,
                         getTradeParams(-perpTrade.perp.amount, -perpTrade.sqrtPerp.amount)
                     );
                 }
             }
 
-            controller.updateMargin(-controller.getVault(vaultId).margin);
+            controller.updateMargin(PAIR_GROUP_ID, -controller.getVault(vaultId).margin);
         }
 
         {
             vm.prank(user2);
             DataType.Vault memory lpVault = controller.getVault(vaultId2);
             for (uint256 i; i < lpVault.openPositions.length; i++) {
-                Perp.UserStatus memory perpTrade = lpVault.openPositions[i].perpTrade;
+                Perp.UserStatus memory perpTrade = lpVault.openPositions[i];
 
                 if (perpTrade.perp.amount != 0 || perpTrade.sqrtPerp.amount != 0) {
-                    TradeLogic.TradeParams memory tradeParams =
+                    TradePerpLogic.TradeParams memory tradeParams =
                         getTradeParams(-perpTrade.perp.amount, -perpTrade.sqrtPerp.amount);
 
                     vm.prank(user2);
-                    controller.tradePerp(vaultId2, lpVault.openPositions[i].assetId, tradeParams);
+                    controller.tradePerp(vaultId2, lpVault.openPositions[i].pairId, tradeParams);
                 }
             }
 
             vm.prank(user2);
             int256 margin = controller.getVault(vaultId2).margin;
             vm.prank(user2);
-            controller.updateMargin(-margin);
+            controller.updateMargin(PAIR_GROUP_ID, -margin);
         }
-
-        vm.prank(user2);
-        controller.withdrawToken(1, 1e18);
-        vm.prank(user2);
-        controller.withdrawToken(2, 1e18);
 
         console.log(usdc.balanceOf(address(controller)));
         console.log(weth.balanceOf(address(controller)));
 
-        {
-            DataType.AssetStatus memory asset = controller.getAsset(1);
+        vm.startPrank(user2);
+        controller.withdrawToken(WETH_ASSET_ID, 1e18, true);
+        controller.withdrawToken(WETH_ASSET_ID, 1e18, false);
+        controller.withdrawToken(WBTC_ASSET_ID, 1e18, true);
+        controller.withdrawToken(WBTC_ASSET_ID, 1e18, false);
+        vm.stopPrank();
 
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(1, asset.accumulatedProtocolRevenue);
-            }
+        console.log(usdc.balanceOf(address(controller)));
+        console.log(weth.balanceOf(address(controller)));
+
+        assertLt(usdc.balanceOf(address(controller)), 100);
+        assertLt(weth.balanceOf(address(controller)), 100);
+
+        {
+            DataType.PairStatus memory pairAfter = controller.getAsset(WETH_ASSET_ID);
+
+            assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
         }
 
         {
-            DataType.AssetStatus memory asset = controller.getAsset(2);
+            DataType.PairStatus memory pairAfter = controller.getAsset(WBTC_ASSET_ID);
 
-            if (asset.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(2, asset.accumulatedProtocolRevenue);
-            }
+            assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
         }
 
         assertLt(usdc.balanceOf(address(controller)), 100);
@@ -122,19 +121,13 @@ contract TestControllerTradePerp is TestController {
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
         return getTradeParamsWithTokenId(WETH_ASSET_ID, _tradeAmount, _tradeSqrtAmount);
     }
 
-    function getCloseParams() internal view returns (IsolatedVaultLogic.CloseParams memory) {
+    function getCloseParams() internal view returns (CloseParams memory) {
         return getCloseParamsWithTokenId(WETH_ASSET_ID);
-    }
-
-    function checkTick(int24 _tick) internal {
-        (, int24 currentTick,,,,,) = uniswapPool.slot0();
-
-        assertEq(currentTick, _tick);
     }
 
     function testCase1() public {
@@ -157,27 +150,27 @@ contract TestControllerTradePerp is TestController {
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6), 1e9, true);
 
             uniswapPool.swap(address(this), true, -1 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6));
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 6 * 1e6), 1e9, false);
 
             uniswapPool.swap(address(this), true, -2 * 1e15, TickMath.MIN_SQRT_RATIO + 1, "");
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1 * 1e6, 1 * 1e6 + 123));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999930000);
+        assertEq(vault.margin, 9999920000);
 
         withdrawAll();
     }
@@ -199,22 +192,22 @@ contract TestControllerTradePerp is TestController {
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6), 1e9, false);
 
             uniswapPool.swap(address(this), false, 2 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         {
             (uint256 isolatedVaultId,) =
-                controller.openIsolatedVault(1e9, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6));
+                controller.openIsolatedPosition(0, WETH_ASSET_ID, getTradeParams(-3 * 1e6, 5 * 1e6), 1e9, false);
 
             uniswapPool.swap(address(this), true, -3 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 
             checkTick(629);
 
-            controller.closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
+            closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         }
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1 * 1e6, 10 * 1e6));
@@ -227,6 +220,8 @@ contract TestControllerTradePerp is TestController {
     }
 
     function testCase3() public {
+        controller.reallocate(WETH_ASSET_ID);
+
         vm.startPrank(user2);
         controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
         vm.stopPrank();
@@ -251,7 +246,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000750000);
+        assertEq(vault.margin, 10000740000);
 
         withdrawAll();
     }
@@ -315,7 +310,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10010290000);
+        assertEq(vault.margin, 10010294746);
 
         withdrawAll();
     }
@@ -606,7 +601,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999960000);
+        assertEq(vault.margin, 9999982727);
 
         withdrawAll();
     }
@@ -622,16 +617,16 @@ contract TestControllerTradePerp is TestController {
         assertEq(vaultStatus.minDeposit, 3027467);
 
         vm.expectRevert(bytes("NS"));
-        controller.updateMargin(-1e10 + 3 * 1e6);
+        controller.updateMargin(PAIR_GROUP_ID, -1e10 + 3 * 1e6);
 
-        controller.updateMargin(-1e10 + 4 * 1e6);
+        controller.updateMargin(PAIR_GROUP_ID, -1e10 + 4 * 1e6);
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -10 * 1e6));
         controller.tradePerp(vaultId, WBTC_ASSET_ID, getTradeParams(10 * 1e6, -2 * 1e6));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 3960000);
+        assertEq(vault.margin, 3982727);
 
         withdrawAll();
     }
@@ -658,7 +653,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999830000);
+        assertEq(vault.margin, 9999839388);
 
         withdrawAll();
     }
@@ -691,7 +686,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000070000);
+        assertEq(vault.margin, 10000140000);
 
         withdrawAll();
     }
@@ -708,7 +703,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(tradeResult.minDeposit, 90103728);
 
-        controller.updateMargin(-9850000000);
+        controller.updateMargin(PAIR_GROUP_ID, -9850000000);
 
         uniswapPool.swap(address(this), false, 4 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
@@ -720,32 +715,51 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 125697303);
+        assertEq(vaultStatus.vaultValue, 125697326);
         assertEq(vaultStatus.minDeposit, 136761535);
 
         vm.prank(user2);
-        controller.liquidationCall(vaultId, 1e18);
+        controller.liquidationCall(vaultId, 1e18, 0);
 
         withdrawAll();
     }
 
-    function testCannotSettleUserBalance() public {
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 200 * 1e6));
+    function testContinuousReallocation() public {
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-16 * 1e6, 16 * 1e6));
 
-        uniswapPool.swap(address(this), false, 4 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+        for (uint256 i = 0; i < 2; i++) {
+            uniswapPool.swap(address(this), false, 37 * 1e15, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        {
             (bool reallocationHappened,) = controller.reallocate(WETH_ASSET_ID);
             assertTrue(reallocationHappened);
+
+            vm.warp(block.timestamp + 1 days);
         }
 
-        vm.warp(block.timestamp + 1 hours);
+        withdrawAll();
+    }
 
-        controller.settleUserBalance(vaultId);
+    function testFeeGrowthReturnZero() public {
+        vm.startPrank(user2);
+        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(0, 1000 * 1e6));
+        vm.stopPrank();
 
-        vm.warp(block.timestamp + 1 hours);
+        {
+            uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        vm.expectRevert(bytes("C6"));
-        controller.settleUserBalance(vaultId);
+            (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+            assertEq(currentTick, 975);
+        }
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -1000 * 1e6));
+
+        uniswapPool.swap(address(this), true, -5 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e6, 21 * 1e6));
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -11 * 1e6));
+
+        withdrawAll();
     }
 }

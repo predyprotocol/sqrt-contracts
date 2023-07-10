@@ -23,9 +23,26 @@ contract Reader {
     /**
      * @notice Gets vault delta.
      */
-    function getDelta(uint256 _assetId, uint256 _vaultId) external view returns (int256 _delta) {
-        DataType.AssetStatus memory asset = controller.getAsset(_assetId);
+    function getDelta(uint256 _pairId, uint256 _vaultId) external view returns (int256 _delta) {
+        DataType.PairStatus memory asset = controller.getAsset(_pairId);
 
-        return ReaderLogic.getDelta(asset.id, controller.getVault(_vaultId), controller.getSqrtPrice(_assetId));
+        return ReaderLogic.getDelta(asset.id, controller.getVault(_vaultId), controller.getSqrtPrice(_pairId));
+    }
+
+    /**
+     * @notice Gets asset utilization ratios
+     * @param _pairId The id of asset pair
+     * @return sqrtAsset The utilization of sqrt asset
+     * @return stableAsset The utilization of stable asset
+     * @return underlyingAsset The utilization of underlying asset
+     */
+    function getUtilizationRatio(uint256 _pairId)
+        external
+        view
+        returns (uint256 sqrtAsset, uint256 stableAsset, uint256 underlyingAsset)
+    {
+        DataType.PairStatus memory pair = controller.getAsset(_pairId);
+
+        return ReaderLogic.getUtilizationRatio(pair);
     }
 }

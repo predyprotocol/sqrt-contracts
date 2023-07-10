@@ -3,10 +3,11 @@ const path = require('path')
 
 const files = [
     'Controller_Implementation.json',
+    'AddAssetLogic.json',
     'ApplyInterestLogic.json',
     'LiquidationLogic.json',
-    'SettleUserFeeLogic.json',
     'SupplyLogic.json',
+    'TradePerpLogic.json',
     'TradeLogic.json',
     'UpdateMarginLogic.json',
     'IsolatedVaultLogic.json'

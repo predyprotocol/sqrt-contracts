@@ -18,7 +18,7 @@ contract TestControllerUniswapCallback is TestController {
         usdc.approve(address(controller), type(uint256).max);
 
         vm.prank(user);
-        controller.supplyToken(STABLE_ASSET_ID, 1e10);
+        controller.supplyToken(WETH_ASSET_ID, 1e10, true);
 
         mockAttack = new MockAttack(address(usdc), address(usdc));
     }

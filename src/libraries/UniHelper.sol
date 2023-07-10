@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import "@uniswap/v3-periphery/contracts/libraries/PositionKey.sol";
 import "../vendors/IUniswapV3PoolOracle.sol";
 import "./DataType.sol";
 import "./Constants.sol";
@@ -94,5 +95,66 @@ library UniHelper {
                 && sqrtPrice <= sqrtTwap * (1e6 + Constants.SLIPPAGE_SQRT_TOLERANCE) / 1e6,
             "Slipped"
         );
+    }
+
+    function getFeeGrowthInsideLast(address _uniswapPool, int24 _tickLower, int24 _tickUpper)
+        internal
+        view
+        returns (uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128)
+    {
+        bytes32 positionKey = PositionKey.compute(address(this), _tickLower, _tickUpper);
+
+        // this is now updated to the current transaction
+        (, feeGrowthInside0LastX128, feeGrowthInside1LastX128,,) = IUniswapV3Pool(_uniswapPool).positions(positionKey);
+    }
+
+    function getFeeGrowthInside(address _uniswapPool, int24 _tickLower, int24 _tickUpper)
+        internal
+        view
+        returns (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128)
+    {
+        (, int24 tickCurrent,,,,,) = IUniswapV3Pool(_uniswapPool).slot0();
+
+        uint256 feeGrowthGlobal0X128 = IUniswapV3Pool(_uniswapPool).feeGrowthGlobal0X128();
+        uint256 feeGrowthGlobal1X128 = IUniswapV3Pool(_uniswapPool).feeGrowthGlobal1X128();
+
+        // calculate fee growth below
+        uint256 feeGrowthBelow0X128;
+        uint256 feeGrowthBelow1X128;
+
+        unchecked {
+            {
+                (,, uint256 lowerFeeGrowthOutside0X128, uint256 lowerFeeGrowthOutside1X128,,,,) =
+                    IUniswapV3Pool(_uniswapPool).ticks(_tickLower);
+
+                if (tickCurrent >= _tickLower) {
+                    feeGrowthBelow0X128 = lowerFeeGrowthOutside0X128;
+                    feeGrowthBelow1X128 = lowerFeeGrowthOutside1X128;
+                } else {
+                    feeGrowthBelow0X128 = feeGrowthGlobal0X128 - lowerFeeGrowthOutside0X128;
+                    feeGrowthBelow1X128 = feeGrowthGlobal1X128 - lowerFeeGrowthOutside1X128;
+                }
+            }
+
+            // calculate fee growth above
+            uint256 feeGrowthAbove0X128;
+            uint256 feeGrowthAbove1X128;
+
+            {
+                (,, uint256 upperFeeGrowthOutside0X128, uint256 upperFeeGrowthOutside1X128,,,,) =
+                    IUniswapV3Pool(_uniswapPool).ticks(_tickUpper);
+
+                if (tickCurrent < _tickUpper) {
+                    feeGrowthAbove0X128 = upperFeeGrowthOutside0X128;
+                    feeGrowthAbove1X128 = upperFeeGrowthOutside1X128;
+                } else {
+                    feeGrowthAbove0X128 = feeGrowthGlobal0X128 - upperFeeGrowthOutside0X128;
+                    feeGrowthAbove1X128 = feeGrowthGlobal1X128 - upperFeeGrowthOutside1X128;
+                }
+            }
+
+            feeGrowthInside0X128 = feeGrowthGlobal0X128 - feeGrowthBelow0X128 - feeGrowthAbove0X128;
+            feeGrowthInside1X128 = feeGrowthGlobal1X128 - feeGrowthBelow1X128 - feeGrowthAbove1X128;
+        }
     }
 }

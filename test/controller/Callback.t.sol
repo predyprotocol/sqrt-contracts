@@ -14,18 +14,14 @@ contract TestControllerCallback is TestController {
         usdc.mint(user, type(uint128).max);
         weth.mint(user, type(uint128).max);
 
-        vm.prank(user);
+        vm.startPrank(user);
         usdc.approve(address(controller), type(uint256).max);
-
-        vm.prank(user);
         weth.approve(address(controller), type(uint256).max);
+        controller.supplyToken(1, 1e10, true);
+        controller.supplyToken(1, 1e10, false);
+        vm.stopPrank();
 
-        vm.prank(user);
-        controller.supplyToken(1, 1e10);
-        vm.prank(user);
-        controller.supplyToken(2, 1e10);
-
-        vaultId = controller.updateMargin(1e8);
+        vaultId = controller.updateMargin(PAIR_GROUP_ID, 1e8);
     }
 
     function predyTradeCallback(DataType.TradeResult memory, bytes calldata _data) external pure returns (int256) {
@@ -35,7 +31,7 @@ contract TestControllerCallback is TestController {
     }
 
     function testCannotTradePerp() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             5 * 1e8,
             0,
             getLowerSqrtPrice(WETH_ASSET_ID),
@@ -50,7 +46,7 @@ contract TestControllerCallback is TestController {
     }
 
     function testTradePerp() public {
-        TradeLogic.TradeParams memory tradeParams = TradeLogic.TradeParams(
+        TradePerpLogic.TradeParams memory tradeParams = TradePerpLogic.TradeParams(
             5 * 1e8,
             0,
             getLowerSqrtPrice(WETH_ASSET_ID),
@@ -64,6 +60,6 @@ contract TestControllerCallback is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.openPositions[0].perpTrade.perp.amount, 500000000);
+        assertEq(vault.openPositions[0].perp.amount, 500000000);
     }
 }

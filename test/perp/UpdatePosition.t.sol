@@ -10,14 +10,10 @@ contract TestPerpUpdatePosition is TestPerp {
     function setUp() public override {
         TestPerp.setUp();
 
-        userStatus2 = Perp.createPerpUserStatus();
+        userStatus2 = Perp.createPerpUserStatus(1);
 
         Perp.updatePosition(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            userStatus2,
-            Perp.UpdatePerpParams(100, -100),
-            Perp.UpdateSqrtPerpParams(100, -100)
+            underlyingAssetStatus, userStatus2, Perp.UpdatePerpParams(100, -100), Perp.UpdateSqrtPerpParams(100, -100)
         );
     }
 
@@ -25,22 +21,14 @@ contract TestPerpUpdatePosition is TestPerp {
     function testCannotOpenLong() public {
         vm.expectRevert(bytes("S0"));
         Perp.updatePosition(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            userStatus,
-            Perp.UpdatePerpParams(1e18, -1e18),
-            Perp.UpdateSqrtPerpParams(0, 0)
+            underlyingAssetStatus, userStatus, Perp.UpdatePerpParams(1e18, -1e18), Perp.UpdateSqrtPerpParams(0, 0)
         );
     }
 
     // Opens long position
     function testOpenLong() public {
         Perp.updatePosition(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            userStatus,
-            Perp.UpdatePerpParams(10, -100),
-            Perp.UpdateSqrtPerpParams(10, -100)
+            underlyingAssetStatus, userStatus, Perp.UpdatePerpParams(10, -100), Perp.UpdateSqrtPerpParams(10, -100)
         );
 
         assertEq(userStatus.perp.amount, 10);
@@ -64,11 +52,7 @@ contract TestPerpUpdatePosition is TestPerp {
     // Closes long position
     function testCloseLong() public {
         Perp.Payoff memory payoff = Perp.updatePosition(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            userStatus2,
-            Perp.UpdatePerpParams(-100, 200),
-            Perp.UpdateSqrtPerpParams(0, 0)
+            underlyingAssetStatus, userStatus2, Perp.UpdatePerpParams(-100, 200), Perp.UpdateSqrtPerpParams(0, 0)
         );
 
         assertEq(payoff.perpPayoff, 100);
@@ -79,11 +63,7 @@ contract TestPerpUpdatePosition is TestPerp {
 
     function testCloseSqrtLong() public {
         Perp.Payoff memory payoff = Perp.updatePosition(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            userStatus2,
-            Perp.UpdatePerpParams(0, 0),
-            Perp.UpdateSqrtPerpParams(-100, 200)
+            underlyingAssetStatus, userStatus2, Perp.UpdatePerpParams(0, 0), Perp.UpdateSqrtPerpParams(-100, 200)
         );
 
         assertEq(payoff.perpPayoff, 0);
@@ -94,11 +74,7 @@ contract TestPerpUpdatePosition is TestPerp {
 
     function testCloseLongPartially() public {
         Perp.Payoff memory payoff = Perp.updatePosition(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            userStatus2,
-            Perp.UpdatePerpParams(-50, 100),
-            Perp.UpdateSqrtPerpParams(0, 0)
+            underlyingAssetStatus, userStatus2, Perp.UpdatePerpParams(-50, 100), Perp.UpdateSqrtPerpParams(0, 0)
         );
 
         assertEq(payoff.perpPayoff, 50);
@@ -109,11 +85,7 @@ contract TestPerpUpdatePosition is TestPerp {
 
     function testCloseLongAndOpenShort() public {
         Perp.Payoff memory payoff = Perp.updatePosition(
-            underlyingAssetStatus,
-            stableAssetStatus,
-            userStatus2,
-            Perp.UpdatePerpParams(-200, 400),
-            Perp.UpdateSqrtPerpParams(0, 0)
+            underlyingAssetStatus, userStatus2, Perp.UpdatePerpParams(-200, 400), Perp.UpdateSqrtPerpParams(0, 0)
         );
 
         assertEq(payoff.perpPayoff, 100);
@@ -126,7 +98,6 @@ contract TestPerpUpdatePosition is TestPerp {
     function testOpenGammaShort() public {
         Perp.updatePosition(
             underlyingAssetStatus,
-            stableAssetStatus,
             userStatus,
             Perp.UpdatePerpParams(-1e6, 1e6),
             Perp.UpdateSqrtPerpParams(1e6, -2 * 1e6)

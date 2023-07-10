@@ -11,11 +11,19 @@ import "../../src/libraries/InterestRateModel.sol";
 import "../mocks/MockERC20.sol";
 
 contract TestController is Test {
+    struct CloseParams {
+        uint256 lowerSqrtPrice;
+        uint256 upperSqrtPrice;
+        uint256 deadline;
+    }
+
     uint256 internal constant RISK_RATIO = 109544511;
 
-    uint256 internal constant STABLE_ASSET_ID = 1;
-    uint256 internal constant WETH_ASSET_ID = 2;
-    uint256 internal constant WBTC_ASSET_ID = 3;
+    uint64 internal constant WETH_ASSET_ID = 1;
+    uint64 internal constant WBTC_ASSET_ID = 2;
+    uint64 internal constant WETH2_ASSET_ID = 3;
+    uint64 internal constant PAIR_GROUP_ID = 1;
+    uint64 internal constant INVALID_PAIR_GROUP_ID = 3;
 
     Controller internal controller;
     MockERC20 internal usdc;
@@ -114,24 +122,51 @@ contract TestController is Test {
     }
 
     function initializeController() internal {
-        DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](2);
+        controller.initialize();
 
-        addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
-        );
-        addAssetParams[1] = DataType.AddAssetParams(
-            address(wbtcUniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+        controller.addPairGroup(address(usdc), 4);
+        controller.addPairGroup(address(usdc), 4);
+
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID,
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
         );
 
-        controller.initialize(address(usdc), irmParams, addAssetParams);
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID,
+                address(wbtcUniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
+        );
+
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID + 1,
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
+        );
     }
 
     function getTradeParamsWithTokenId(uint256 _tokenId, int256 _tradeAmount, int256 _tradeSqrtAmount)
         internal
         view
-        returns (TradeLogic.TradeParams memory)
+        returns (TradePerpLogic.TradeParams memory)
     {
-        return TradeLogic.TradeParams(
+        return TradePerpLogic.TradeParams(
             _tradeAmount,
             _tradeSqrtAmount,
             getLowerSqrtPrice(_tokenId),
@@ -142,12 +177,48 @@ contract TestController is Test {
         );
     }
 
-    function getCloseParamsWithTokenId(uint256 _tokenId)
+    function getCloseParamsWithTokenId(uint256 _tokenId) internal view returns (CloseParams memory) {
+        return CloseParams(getLowerSqrtPrice(_tokenId), getUpperSqrtPrice(_tokenId), block.timestamp);
+    }
+
+    function openIsolatedVault(uint256 _depositAmount, uint64 _pairId, TradePerpLogic.TradeParams memory _tradeParams)
         internal
-        view
-        returns (IsolatedVaultLogic.CloseParams memory)
+        returns (uint256 isolatedVaultId, DataType.TradeResult memory tradeResult)
     {
-        return IsolatedVaultLogic.CloseParams(getLowerSqrtPrice(_tokenId), getUpperSqrtPrice(_tokenId), block.timestamp);
+        return controller.openIsolatedPosition(0, _pairId, _tradeParams, _depositAmount, true);
+    }
+
+    function closeIsolatedVault(uint256 _isolatedVaultId, uint64 _pairId, CloseParams memory _closeParams)
+        internal
+        returns (DataType.TradeResult memory tradeResult)
+    {
+        Perp.UserStatus memory openPosition;
+
+        DataType.Vault memory vault = controller.getVault(_isolatedVaultId);
+
+        for (uint256 i; i < vault.openPositions.length; i++) {
+            if (vault.openPositions[i].pairId == _pairId) {
+                openPosition = vault.openPositions[i];
+            }
+        }
+
+        int256 tradeAmount = -openPosition.perp.amount;
+        int256 tradeAmountSqrt = -openPosition.sqrtPerp.amount;
+
+        tradeResult = controller.closeIsolatedPosition(
+            _isolatedVaultId,
+            _pairId,
+            TradePerpLogic.TradeParams(
+                tradeAmount,
+                tradeAmountSqrt,
+                _closeParams.lowerSqrtPrice,
+                _closeParams.upperSqrtPrice,
+                _closeParams.deadline,
+                false,
+                ""
+            ),
+            0
+        );
     }
 
     function getLowerSqrtPrice(uint256 _tokenId) internal view returns (uint160) {
@@ -158,9 +229,22 @@ contract TestController is Test {
         return (controller.getSqrtPrice(_tokenId) * 120) / 100;
     }
 
-    function getSupplyTokenAddress(uint256 _assetId) internal view returns (address supplyTokenAddress) {
-        DataType.AssetStatus memory asset = controller.getAsset(_assetId);
+    function getSupplyTokenAddress(uint256 _pairId) internal view returns (address supplyTokenAddress) {
+        DataType.PairStatus memory asset = controller.getAsset(_pairId);
 
-        return asset.supplyTokenAddress;
+        return asset.underlyingPool.supplyTokenAddress;
+    }
+
+    function manipulateVol(uint256 _num) internal {
+        for (uint256 i; i < _num; i++) {
+            uniswapPool.swap(address(this), false, 5 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+            uniswapPool.swap(address(this), true, -5 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
+        }
+    }
+
+    function checkTick(int24 _tick) internal {
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
+
+        assertEq(currentTick, _tick);
     }
 }

@@ -8,19 +8,11 @@ import "./math/Math.sol";
 library ScaledAsset {
     using Math for int256;
 
-    enum InterestType {
-        EMPTY,
-        COMPOUND,
-        NORMAL
-    }
-
     struct TokenStatus {
         uint256 totalCompoundDeposited;
-        uint256 totalCompoundBorrowed;
         uint256 totalNormalDeposited;
         uint256 totalNormalBorrowed;
         uint256 assetScaler;
-        uint256 debtScaler;
         uint256 assetGrowth;
         uint256 debtGrowth;
     }
@@ -30,8 +22,10 @@ library ScaledAsset {
         uint256 lastFeeGrowth;
     }
 
+    event ScaledAssetPositionUpdated(uint256 pairId, bool isStable, int256 open, int256 close);
+
     function createTokenStatus() internal pure returns (TokenStatus memory) {
-        return TokenStatus(0, 0, 0, 0, Constants.ONE, Constants.ONE, 0, 0);
+        return TokenStatus(0, 0, 0, Constants.ONE, 0, 0);
     }
 
     function createUserStatus() internal pure returns (UserStatus memory) {
@@ -76,7 +70,9 @@ library ScaledAsset {
     function updatePosition(
         ScaledAsset.TokenStatus storage tokenStatus,
         ScaledAsset.UserStatus storage userStatus,
-        int256 _amount
+        int256 _amount,
+        uint256 _pairId,
+        bool _isStable
     ) internal {
         // Confirms fee has been settled before position updating.
         if (userStatus.positionAmount > 0) {
@@ -119,6 +115,8 @@ library ScaledAsset {
         }
 
         userStatus.positionAmount += _amount;
+
+        emit ScaledAssetPositionUpdated(_pairId, _isStable, openAmount, closeAmount);
     }
 
     function computeUserFee(ScaledAsset.TokenStatus memory _assetStatus, ScaledAsset.UserStatus memory _userStatus)
@@ -168,7 +166,7 @@ library ScaledAsset {
     {
         require(accountState.positionAmount <= 0, "S1");
 
-        return FixedPointMathLib.mulDivDown(
+        return FixedPointMathLib.mulDivUp(
             tokenState.debtGrowth - accountState.lastFeeGrowth,
             // never overflow
             uint256(-accountState.positionAmount),
@@ -177,35 +175,21 @@ library ScaledAsset {
     }
 
     // update scaler
-    function updateScaler(TokenStatus storage tokenState, uint256 _interestRate) internal returns (uint256) {
+    function updateScaler(TokenStatus storage tokenState, uint256 _interestRate) internal {
         if (tokenState.totalCompoundDeposited == 0 && tokenState.totalNormalDeposited == 0) {
-            return 0;
+            return;
         }
-
-        uint256 protocolFee = FixedPointMathLib.mulDivDown(
-            FixedPointMathLib.mulDivDown(_interestRate, getTotalDebtValue(tokenState), Constants.ONE),
-            Constants.RESERVE_FACTOR,
-            Constants.ONE
-        );
 
         // supply interest rate is InterestRate * Utilization * (1 - ReserveFactor)
         uint256 supplyInterestRate = FixedPointMathLib.mulDivDown(
-            FixedPointMathLib.mulDivDown(
-                _interestRate, getTotalDebtValue(tokenState), getTotalCollateralValue(tokenState)
-            ),
-            Constants.ONE - Constants.RESERVE_FACTOR,
-            Constants.ONE
+            _interestRate, getTotalDebtValue(tokenState), getTotalCollateralValue(tokenState)
         );
 
         // round up
-        tokenState.debtScaler =
-            FixedPointMathLib.mulDivUp(tokenState.debtScaler, (Constants.ONE + _interestRate), Constants.ONE);
         tokenState.debtGrowth += _interestRate;
         tokenState.assetScaler =
             FixedPointMathLib.mulDivDown(tokenState.assetScaler, Constants.ONE + supplyInterestRate, Constants.ONE);
         tokenState.assetGrowth += supplyInterestRate;
-
-        return protocolFee;
     }
 
     function getTotalCollateralValue(TokenStatus memory tokenState) internal pure returns (uint256) {
@@ -214,8 +198,7 @@ library ScaledAsset {
     }
 
     function getTotalDebtValue(TokenStatus memory tokenState) internal pure returns (uint256) {
-        return FixedPointMathLib.mulDivDown(tokenState.totalCompoundBorrowed, tokenState.debtScaler, Constants.ONE)
-            + tokenState.totalNormalBorrowed;
+        return tokenState.totalNormalBorrowed;
     }
 
     function getAvailableCollateralValue(TokenStatus memory tokenState) internal pure returns (uint256) {

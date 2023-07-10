@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./DataType.sol";
 import "./ScaledAsset.sol";
 import "./InterestRateModel.sol";
+import "./PremiumCurveModel.sol";
 import "./Constants.sol";
 import "./UniHelper.sol";
 import "./math/LPMath.sol";
@@ -39,7 +40,6 @@ library Perp {
         int256 underlyingRebalanceEntryValue;
         uint256 entryTradeFee0;
         uint256 entryTradeFee1;
-        uint256 entryPremium;
     }
 
     struct UpdatePerpParams {
@@ -62,14 +62,17 @@ library Perp {
     }
 
     struct SqrtPerpAssetStatus {
-        // if it is stable then uniswapPool is address(0)
         address uniswapPool;
         int24 tickLower;
         int24 tickUpper;
+        uint64 numRebalance;
         uint256 totalAmount;
         uint256 borrowedAmount;
-        uint256 supplyPremiumGrowth;
-        uint256 borrowPremiumGrowth;
+        uint256 lastRebalanceTotalSquartAmount;
+        uint256 lastFee0Growth;
+        uint256 lastFee1Growth;
+        uint256 borrowPremium0Growth;
+        uint256 borrowPremium1Growth;
         uint256 fee0Growth;
         uint256 fee1Growth;
         ScaledAsset.UserStatus rebalancePositionUnderlying;
@@ -79,17 +82,26 @@ library Perp {
     }
 
     struct UserStatus {
+        uint64 pairId;
+        int24 rebalanceLastTickLower;
+        int24 rebalanceLastTickUpper;
+        uint64 lastNumRebalance;
         PositionStatus perp;
         SqrtPositionStatus sqrtPerp;
         ScaledAsset.UserStatus underlying;
         ScaledAsset.UserStatus stable;
-        int24 rebalanceLastTickLower;
-        int24 rebalanceLastTickUpper;
-        int256 rebalanceEntryFeeUnderlying;
-        int256 rebalanceEntryFeeStable;
     }
 
-    event Rebalanced(uint256 assetId, int24 tickLower, int24 tickUpper, int256 profit);
+    event PremiumGrowthUpdated(
+        uint256 pairId,
+        uint256 totalAmount,
+        uint256 borrowAmount,
+        uint256 fee0Growth,
+        uint256 fee1Growth,
+        uint256 spread
+    );
+    event SqrtPositionUpdated(uint256 pairId, int256 open, int256 close);
+    event Rebalanced(uint256 pairId, int24 tickLower, int24 tickUpper, int256 profit);
 
     function createAssetStatus(address uniswapPool, int24 tickLower, int24 tickUpper)
         internal
@@ -106,6 +118,10 @@ library Perp {
             0,
             0,
             0,
+            0,
+            0,
+            0,
+            0,
             ScaledAsset.createUserStatus(),
             ScaledAsset.createUserStatus(),
             0,
@@ -113,33 +129,32 @@ library Perp {
         );
     }
 
-    function createPerpUserStatus() internal pure returns (UserStatus memory) {
+    function createPerpUserStatus(uint64 _pairId) internal pure returns (UserStatus memory) {
         return UserStatus(
+            _pairId,
+            0,
+            0,
+            0,
             PositionStatus(0, 0),
-            SqrtPositionStatus(0, 0, 0, 0, 0, 0, 0),
+            SqrtPositionStatus(0, 0, 0, 0, 0, 0),
             ScaledAsset.createUserStatus(),
-            ScaledAsset.createUserStatus(),
-            0,
-            0,
-            0,
-            0
+            ScaledAsset.createUserStatus()
         );
     }
 
     function updateRebalanceFeeGrowth(
-        DataType.AssetStatus memory _assetStatusUnderlying,
-        ScaledAsset.TokenStatus memory _assetStatusStable,
+        DataType.PairStatus memory _pairStatus,
         SqrtPerpAssetStatus storage _sqrtAssetStatus
     ) internal {
         // settle fee for rebalance position
-        if (_sqrtAssetStatus.totalAmount > 0) {
-            _sqrtAssetStatus.rebalanceFeeGrowthUnderlying += _assetStatusUnderlying.tokenStatus.settleUserFee(
+        if (_sqrtAssetStatus.lastRebalanceTotalSquartAmount > 0) {
+            _sqrtAssetStatus.rebalanceFeeGrowthUnderlying += _pairStatus.underlyingPool.tokenStatus.settleUserFee(
                 _sqrtAssetStatus.rebalancePositionUnderlying
-            ) * 1e18 / int256(_sqrtAssetStatus.totalAmount);
+            ) * 1e18 / int256(_sqrtAssetStatus.lastRebalanceTotalSquartAmount);
 
-            _sqrtAssetStatus.rebalanceFeeGrowthStable += _assetStatusStable.settleUserFee(
+            _sqrtAssetStatus.rebalanceFeeGrowthStable += _pairStatus.stablePool.tokenStatus.settleUserFee(
                 _sqrtAssetStatus.rebalancePositionStable
-            ) * 1e18 / int256(_sqrtAssetStatus.totalAmount);
+            ) * 1e18 / int256(_sqrtAssetStatus.lastRebalanceTotalSquartAmount);
         }
     }
 
@@ -170,19 +185,18 @@ library Perp {
      *       sqrt(a2) - sqrt(x)
      */
     function reallocate(
-        DataType.AssetStatus storage _assetStatusUnderlying,
-        ScaledAsset.TokenStatus storage _assetStatusStable,
+        DataType.PairStatus storage _assetStatusUnderlying,
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         bool _enableRevert
     ) internal returns (bool, int256 profit) {
-        updateRebalanceFeeGrowth(_assetStatusUnderlying, _assetStatusStable, _sqrtAssetStatus);
-
         (uint160 currentSqrtPrice, int24 currentTick,,,,,) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).slot0();
 
         if (
             _sqrtAssetStatus.tickLower + _assetStatusUnderlying.riskParams.rebalanceThreshold < currentTick
                 && currentTick < _sqrtAssetStatus.tickUpper - _assetStatusUnderlying.riskParams.rebalanceThreshold
         ) {
+            saveLastFeeGrowth(_sqrtAssetStatus);
+
             return (false, 0);
         }
 
@@ -192,7 +206,10 @@ library Perp {
 
         if (totalLiquidityAmount == 0) {
             (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) =
-                Reallocation.getNewRange(_assetStatusUnderlying, _assetStatusStable, currentTick);
+                Reallocation.getNewRange(_assetStatusUnderlying, currentTick);
+
+            saveLastFeeGrowth(_sqrtAssetStatus);
+
             return (false, 0);
         }
 
@@ -212,24 +229,19 @@ library Perp {
             tick = _sqrtAssetStatus.tickUpper;
         }
 
-        rebalanceForInRange(
-            _assetStatusUnderlying, _assetStatusStable, _sqrtAssetStatus, currentTick, totalLiquidityAmount
-        );
+        rebalanceForInRange(_assetStatusUnderlying, _sqrtAssetStatus, currentTick, totalLiquidityAmount);
+
+        saveLastFeeGrowth(_sqrtAssetStatus);
 
         if (isOutOfRange) {
             profit = swapForOutOfRange(
-                _assetStatusUnderlying,
-                _assetStatusStable,
-                _sqrtAssetStatus,
-                currentSqrtPrice,
-                tick,
-                totalLiquidityAmount
+                _assetStatusUnderlying, _sqrtAssetStatus, currentSqrtPrice, tick, totalLiquidityAmount
             );
 
             require(!_enableRevert || profit >= 0, "CANTREBAL");
 
             if (profit > 0) {
-                _sqrtAssetStatus.fee1Growth += uint256(profit) * Constants.ONE / _sqrtAssetStatus.totalAmount;
+                _sqrtAssetStatus.fee1Growth += uint256(profit) * Constants.Q128 / _sqrtAssetStatus.totalAmount;
             }
         }
 
@@ -239,8 +251,7 @@ library Perp {
     }
 
     function rebalanceForInRange(
-        DataType.AssetStatus storage _assetStatusUnderlying,
-        ScaledAsset.TokenStatus storage _assetStatusStable,
+        DataType.PairStatus storage _assetStatusUnderlying,
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         int24 _currentTick,
         uint128 _totalLiquidityAmount
@@ -250,15 +261,11 @@ library Perp {
         );
 
         IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).collect(
-            address(this),
-            _sqrtAssetStatus.tickLower,
-            _sqrtAssetStatus.tickUpper,
-            receivedAmount0.safeCastTo128(),
-            receivedAmount1.safeCastTo128()
+            address(this), _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, type(uint128).max, type(uint128).max
         );
 
         (_sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper) =
-            Reallocation.getNewRange(_assetStatusUnderlying, _assetStatusStable, _currentTick);
+            Reallocation.getNewRange(_assetStatusUnderlying, _currentTick);
 
         (uint256 requiredAmount0, uint256 requiredAmount1) = IUniswapV3Pool(_sqrtAssetStatus.uniswapPool).mint(
             address(this), _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, _totalLiquidityAmount, ""
@@ -266,7 +273,6 @@ library Perp {
 
         updateRebalancePosition(
             _assetStatusUnderlying,
-            _assetStatusStable,
             int256(receivedAmount0) - int256(requiredAmount0),
             int256(receivedAmount1) - int256(requiredAmount1)
         );
@@ -287,8 +293,7 @@ library Perp {
      *       sqrt(x) - sqrt(a1)
      */
     function swapForOutOfRange(
-        DataType.AssetStatus storage _assetStatusUnderlying,
-        ScaledAsset.TokenStatus storage _assetStatusStable,
+        DataType.PairStatus storage _assetStatusUnderlying,
         SqrtPerpAssetStatus storage _sqrtAssetStatus,
         uint160 _currentSqrtPrice,
         int24 _tick,
@@ -316,7 +321,7 @@ library Perp {
 
         profit = -amount1 - deltaPosition1;
 
-        updateRebalancePosition(_assetStatusUnderlying, _assetStatusStable, deltaPosition0, deltaPosition1);
+        updateRebalancePosition(_assetStatusUnderlying, deltaPosition0, deltaPosition1);
     }
 
     function getAvailableLiquidityAmount(
@@ -332,14 +337,12 @@ library Perp {
         return liquidity;
     }
 
-    function settleUserBalance(
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        ScaledAsset.TokenStatus storage _stableAssetStatus,
-        UserStatus storage _userStatus
-    ) internal returns (bool) {
-        (int256 deltaPositionUnderlying, int256 deltaPositionStable) = updateRebalanceEntry(
-            _underlyingAssetStatus.sqrtAssetStatus, _userStatus, _underlyingAssetStatus.isMarginZero
-        );
+    function settleUserBalance(DataType.PairStatus storage _pairStatus, UserStatus storage _userStatus)
+        internal
+        returns (bool)
+    {
+        (int256 deltaPositionUnderlying, int256 deltaPositionStable) =
+            updateRebalanceEntry(_pairStatus.sqrtAssetStatus, _userStatus, _pairStatus.isMarginZero);
 
         if (deltaPositionUnderlying == 0 && deltaPositionStable == 0) {
             return false;
@@ -350,95 +353,68 @@ library Perp {
 
         // already settled fee
 
-        _underlyingAssetStatus.tokenStatus.updatePosition(
-            _underlyingAssetStatus.sqrtAssetStatus.rebalancePositionUnderlying, -deltaPositionUnderlying
+        _pairStatus.underlyingPool.tokenStatus.updatePosition(
+            _pairStatus.sqrtAssetStatus.rebalancePositionUnderlying, -deltaPositionUnderlying, _pairStatus.id, false
         );
-        _stableAssetStatus.updatePosition(
-            _underlyingAssetStatus.sqrtAssetStatus.rebalancePositionStable, -deltaPositionStable
+        _pairStatus.stablePool.tokenStatus.updatePosition(
+            _pairStatus.sqrtAssetStatus.rebalancePositionStable, -deltaPositionStable, _pairStatus.id, true
         );
 
-        _underlyingAssetStatus.tokenStatus.updatePosition(_userStatus.underlying, deltaPositionUnderlying);
-        _stableAssetStatus.updatePosition(_userStatus.stable, deltaPositionStable);
+        _pairStatus.underlyingPool.tokenStatus.updatePosition(
+            _userStatus.underlying, deltaPositionUnderlying, _pairStatus.id, false
+        );
+        _pairStatus.stablePool.tokenStatus.updatePosition(_userStatus.stable, deltaPositionStable, _pairStatus.id, true);
 
         return true;
     }
 
-    function updateFeeAndPremiumGrowth(
-        SqrtPerpAssetStatus storage _assetStatus,
-        InterestRateModel.IRMParams memory _squartIRMParams,
-        bool _isMarginZero,
-        uint256 _lastUpdateTimestamp
-    ) internal returns (uint256) {
-        if (_lastUpdateTimestamp >= block.timestamp) {
-            return 0;
-        }
-
-        updateFeeGrowth(_assetStatus);
-
-        return updatePremiumGrowth(_assetStatus, _squartIRMParams, _isMarginZero, _lastUpdateTimestamp);
-    }
-
-    function updateFeeGrowth(SqrtPerpAssetStatus storage _assetStatus) internal {
-        uint128 totalLiquidityAmount = getAvailableLiquidityAmount(
-            address(this), _assetStatus.uniswapPool, _assetStatus.tickLower, _assetStatus.tickUpper
-        );
-
-        if (totalLiquidityAmount == 0) {
+    function updateFeeAndPremiumGrowth(uint256 _pairId, SqrtPerpAssetStatus storage _assetStatus) internal {
+        if (_assetStatus.totalAmount == 0) {
             return;
         }
 
-        // collect trade fee
-        IUniswapV3Pool(_assetStatus.uniswapPool).burn(_assetStatus.tickLower, _assetStatus.tickUpper, 0);
+        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
+            UniHelper.getFeeGrowthInside(_assetStatus.uniswapPool, _assetStatus.tickLower, _assetStatus.tickUpper);
 
-        (uint256 tradeFeeAmount0, uint256 tradeFeeAmount1) = IUniswapV3Pool(_assetStatus.uniswapPool).collect(
-            address(this), _assetStatus.tickLower, _assetStatus.tickUpper, type(uint128).max, type(uint128).max
-        );
+        uint256 f0;
+        uint256 f1;
 
-        _assetStatus.fee0Growth += tradeFeeAmount0 * Constants.ONE / _assetStatus.totalAmount;
-        _assetStatus.fee1Growth += tradeFeeAmount1 * Constants.ONE / _assetStatus.totalAmount;
-    }
-
-    function updatePremiumGrowth(
-        SqrtPerpAssetStatus storage _assetStatus,
-        InterestRateModel.IRMParams memory _squartIRMParams,
-        bool _isMarginZero,
-        uint256 _lastUpdateTimestamp
-    ) internal returns (uint256) {
-        uint256 utilization = getUtilizationRatio(_assetStatus);
-
-        if (utilization == 0) {
-            return 0;
+        // overflow of feeGrowth is unchecked in Uniswap V3
+        unchecked {
+            f0 = feeGrowthInside0X128 - _assetStatus.lastFee0Growth;
+            f1 = feeGrowthInside1X128 - _assetStatus.lastFee1Growth;
         }
 
-        uint256 interestRate = computePremium(
-            _squartIRMParams,
-            utilization,
-            UniHelper.convertSqrtPrice(UniHelper.getSqrtPrice(_assetStatus.uniswapPool), _isMarginZero)
-        ) * (block.timestamp - _lastUpdateTimestamp) / 365 days;
+        if (f0 == 0 && f1 == 0) {
+            return;
+        }
 
-        uint256 borrowPremiumGrowth;
-        uint256 supplyPremiumGrowth;
+        uint256 utilization = getUtilizationRatio(_assetStatus);
 
-        borrowPremiumGrowth = interestRate;
+        uint256 spreadParam = PremiumCurveModel.calculatePremiumCurve(utilization);
 
-        uint256 protocolFeePerLiquidity = (borrowPremiumGrowth * Constants.LPT_RESERVE_FACTOR) / Constants.ONE;
+        _assetStatus.fee0Growth += FullMath.mulDiv(
+            f0, _assetStatus.totalAmount + _assetStatus.borrowedAmount * spreadParam / 1000, _assetStatus.totalAmount
+        );
+        _assetStatus.fee1Growth += FullMath.mulDiv(
+            f1, _assetStatus.totalAmount + _assetStatus.borrowedAmount * spreadParam / 1000, _assetStatus.totalAmount
+        );
 
-        supplyPremiumGrowth = ((borrowPremiumGrowth - protocolFeePerLiquidity) * utilization) / Constants.ONE;
+        _assetStatus.borrowPremium0Growth += FullMath.mulDiv(f0, 1000 + spreadParam, 1000);
+        _assetStatus.borrowPremium1Growth += FullMath.mulDiv(f1, 1000 + spreadParam, 1000);
 
-        _assetStatus.borrowPremiumGrowth += borrowPremiumGrowth;
-        _assetStatus.supplyPremiumGrowth += supplyPremiumGrowth;
+        _assetStatus.lastFee0Growth = feeGrowthInside0X128;
+        _assetStatus.lastFee1Growth = feeGrowthInside1X128;
 
-        return (protocolFeePerLiquidity * _assetStatus.borrowedAmount) / Constants.ONE;
+        emit PremiumGrowthUpdated(_pairId, _assetStatus.totalAmount, _assetStatus.borrowedAmount, f0, f1, spreadParam);
     }
 
-    function computePremium(
-        InterestRateModel.IRMParams memory _squartIRMParams,
-        uint256 _utilization,
-        uint256 _sqrtPrice
-    ) internal pure returns (uint256 interestRate) {
-        uint256 variance = InterestRateModel.calculateInterestRate(_squartIRMParams, _utilization);
+    function saveLastFeeGrowth(SqrtPerpAssetStatus storage _assetStatus) internal {
+        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
+            UniHelper.getFeeGrowthInside(_assetStatus.uniswapPool, _assetStatus.tickLower, _assetStatus.tickUpper);
 
-        return (_sqrtPrice * variance) >> FixedPoint96.RESOLUTION;
+        _assetStatus.lastFee0Growth = feeGrowthInside0X128;
+        _assetStatus.lastFee1Growth = feeGrowthInside1X128;
     }
 
     /**
@@ -446,7 +422,8 @@ library Perp {
      * (L/sqrt{x}, L * sqrt{x})
      */
     function computeRequiredAmounts(
-        DataType.AssetStatus memory _underlyingAssetStatus,
+        SqrtPerpAssetStatus storage _sqrtAssetStatus,
+        bool _isMarginZero,
         UserStatus memory _userStatus,
         int256 _tradeSqrtAmount
     ) internal returns (int256 requiredAmountUnderlying, int256 requiredAmountStable) {
@@ -454,20 +431,23 @@ library Perp {
             return (0, 0);
         }
 
-        require(Reallocation.isInRange(_underlyingAssetStatus.sqrtAssetStatus), "P2");
+        require(Reallocation.isInRange(_sqrtAssetStatus), "P2");
 
         int256 requiredAmount0;
         int256 requiredAmount1;
 
         if (_tradeSqrtAmount > 0) {
-            (requiredAmount0, requiredAmount1) =
-                increase(_underlyingAssetStatus.sqrtAssetStatus, uint256(_tradeSqrtAmount));
+            (requiredAmount0, requiredAmount1) = increase(_sqrtAssetStatus, uint256(_tradeSqrtAmount));
+
+            if (_sqrtAssetStatus.totalAmount == _sqrtAssetStatus.borrowedAmount) {
+                // if available liquidity was 0 and added first liquidity then update last fee growth
+                saveLastFeeGrowth(_sqrtAssetStatus);
+            }
         } else if (_tradeSqrtAmount < 0) {
-            (requiredAmount0, requiredAmount1) =
-                decrease(_underlyingAssetStatus.sqrtAssetStatus, uint256(-_tradeSqrtAmount));
+            (requiredAmount0, requiredAmount1) = decrease(_sqrtAssetStatus, uint256(-_tradeSqrtAmount));
         }
 
-        if (_underlyingAssetStatus.isMarginZero) {
+        if (_isMarginZero) {
             requiredAmountStable = requiredAmount0;
             requiredAmountUnderlying = requiredAmount1;
         } else {
@@ -476,11 +456,7 @@ library Perp {
         }
 
         (int256 offsetUnderlying, int256 offsetStable) = calculateSqrtPerpOffset(
-            _userStatus,
-            _underlyingAssetStatus.sqrtAssetStatus.tickLower,
-            _underlyingAssetStatus.sqrtAssetStatus.tickUpper,
-            _tradeSqrtAmount,
-            _underlyingAssetStatus.isMarginZero
+            _userStatus, _sqrtAssetStatus.tickLower, _sqrtAssetStatus.tickUpper, _tradeSqrtAmount, _isMarginZero
         );
 
         requiredAmountUnderlying -= offsetUnderlying;
@@ -488,8 +464,7 @@ library Perp {
     }
 
     function updatePosition(
-        DataType.AssetStatus storage _underlyingAssetStatus,
-        ScaledAsset.TokenStatus storage _stableAssetStatus,
+        DataType.PairStatus storage _pairStatus,
         UserStatus storage _userStatus,
         UpdatePerpParams memory _updatePerpParams,
         UpdateSqrtPerpParams memory _updateSqrtPerpParams
@@ -503,10 +478,10 @@ library Perp {
 
         (payoff.sqrtRebalanceEntryUpdateUnderlying, payoff.sqrtRebalanceEntryUpdateStable) = calculateSqrtPerpOffset(
             _userStatus,
-            _underlyingAssetStatus.sqrtAssetStatus.tickLower,
-            _underlyingAssetStatus.sqrtAssetStatus.tickUpper,
+            _pairStatus.sqrtAssetStatus.tickLower,
+            _pairStatus.sqrtAssetStatus.tickUpper,
             _updateSqrtPerpParams.tradeSqrtAmount,
-            _underlyingAssetStatus.isMarginZero
+            _pairStatus.isMarginZero
         );
 
         (payoff.sqrtEntryUpdate, payoff.sqrtPayoff) = calculateEntry(
@@ -524,23 +499,28 @@ library Perp {
         _userStatus.sqrtPerp.stableRebalanceEntryValue += payoff.sqrtRebalanceEntryUpdateStable;
         _userStatus.sqrtPerp.underlyingRebalanceEntryValue += payoff.sqrtRebalanceEntryUpdateUnderlying;
 
-        // Update fee entry
-        _userStatus.sqrtPerp.entryTradeFee0 = _underlyingAssetStatus.sqrtAssetStatus.fee0Growth;
-        _userStatus.sqrtPerp.entryTradeFee1 = _underlyingAssetStatus.sqrtAssetStatus.fee1Growth;
-
         // Update sqrt position
-        updateSqrtPosition(_underlyingAssetStatus.sqrtAssetStatus, _userStatus, _updateSqrtPerpParams.tradeSqrtAmount);
-
-        _underlyingAssetStatus.tokenStatus.updatePosition(
-            _userStatus.underlying, _updatePerpParams.tradeAmount + payoff.sqrtRebalanceEntryUpdateUnderlying
+        updateSqrtPosition(
+            _pairStatus.id, _pairStatus.sqrtAssetStatus, _userStatus, _updateSqrtPerpParams.tradeSqrtAmount
         );
 
-        _stableAssetStatus.updatePosition(
-            _userStatus.stable, payoff.perpEntryUpdate + payoff.sqrtEntryUpdate + payoff.sqrtRebalanceEntryUpdateStable
+        _pairStatus.underlyingPool.tokenStatus.updatePosition(
+            _userStatus.underlying,
+            _updatePerpParams.tradeAmount + payoff.sqrtRebalanceEntryUpdateUnderlying,
+            _pairStatus.id,
+            false
+        );
+
+        _pairStatus.stablePool.tokenStatus.updatePosition(
+            _userStatus.stable,
+            payoff.perpEntryUpdate + payoff.sqrtEntryUpdate + payoff.sqrtRebalanceEntryUpdateStable,
+            _pairStatus.id,
+            true
         );
     }
 
     function updateSqrtPosition(
+        uint256 _pairId,
         SqrtPerpAssetStatus storage _assetStatus,
         UserStatus storage _userStatus,
         int256 _amount
@@ -559,6 +539,11 @@ library Perp {
             }
         }
 
+        if (_assetStatus.totalAmount == _assetStatus.borrowedAmount) {
+            // if available liquidity was 0 and added first liquidity then update last fee growth
+            saveLastFeeGrowth(_assetStatus);
+        }
+
         if (closeAmount > 0) {
             _assetStatus.borrowedAmount -= uint256(closeAmount);
         } else if (closeAmount < 0) {
@@ -569,18 +554,20 @@ library Perp {
         if (openAmount > 0) {
             _assetStatus.totalAmount += uint256(openAmount);
 
-            // TODO: collect fee before update position
-            _userStatus.sqrtPerp.entryPremium = _assetStatus.supplyPremiumGrowth;
+            _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.fee0Growth;
+            _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.fee1Growth;
         } else if (openAmount < 0) {
             require(getAvailableSqrtAmount(_assetStatus) >= uint256(-openAmount), "S0");
 
             _assetStatus.borrowedAmount += uint256(-openAmount);
 
-            // TODO: pay fee before update position
-            _userStatus.sqrtPerp.entryPremium = _assetStatus.borrowPremiumGrowth;
+            _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.borrowPremium0Growth;
+            _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.borrowPremium1Growth;
         }
 
         _userStatus.sqrtPerp.amount += _amount;
+
+        emit SqrtPositionUpdated(_pairId, openAmount, closeAmount);
     }
 
     function getAvailableSqrtAmount(SqrtPerpAssetStatus memory _assetStatus) internal pure returns (uint256) {
@@ -614,6 +601,14 @@ library Perp {
             _userStatus.rebalanceLastTickUpper = _assetStatus.tickUpper;
 
             return (0, 0);
+        }
+
+        if (_assetStatus.lastRebalanceTotalSquartAmount == 0) {
+            // last user who settles rebalance position
+            return (
+                _assetStatus.rebalancePositionUnderlying.positionAmount,
+                _assetStatus.rebalancePositionStable.positionAmount
+            );
         }
 
         int256 deltaPosition0 = LPMath.calculateAmount0ForLiquidityWithTicks(
@@ -705,11 +700,7 @@ library Perp {
 
         // collect burned token amounts
         IUniswapV3Pool(_assetStatus.uniswapPool).collect(
-            address(this),
-            _assetStatus.tickLower,
-            _assetStatus.tickUpper,
-            amount0.safeCastTo128(),
-            amount1.safeCastTo128()
+            address(this), _assetStatus.tickLower, _assetStatus.tickUpper, type(uint128).max, type(uint128).max
         );
 
         receivedAmount0 = SafeCast.toInt256(amount0);
@@ -827,19 +818,31 @@ library Perp {
     }
 
     function updateRebalancePosition(
-        DataType.AssetStatus storage _assetStatusUnderlying,
-        ScaledAsset.TokenStatus storage _assetStatusStable,
+        DataType.PairStatus storage _pairStatus,
         int256 _updateAmount0,
         int256 _updateAmount1
     ) internal {
-        SqrtPerpAssetStatus storage sqrtAsset = _assetStatusUnderlying.sqrtAssetStatus;
+        SqrtPerpAssetStatus storage sqrtAsset = _pairStatus.sqrtAssetStatus;
 
-        if (_assetStatusUnderlying.isMarginZero) {
-            _assetStatusStable.updatePosition(sqrtAsset.rebalancePositionStable, _updateAmount0);
-            _assetStatusUnderlying.tokenStatus.updatePosition(sqrtAsset.rebalancePositionUnderlying, _updateAmount1);
+        if (_pairStatus.isMarginZero) {
+            _pairStatus.stablePool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionStable, _updateAmount0, _pairStatus.id, true
+            );
+            _pairStatus.underlyingPool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionUnderlying, _updateAmount1, _pairStatus.id, false
+            );
         } else {
-            _assetStatusUnderlying.tokenStatus.updatePosition(sqrtAsset.rebalancePositionUnderlying, _updateAmount0);
-            _assetStatusStable.updatePosition(sqrtAsset.rebalancePositionStable, _updateAmount1);
+            _pairStatus.underlyingPool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionUnderlying, _updateAmount0, _pairStatus.id, false
+            );
+            _pairStatus.stablePool.tokenStatus.updatePosition(
+                sqrtAsset.rebalancePositionStable, _updateAmount1, _pairStatus.id, true
+            );
         }
+    }
+
+    function finalizeReallocation(SqrtPerpAssetStatus storage _sqrtPerpStatus) internal {
+        _sqrtPerpStatus.lastRebalanceTotalSquartAmount = _sqrtPerpStatus.totalAmount + _sqrtPerpStatus.borrowedAmount;
+        _sqrtPerpStatus.numRebalance++;
     }
 }

@@ -8,15 +8,16 @@ contract TestPerpReallocate is TestPerp {
     function setUp() public override {
         TestPerp.setUp();
 
-        ScaledAsset.addAsset(underlyingAssetStatus.tokenStatus, 1000000);
-        ScaledAsset.addAsset(stableAssetStatus, 1000000);
+        ScaledAsset.addAsset(underlyingAssetStatus.underlyingPool.tokenStatus, 1000000);
+        ScaledAsset.addAsset(underlyingAssetStatus.stablePool.tokenStatus, 1000000);
     }
 
     function testReallocate() public {
-        Perp.computeRequiredAmounts(underlyingAssetStatus, userStatus, 1000000);
+        Perp.computeRequiredAmounts(
+            underlyingAssetStatus.sqrtAssetStatus, underlyingAssetStatus.isMarginZero, userStatus, 1000000
+        );
         Perp.updatePosition(
             underlyingAssetStatus,
-            stableAssetStatus,
             userStatus,
             Perp.UpdatePerpParams(-100, 100),
             Perp.UpdateSqrtPerpParams(1000000, -100)
@@ -24,7 +25,7 @@ contract TestPerpReallocate is TestPerp {
 
         uniswapPool.swap(address(this), false, 10000, TickMath.MAX_SQRT_RATIO - 1, "");
 
-        Perp.reallocate(underlyingAssetStatus, stableAssetStatus, underlyingAssetStatus.sqrtAssetStatus, false);
+        Perp.reallocate(underlyingAssetStatus, underlyingAssetStatus.sqrtAssetStatus, false);
 
         assertEq(underlyingAssetStatus.sqrtAssetStatus.tickLower, -900);
         assertEq(underlyingAssetStatus.sqrtAssetStatus.tickUpper, 1090);

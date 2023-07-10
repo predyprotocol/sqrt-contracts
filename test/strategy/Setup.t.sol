@@ -13,8 +13,8 @@ import "../mocks/MockERC20.sol";
 contract TestBaseStrategy is Test {
     uint256 internal constant RISK_RATIO = 109544511;
 
-    uint256 internal constant STABLE_ASSET_ID = 1;
-    uint256 internal constant WETH_ASSET_ID = 2;
+    uint64 internal constant WETH_ASSET_ID = 1;
+    uint64 internal constant PAIR_GROUP_ID = 1;
 
     Controller internal controller;
     MockERC20 internal usdc;
@@ -24,7 +24,7 @@ contract TestBaseStrategy is Test {
     IUniswapV3Pool internal uniswapPool;
     InterestRateModel.IRMParams internal irmParams;
 
-    DataType.AssetStatus internal underlyingAssetStatus;
+    DataType.PairStatus internal underlyingAssetStatus;
 
     function setUp() public virtual {
         irmParams = InterestRateModel.IRMParams(1e16, 9 * 1e17, 5 * 1e17, 1e18);
@@ -99,12 +99,19 @@ contract TestBaseStrategy is Test {
     }
 
     function initializeController() internal {
-        DataType.AddAssetParams[] memory addAssetParams = new DataType.AddAssetParams[](1);
+        controller.initialize();
 
-        addAssetParams[0] = DataType.AddAssetParams(
-            address(uniswapPool), DataType.AssetRiskParams(RISK_RATIO, 1000, 500), irmParams, irmParams
+        controller.addPairGroup(address(usdc), 4);
+
+        controller.addPair(
+            DataType.AddPairParams(
+                PAIR_GROUP_ID,
+                address(uniswapPool),
+                false,
+                DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
+                irmParams,
+                irmParams
+            )
         );
-
-        controller.initialize(address(usdc), irmParams, addAssetParams);
     }
 }
