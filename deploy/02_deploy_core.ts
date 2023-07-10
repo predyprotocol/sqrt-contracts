@@ -5,19 +5,30 @@ import { networkNameToUSDC, networkNameToArbUniswapPool, networkNameToWethUniswa
 const operatorAddress = '0xb8d843c8E6e0E90eD2eDe80550856b64da92ee30'
 const botAddress = '0xc622fd7adfe9aafa97d9bc6f269c186f07b59f0f'
 
-const USDC_IRM_PARAMS = {
+const LOWEST_IRM_PARAMS = {
+  baseRate: '10000000000000000',
+  kinkRate: '900000000000000000',
+  slope1: '28000000000000000',
+  slope2: '1600000000000000000',
+}
+const LOW_IRM_PARAMS = {
   baseRate: '10000000000000000',
   kinkRate: '900000000000000000',
   slope1: '40000000000000000',
   slope2: '1600000000000000000',
 }
-const WETH_IRM_PARAMS = {
+const MEDIUM_IRM_PARAMS = {
   baseRate: '10000000000000000',
   kinkRate: '850000000000000000',
-  slope1: '40000000000000000',
+  slope1: '47000000000000000',
   slope2: '1600000000000000000',
 }
-
+const HIGH_IRM_PARAMS = {
+  baseRate: '80000000000000000',
+  kinkRate: '800000000000000000',
+  slope1: '150000000000000000',
+  slope2: '2000000000000000000',
+}
 
 const RISK_RATIO_1000 = '104880884'
 const RISK_RATIO_1428 = '106904496'
@@ -27,6 +38,7 @@ const RISK_RATIO_2500 = '111803398'
 const RANGE_SIZE_870 = 840
 const RANGE_SIZE_740 = 720
 const RANGE_SIZE_490 = 480
+const RANGE_SIZE_120 = 120
 const ASSET_RISK_PARAMS_MIDDLE = {
   riskRatio: RISK_RATIO_2000,
   rangeSize: RANGE_SIZE_740,
@@ -80,24 +92,33 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (result.newlyDeployed) {
     const controller = await ethers.getContract('Controller', deployer)
-
+    /*
     if (network.name === 'arbitrum') {
       const bridgeUSDC = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
       const nativeUSDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
       const weth = networkNameToWETH(network.name)
 
-      await controller.addPairGroup(
+      async function addPairGroup(address: string, rounderDecimals: number) {
+        const tx = await controller.addPairGroup(
+          address,
+          rounderDecimals
+        )
+        await tx.wait()
+      }
+
+      await addPairGroup(
         bridgeUSDC,
         4
-      );
-      await controller.addPairGroup(
+      )
+
+      await addPairGroup(
         nativeUSDC,
         4
-      );
-      await controller.addPairGroup(
-        weth,
+      )
+      await addPairGroup(
+        weth!,
         13
-      );
+      )
 
       // ETH-USDC.e 5bps
       await controller.addPair({
@@ -109,8 +130,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           rangeSize: RANGE_SIZE_740,
           rebalanceThreshold: RANGE_SIZE_740 / 2
         },
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOW_IRM_PARAMS,
+        underlyingIrmParams: LOW_IRM_PARAMS
       })
       // ARB-USDC.e 30bps
       await controller.addPair({
@@ -119,11 +140,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         isIsolatedMode: false,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
-          rangeSize: RANGE_SIZE_870,
-          rebalanceThreshold: RANGE_SIZE_870 / 2
+          rangeSize: RANGE_SIZE_740,
+          rebalanceThreshold: RANGE_SIZE_740 / 2
         },
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: MEDIUM_IRM_PARAMS,
+        underlyingIrmParams: MEDIUM_IRM_PARAMS
       })
       // WBTC-USDC.e 30bps
       await controller.addPair({
@@ -135,8 +156,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           rangeSize: RANGE_SIZE_870,
           rebalanceThreshold: RANGE_SIZE_870 / 2
         },
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOW_IRM_PARAMS,
+        underlyingIrmParams: LOW_IRM_PARAMS
       })
       // GYEN-USDC.e 5bps
       await controller.addPair({
@@ -144,12 +165,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         uniswapPool: '0x54b7fe035ac57892d68cba53dbb5156ce79058d6',
         isIsolatedMode: true,
         assetRiskParams: {
-          riskRatio: RISK_RATIO_1428,
-          rangeSize: RANGE_SIZE_490,
-          rebalanceThreshold: RANGE_SIZE_490 / 2
+          riskRatio: RISK_RATIO_1000,
+          rangeSize: 120,
+          rebalanceThreshold: 60
         },
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOWEST_IRM_PARAMS,
+        underlyingIrmParams: LOWEST_IRM_PARAMS
       })
       // LUSD-USDC.e 5bps
       await controller.addPair({
@@ -157,12 +178,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         uniswapPool: '0x1557fdfda61f135baf1a1682eebaa086a0fcab6e',
         isIsolatedMode: true,
         assetRiskParams: {
-          riskRatio: RISK_RATIO_1428,
-          rangeSize: RANGE_SIZE_490,
-          rebalanceThreshold: RANGE_SIZE_490 / 2
+          riskRatio: RISK_RATIO_1000,
+          rangeSize: 60,
+          rebalanceThreshold: 30
         },
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOWEST_IRM_PARAMS,
+        underlyingIrmParams: LOWEST_IRM_PARAMS
+      })
+      // ETH-USDC 5bps 10%
+      await controller.addPair({
+        pairGroupId: 1,
+        uniswapPool: '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443',
+        isIsolatedMode: true,
+        assetRiskParams: {
+          riskRatio: RISK_RATIO_1000,
+          rangeSize: 190,
+          rebalanceThreshold: 70
+        },
+        stableIrmParams: HIGH_IRM_PARAMS,
+        underlyingIrmParams: HIGH_IRM_PARAMS
       })
 
 
@@ -178,8 +212,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           rangeSize: RANGE_SIZE_740,
           rebalanceThreshold: RANGE_SIZE_740 / 2
         },
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOW_IRM_PARAMS,
+        underlyingIrmParams: LOW_IRM_PARAMS
       })
       // ARB-USDC 5bps
       await controller.addPair({
@@ -188,12 +222,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         isIsolatedMode: false,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
-          rangeSize: RANGE_SIZE_870,
-          rebalanceThreshold: RANGE_SIZE_870 / 2
+          rangeSize: RANGE_SIZE_740,
+          rebalanceThreshold: RANGE_SIZE_740 / 2
         },
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: MEDIUM_IRM_PARAMS,
+        underlyingIrmParams: MEDIUM_IRM_PARAMS
       })
+      // LUSD-USDC 5bps
+      await controller.addPair({
+        pairGroupId: 2,
+        uniswapPool: '0x3d18c836be1674e8ecc6906224c3e871a1b3a13f',
+        isIsolatedMode: true,
+        assetRiskParams: {
+          riskRatio: RISK_RATIO_1000,
+          rangeSize: 60,
+          rebalanceThreshold: 30
+        },
+        stableIrmParams: LOWEST_IRM_PARAMS,
+        underlyingIrmParams: LOWEST_IRM_PARAMS
+      })
+
 
       // WETH
 
@@ -207,8 +255,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           rangeSize: RANGE_SIZE_740,
           rebalanceThreshold: RANGE_SIZE_740 / 2
         },
-        stableIrmParams: WETH_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOWEST_IRM_PARAMS,
+        underlyingIrmParams: LOWEST_IRM_PARAMS
       })
 
       // WETH-ARB 5bps
@@ -221,8 +269,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           rangeSize: RANGE_SIZE_740,
           rebalanceThreshold: RANGE_SIZE_740 / 2
         },
-        stableIrmParams: WETH_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOWEST_IRM_PARAMS,
+        underlyingIrmParams: LOWEST_IRM_PARAMS
       })
 
       // WETH-USDT 5bps
@@ -235,8 +283,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           rangeSize: RANGE_SIZE_740,
           rebalanceThreshold: RANGE_SIZE_740 / 2
         },
-        stableIrmParams: WETH_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOWEST_IRM_PARAMS,
+        underlyingIrmParams: LOWEST_IRM_PARAMS
       })
 
       // WETH-LINK 30bps
@@ -249,8 +297,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           rangeSize: RANGE_SIZE_870,
           rebalanceThreshold: RANGE_SIZE_870 / 2
         },
-        stableIrmParams: WETH_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOWEST_IRM_PARAMS,
+        underlyingIrmParams: LOWEST_IRM_PARAMS
       })
 
       await controller.setLiquidator(botAddress)
@@ -266,8 +314,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         uniswapPool: networkNameToWethUniswapPool(network.name),
         isIsolatedMode: false,
         assetRiskParams: ASSET_RISK_PARAMS_MIDDLE,
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOW_IRM_PARAMS,
+        underlyingIrmParams: LOW_IRM_PARAMS
       });
 
       await controller.addPair({
@@ -275,11 +323,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         uniswapPool: networkNameToArbUniswapPool(network.name),
         isIsolatedMode: false,
         assetRiskParams: ASSET_RISK_PARAMS_HIGH,
-        stableIrmParams: USDC_IRM_PARAMS,
-        underlyingIrmParams: WETH_IRM_PARAMS
+        stableIrmParams: LOW_IRM_PARAMS,
+        underlyingIrmParams: LOW_IRM_PARAMS
       });
-
     }
+    */
   }
 }
 
