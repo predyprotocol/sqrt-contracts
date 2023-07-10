@@ -86,14 +86,19 @@ library AddPairLogic {
         emit PairAdded(pairId, _addPairParam.pairGroupId, _addPairParam.uniswapPool);
     }
 
-    function updateAssetRiskParams(DataType.PairStatus storage _pairStatus, DataType.AssetRiskParams memory _riskParams)
-        external
-    {
+    function updateAssetRiskParams(
+        DataType.PairStatus storage _pairStatus,
+        DataType.AssetRiskParams memory _riskParams,
+        bool _changeToIsolatedMode
+    ) external {
         validateRiskParams(_riskParams);
 
         _pairStatus.riskParams.riskRatio = _riskParams.riskRatio;
         _pairStatus.riskParams.rangeSize = _riskParams.rangeSize;
         _pairStatus.riskParams.rebalanceThreshold = _riskParams.rebalanceThreshold;
+        if (_changeToIsolatedMode) {
+            _pairStatus.isIsolatedMode = true;
+        }
 
         emit AssetRiskParamsUpdated(_pairStatus.id, _riskParams);
     }

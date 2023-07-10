@@ -38,17 +38,17 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotUpdateAssetRiskParams_IfAParamIsInvalid() public {
         vm.expectRevert(bytes("C0"));
-        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(1e8, 10, 5));
+        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(1e8, 10, 5), false);
     }
 
     function testCannotUpdateAssetRiskParams_IfCallerIsNotOperator() public {
         vm.prank(user);
         vm.expectRevert(bytes("C1"));
-        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(RISK_RATIO, 10, 5));
+        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(RISK_RATIO, 10, 5), false);
     }
 
     function testUpdateAssetRiskParams() public {
-        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(110000000, 20, 10));
+        controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(110000000, 20, 10), false);
 
         DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
 

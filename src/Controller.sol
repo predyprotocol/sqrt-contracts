@@ -140,12 +140,14 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @dev The function can be called by operator.
      * @param _pairId The id of asset to update params.
      * @param _riskParams Asset risk parameters.
+     * @param _changeToIsolatedMode If true change the pair to isolated mode.
      */
-    function updateAssetRiskParams(uint256 _pairId, DataType.AssetRiskParams memory _riskParams)
-        external
-        onlyOperator
-    {
-        AddPairLogic.updateAssetRiskParams(globalData.pairs[_pairId], _riskParams);
+    function updateAssetRiskParams(
+        uint256 _pairId,
+        DataType.AssetRiskParams memory _riskParams,
+        bool _changeToIsolatedMode
+    ) external onlyOperator {
+        AddPairLogic.updateAssetRiskParams(globalData.pairs[_pairId], _riskParams, _changeToIsolatedMode);
     }
 
     /**
