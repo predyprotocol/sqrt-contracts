@@ -6,8 +6,8 @@ import "./Constants.sol";
 library PremiumCurveModel {
     /**
      * @notice Calculates premium curve
-     * 0 {ur <= 0.4}
-     * 1.8 * (UR-0.4)^2 {0.4 < ur}
+     * 0 {ur <= 0.1}
+     * 1.6 * (UR-0.1)^2 {0.1 < ur}
      * @param _utilization utilization ratio scaled by 1e18
      * @return spread parameter scaled by 1e3
      */
