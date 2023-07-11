@@ -19,7 +19,7 @@ library PositionCalculator {
     struct PositionParams {
         // x^0
         int256 amountStable;
-        // x^0.5
+        // 2x^0.5
         int256 amountSqrt;
         // x^1
         int256 amountUnderlying;
@@ -213,8 +213,8 @@ library PositionCalculator {
 
     /**
      * @notice Calculates position value.
-     * PositionValue = a * x+b * sqrt(x) + c.
-     * where `a` is underlying asset amount, `b` is Sqrt perp amount
+     * PositionValue = a * x+2 * b * sqrt(x) + c.
+     * where `a` is underlying asset amount, `b` is liquidity amount of Uni LP Position
      * and `c` is Stable asset amount
      */
     function calculateValue(uint256 _sqrtPrice, PositionParams memory _positionParams) internal pure returns (int256) {
