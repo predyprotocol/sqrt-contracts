@@ -547,7 +547,7 @@ library Perp {
         if (closeAmount > 0) {
             _assetStatus.borrowedAmount -= uint256(closeAmount);
         } else if (closeAmount < 0) {
-            require(getAvailableSqrtAmount(_assetStatus) >= uint256(-closeAmount), "S0");
+            require(getAvailableSqrtAmount(_assetStatus, true) >= uint256(-closeAmount), "S0");
             _assetStatus.totalAmount -= uint256(-closeAmount);
         }
 
@@ -557,7 +557,7 @@ library Perp {
             _userStatus.sqrtPerp.entryTradeFee0 = _assetStatus.fee0Growth;
             _userStatus.sqrtPerp.entryTradeFee1 = _assetStatus.fee1Growth;
         } else if (openAmount < 0) {
-            require(getAvailableSqrtAmount(_assetStatus) >= uint256(-openAmount), "S0");
+            require(getAvailableSqrtAmount(_assetStatus, false) >= uint256(-openAmount), "S0");
 
             _assetStatus.borrowedAmount += uint256(-openAmount);
 
@@ -570,8 +570,27 @@ library Perp {
         emit SqrtPositionUpdated(_pairId, openAmount, closeAmount);
     }
 
-    function getAvailableSqrtAmount(SqrtPerpAssetStatus memory _assetStatus) internal pure returns (uint256) {
-        return _assetStatus.totalAmount - _assetStatus.borrowedAmount;
+    /**
+     * @notice Gets available sqrt amount
+     * max available amount is 98% of total amount
+     */
+    function getAvailableSqrtAmount(SqrtPerpAssetStatus memory _assetStatus, bool _isWithdraw)
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 buffer = Math.max(_assetStatus.totalAmount / 50, Constants.MIN_LIQUIDITY);
+        uint256 available = _assetStatus.totalAmount - _assetStatus.borrowedAmount;
+
+        if (_isWithdraw && _assetStatus.borrowedAmount == 0) {
+            return available;
+        }
+
+        if (available >= buffer) {
+            return available - buffer;
+        } else {
+            return 0;
+        }
     }
 
     function getUtilizationRatio(SqrtPerpAssetStatus memory _assetStatus) internal pure returns (uint256) {

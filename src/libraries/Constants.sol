@@ -10,6 +10,8 @@ library Constants {
     // Margin option
     int256 internal constant MIN_MARGIN_AMOUNT = 1e6;
 
+    uint256 internal constant MIN_LIQUIDITY = 100;
+
     uint256 internal constant MIN_SQRT_PRICE = 79228162514264337593;
     uint256 internal constant MAX_SQRT_PRICE = 79228162514264337593543950336000000000;
 
