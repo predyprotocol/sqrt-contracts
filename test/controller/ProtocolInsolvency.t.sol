@@ -270,7 +270,7 @@ contract TestControllerTradePerp is TestController {
     }
 
     function testCaseRebalanceFuzz(uint256 _tradeAmount) public {
-        uint256 tradeAmount = bound(_tradeAmount, 1 * 1e6, 1000 * 1e6);
+        uint256 tradeAmount = bound(_tradeAmount, 1 * 1e6, 950 * 1e6);
 
         vm.startPrank(user2);
         controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(0, 1000 * 1e6));
@@ -752,7 +752,7 @@ contract TestControllerTradePerp is TestController {
             assertEq(currentTick, 975);
         }
 
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -1000 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -980 * 1e6));
 
         uniswapPool.swap(address(this), true, -5 * 1e16, TickMath.MIN_SQRT_RATIO + 1, "");
 

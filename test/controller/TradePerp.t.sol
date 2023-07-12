@@ -243,7 +243,7 @@ contract TestControllerTradePerp is TestController {
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 1e6));
         vm.stopPrank();
 
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -95 * 1e4));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
@@ -251,22 +251,15 @@ contract TestControllerTradePerp is TestController {
     }
 
     // close sqrt short with full utilization
-    function testCloseShortSqrt() public {
+    function testCannotOpenShortSqrtWithFullUR() public {
         vm.startPrank(user2);
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 1 * 1e6));
         vm.stopPrank();
 
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, -1 * 1e6));
+        TradePerpLogic.TradeParams memory tradeParams = getTradeParams(0, -1 * 1e6);
 
-        (uint256 ur,,) = reader.getUtilizationRatio(WETH_ASSET_ID);
-
-        assertEq(ur, 1e18);
-
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(0, 1 * 1e6));
-
-        DataType.Vault memory vault = controller.getVault(vaultId);
-
-        assertEq(vault.margin, 9999980000);
+        vm.expectRevert(bytes("S0"));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, tradeParams);
     }
 
     // short to long
@@ -373,16 +366,16 @@ contract TestControllerTradePerp is TestController {
         vm.startPrank(user2);
         controller.tradePerp(lpVaultId, WETH_ASSET_ID, getTradeParams(0, 100 * 1e6));
         vm.stopPrank();
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100 * 1e6, -100 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(100 * 1e6, -98 * 1e6));
 
         manipulateVol(50);
         vm.warp(block.timestamp + 1 hours);
 
-        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 100 * 1e6));
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-100 * 1e6, 98 * 1e6));
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999420000);
+        assertEq(vault.margin, 9999450000);
 
         withdrawAll();
     }
