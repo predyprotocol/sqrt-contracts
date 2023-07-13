@@ -135,7 +135,7 @@ contract TestControllerIsolatedVault is TestController {
         assertEq(isolatedVault.margin, 2 * 1e8);
 
         assertEq(mainVault.openPositions.length, 0);
-        assertEq(mainVault.margin, 9799999996);
+        assertEq(mainVault.margin, 9799990000);
     }
 
     function testCannotAddPosition_IfExistingPositionIsIsolatedPair() public {
@@ -189,7 +189,7 @@ contract TestControllerIsolatedVault is TestController {
         DataType.TradeResult memory tradeResult = closeIsolatedVault(isolatedVaultId, WETH_ASSET_ID, getCloseParams());
         vm.stopPrank();
 
-        assertEq(tradeResult.payoff.perpPayoff, -4501127);
+        assertEq(tradeResult.payoff.perpPayoff, -4510000);
         assertEq(tradeResult.payoff.sqrtPayoff, 0);
         assertEq(tradeResult.minDeposit, 0);
 

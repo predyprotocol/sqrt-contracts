@@ -12,6 +12,9 @@ library Constants {
 
     uint256 internal constant MIN_LIQUIDITY = 100;
 
+    // Reserve factor is 0%
+    uint256 internal constant RESERVE_FACTOR = 0;
+
     uint256 internal constant MIN_SQRT_PRICE = 79228162514264337593;
     uint256 internal constant MAX_SQRT_PRICE = 79228162514264337593543950336000000000;
 

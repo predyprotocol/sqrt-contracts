@@ -136,13 +136,15 @@ library AddPairLogic {
                 _pairGroup.stableTokenAddress,
                 deploySupplyToken(_pairGroup.stableTokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _addPairParam.stableIrmParams
+                _addPairParam.stableIrmParams,
+                0
             ),
             DataType.AssetPoolStatus(
                 _tokenAddress,
                 deploySupplyToken(_tokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _addPairParam.underlyingIrmParams
+                _addPairParam.underlyingIrmParams,
+                0
             ),
             _addPairParam.assetRiskParams,
             Perp.createAssetStatus(

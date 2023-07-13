@@ -62,7 +62,7 @@ contract TestControllerLiquidationCall is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 57598887);
+        assertEq(vault.margin, 57590000);
 
         // check liquidation reward
         assertEq(usdc.balanceOf(liquidator), 1000000);
@@ -132,7 +132,7 @@ contract TestControllerLiquidationCall is TestController {
         uint256 beforeBalance = usdc.balanceOf(address(this));
         controller.liquidationCall(vaultId, DEFAULT_CLOSE_RATIO, DEFAULT_SLIPPAGE_SQRT_TOLERANCE);
         uint256 afterBalance = usdc.balanceOf(address(this));
-        assertEq(beforeBalance - afterBalance, 23532567);
+        assertEq(beforeBalance - afterBalance, 23550000);
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
@@ -206,7 +206,7 @@ contract TestControllerLiquidationCall is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 78798687);
+        assertEq(vault.margin, 78790000);
 
         // check liquidation reward
         assertEq(usdc.balanceOf(liquidator), 500000);
@@ -224,7 +224,7 @@ contract TestControllerLiquidationCall is TestController {
 
         DataType.Vault memory vault = controller.getVault(isolatedVaultId);
 
-        assertEq(vault.margin, 78798687);
+        assertEq(vault.margin, 78790000);
 
         // check liquidation reward
         assertEq(usdc.balanceOf(liquidator), 500000);
@@ -251,7 +251,7 @@ contract TestControllerLiquidationCall is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 66172980);
+        assertEq(vault.margin, 66150000);
 
         // check liquidation reward
         assertEq(usdc.balanceOf(liquidator), 2000000);

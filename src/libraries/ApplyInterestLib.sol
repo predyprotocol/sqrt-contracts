@@ -64,7 +64,8 @@ library ApplyInterestLib {
             * (block.timestamp - _lastUpdateTimestamp) / 365 days;
 
         // Update scaler
-        _poolStatus.tokenStatus.updateScaler(interestRate);
+        _poolStatus.accumulatedProtocolRevenue +=
+            _poolStatus.tokenStatus.updateScaler(interestRate, Constants.RESERVE_FACTOR);
     }
 
     function emitInterestGrowthEvent(

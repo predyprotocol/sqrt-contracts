@@ -157,7 +157,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         uint256 withdrawAmount = strategy.withdraw(strategyId, 1e10, address(this), 0, getStrategyTradeParams());
 
         assertEq(depositMarginAmount, 10000000000);
-        assertEq(withdrawAmount, 10049110000);
+        assertEq(withdrawAmount, 10049100000);
     }
 
     function testDeposit3() public {
@@ -199,11 +199,11 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(finalDeposit2, 8507890000);
         assertEq(estimatedDepositAmount, 8507890000);
 
-        assertEq(withdrawAmount1, 8489120000);
+        assertEq(withdrawAmount1, 8489110000);
         assertEq(withdrawAmount2, 8489110000);
     }
 
-    function testFrontrunneddeposit() public {
+    function testFrontrunnedDeposit() public {
         uint256 finalDeposit1 = strategy.deposit(strategyId, 1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         // This is the frontrunning tx
@@ -224,11 +224,11 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(finalDeposit1, 10000000000);
         assertEq(finalDeposit2, 9994490000);
 
-        assertEq(withdrawAmount1, 10000600000);
-        assertEq(withdrawAmount2, 10000590000);
+        assertEq(withdrawAmount1, 10000590000);
+        assertEq(withdrawAmount2, 10000580000);
     }
 
-    function testFrontrunnedwithdraw() public {
+    function testFrontrunnedWithdraw() public {
         uint256 finalDeposit1 = strategy.deposit(strategyId, 1e10, address(this), 1e10, false, getStrategyTradeParams());
 
         uint256 finalDeposit2 = strategy.deposit(strategyId, 1e10, address(this), 1e10, false, getStrategyTradeParams());
@@ -250,7 +250,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
         assertEq(finalDeposit1, 10000000000);
         assertEq(finalDeposit2, 10000000000);
 
-        assertEq(withdrawAmount1, 10000600000);
+        assertEq(withdrawAmount1, 10000590000);
         assertEq(withdrawAmount2, 9993850000);
     }
 

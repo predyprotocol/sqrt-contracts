@@ -121,7 +121,7 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
     function testUpdatePositionToCheckLastFeeGrowth() public {
         ScaledAsset.addAsset(assetStatus, 1e18);
         ScaledAsset.updatePosition(assetStatus, userStatus1, -1e16, PAIR_ID, IS_STABLE_FLAG);
-        ScaledAsset.updateScaler(assetStatus, 1e16);
+        ScaledAsset.updateScaler(assetStatus, 1e16, 0);
 
         ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16, PAIR_ID, IS_STABLE_FLAG);
 
@@ -137,7 +137,7 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
         ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16, PAIR_ID, IS_STABLE_FLAG);
         ScaledAsset.updatePosition(assetStatus, userStatus1, -1e15, PAIR_ID, IS_STABLE_FLAG);
 
-        ScaledAsset.updateScaler(assetStatus, 1e16);
+        ScaledAsset.updateScaler(assetStatus, 1e16, 0);
 
         assertEq(userStatus2.lastFeeGrowth, 0);
 

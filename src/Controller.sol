@@ -45,6 +45,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     event OperatorUpdated(address operator);
     event LiquidatorUpdated(address liquidator);
+    event ProtocolRevenueWithdrawn(uint256 pairId, bool isStable, uint256 amount);
 
     modifier onlyOperator() {
         require(operator == msg.sender, "C1");
@@ -163,6 +164,33 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         InterestRateModel.IRMParams memory _underlyingIrmParams
     ) external onlyOperator {
         AddPairLogic.updateIRMParams(globalData.pairs[_pairId], _stableIrmParams, _underlyingIrmParams);
+    }
+
+    /**
+     * @notice Withdraws accumulated protocol revenue.
+     * @dev Only operator can call this function.
+     * @param _pairId The id of pair
+     * @param _isStable Is stable or underlying
+     * @param _amount amount of stable token to withdraw
+     */
+    function withdrawProtocolRevenue(uint256 _pairId, bool _isStable, uint256 _amount) external onlyOperator {
+        require(_amount > 0, "AZ");
+
+        DataType.AssetPoolStatus storage pool;
+
+        if (_isStable) {
+            pool = globalData.pairs[_pairId].stablePool;
+        } else {
+            pool = globalData.pairs[_pairId].underlyingPool;
+        }
+
+        pool.accumulatedProtocolRevenue -= _amount;
+
+        if (_amount > 0) {
+            TransferHelper.safeTransfer(pool.token, msg.sender, _amount);
+        }
+
+        emit ProtocolRevenueWithdrawn(_pairId, _isStable, _amount);
     }
 
     /**

@@ -61,6 +61,7 @@ library DataType {
         address supplyTokenAddress;
         ScaledAsset.TokenStatus tokenStatus;
         InterestRateModel.IRMParams irmParams;
+        uint256 accumulatedProtocolRevenue;
     }
 
     struct Vault {
