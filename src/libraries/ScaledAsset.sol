@@ -180,7 +180,7 @@ library ScaledAsset {
             return;
         }
 
-        // supply interest rate is InterestRate * Utilization * (1 - ReserveFactor)
+        // supply interest rate is InterestRate * Utilization
         uint256 supplyInterestRate = FixedPointMathLib.mulDivDown(
             _interestRate, getTotalDebtValue(tokenState), getTotalCollateralValue(tokenState)
         );
