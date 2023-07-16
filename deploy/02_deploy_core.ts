@@ -4,7 +4,7 @@ import { networkNameToUSDC, networkNameToArbUniswapPool, networkNameToWethUniswa
 
 const operatorAddress = '0xb8d843c8E6e0E90eD2eDe80550856b64da92ee30'
 const botAddress = '0xc622fd7adfe9aafa97d9bc6f269c186f07b59f0f'
-
+const feeRatio = 8
 const LOWEST_IRM_PARAMS = {
   baseRate: '10000000000000000',
   kinkRate: '900000000000000000',
@@ -123,9 +123,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // ETH-USDC.e 5bps
       await controller.addPair({
         pairGroupId: 1,
+        feeRecipient: operatorAddress,
         uniswapPool: '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443',
         isIsolatedMode: false,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -137,9 +138,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // ARB-USDC.e 30bps
       await controller.addPair({
         pairGroupId: 1,
+        feeRecipient: operatorAddress,
         uniswapPool: '0x81c48d31365e6b526f6bbadc5c9aafd822134863',
         isIsolatedMode: false,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -151,9 +153,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // WBTC-USDC.e 30bps
       await controller.addPair({
         pairGroupId: 1,
+        feeRecipient: operatorAddress,
         uniswapPool: '0xa62ad78825e3a55a77823f00fe0050f567c1e4ee',
         isIsolatedMode: true,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_870,
@@ -165,9 +168,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // GYEN-USDC.e 5bps
       await controller.addPair({
         pairGroupId: 1,
+        feeRecipient: operatorAddress,
         uniswapPool: '0x54b7fe035ac57892d68cba53dbb5156ce79058d6',
         isIsolatedMode: true,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 120,
@@ -179,9 +183,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // LUSD-USDC.e 5bps
       await controller.addPair({
         pairGroupId: 1,
+        feeRecipient: operatorAddress,
         uniswapPool: '0x1557fdfda61f135baf1a1682eebaa086a0fcab6e',
         isIsolatedMode: true,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 60,
@@ -193,9 +198,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // ETH-USDC 5bps 10%
       await controller.addPair({
         pairGroupId: 1,
+        feeRecipient: operatorAddress,
         uniswapPool: '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443',
         isIsolatedMode: true,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 190,
@@ -211,9 +217,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // ETH-USDC 5bps
       await controller.addPair({
         pairGroupId: 2,
+        feeRecipient: operatorAddress,
         uniswapPool: '0xc6962004f452be9203591991d15f6b388e09e8d0',
         isIsolatedMode: false,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -225,9 +232,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // ARB-USDC 5bps
       await controller.addPair({
         pairGroupId: 2,
+        feeRecipient: operatorAddress,
         uniswapPool: '0xb0f6ca40411360c03d41c5ffc5f179b8403cdcf8',
         isIsolatedMode: false,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -239,9 +247,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // LUSD-USDC 5bps
       await controller.addPair({
         pairGroupId: 2,
+        feeRecipient: operatorAddress,
         uniswapPool: '0x3d18c836be1674e8ecc6906224c3e871a1b3a13f',
         isIsolatedMode: true,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 60,
@@ -257,9 +266,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // WBTC-WETH 5bps
       await controller.addPair({
         pairGroupId: 3,
+        feeRecipient: operatorAddress,
         uniswapPool: '0x2f5e87c9312fa29aed5c179e456625d79015299c',
         isIsolatedMode: false,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -272,9 +282,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // WETH-ARB 5bps
       await controller.addPair({
         pairGroupId: 3,
+        feeRecipient: operatorAddress,
         uniswapPool: '0xc6f780497a95e246eb9449f5e4770916dcd6396a',
         isIsolatedMode: false,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -287,9 +298,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // WETH-USDT 5bps
       await controller.addPair({
         pairGroupId: 3,
+        feeRecipient: operatorAddress,
         uniswapPool: '0x641c00a822e8b671738d32a431a4fb6074e5c79d',
         isIsolatedMode: false,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -302,9 +314,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       // WETH-LINK 30bps
       await controller.addPair({
         pairGroupId: 3,
+        feeRecipient: operatorAddress,
         uniswapPool: '0x468b88941e7cc0b88c1869d68ab6b570bcef62ff',
         isIsolatedMode: true,
-        0,
+        feeRatio: feeRatio,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_870,
