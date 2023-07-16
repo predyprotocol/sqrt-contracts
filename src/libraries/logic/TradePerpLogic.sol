@@ -89,7 +89,12 @@ library TradePerpLogic {
 
         _vault.margin += tradeResult.fee + tradeResult.payoff.perpPayoff + tradeResult.payoff.sqrtPayoff;
 
-        checkPrice(pairStatus.sqrtAssetStatus.uniswapPool, _tradeParams.lowerSqrtPrice, _tradeParams.upperSqrtPrice);
+        checkPrice(
+            pairStatus.sqrtAssetStatus.uniswapPool,
+            _tradeParams.lowerSqrtPrice,
+            _tradeParams.upperSqrtPrice,
+            pairStatus.isMarginZero
+        );
 
         if (_tradeParams.enableCallback) {
             // Calls callback function
@@ -121,8 +126,11 @@ library TradePerpLogic {
         require(block.timestamp <= _deadline, "T1");
     }
 
-    function checkPrice(address _uniswapPool, uint256 _lowerSqrtPrice, uint256 _upperSqrtPrice) internal view {
-        uint256 sqrtPrice = UniHelper.getSqrtPrice(_uniswapPool);
+    function checkPrice(address _uniswapPool, uint256 _lowerSqrtPrice, uint256 _upperSqrtPrice, bool _isMarginZero)
+        internal
+        view
+    {
+        uint256 sqrtPrice = UniHelper.convertSqrtPrice(UniHelper.getSqrtPrice(_uniswapPool), _isMarginZero);
 
         require(_lowerSqrtPrice <= sqrtPrice && sqrtPrice <= _upperSqrtPrice, "T2");
     }
