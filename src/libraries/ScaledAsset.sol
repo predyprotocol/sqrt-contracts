@@ -175,7 +175,7 @@ library ScaledAsset {
     }
 
     // update scaler
-    function updateScaler(TokenStatus storage tokenState, uint256 _interestRate, uint256 _reserveFactor)
+    function updateScaler(TokenStatus storage tokenState, uint256 _interestRate, uint8 _reserveFactor)
         internal
         returns (uint256)
     {
@@ -186,7 +186,7 @@ library ScaledAsset {
         uint256 protocolFee = FixedPointMathLib.mulDivDown(
             FixedPointMathLib.mulDivDown(_interestRate, getTotalDebtValue(tokenState), Constants.ONE),
             _reserveFactor,
-            Constants.ONE
+            100
         );
 
         // supply interest rate is InterestRate * Utilization * (1 - ReserveFactor)
@@ -194,8 +194,8 @@ library ScaledAsset {
             FixedPointMathLib.mulDivDown(
                 _interestRate, getTotalDebtValue(tokenState), getTotalCollateralValue(tokenState)
             ),
-            Constants.ONE - _reserveFactor,
-            Constants.ONE
+            100 - _reserveFactor,
+            100
         );
 
         tokenState.debtGrowth += _interestRate;

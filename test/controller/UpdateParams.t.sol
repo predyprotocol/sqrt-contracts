@@ -24,6 +24,7 @@ contract TestControllerUpdateParams is TestController {
             PAIR_GROUP_ID,
             address(uniswapPool),
             false,
+            0,
             DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
             irmParams,
             irmParams

@@ -48,6 +48,7 @@ contract TestControllerIsolatedVault is TestController {
                 PAIR_GROUP_ID,
                 address(uniswapPool),
                 true,
+                0,
                 DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
                 irmParams,
                 irmParams

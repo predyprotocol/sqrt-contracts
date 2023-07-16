@@ -33,6 +33,7 @@ library DataType {
         uint256 pairGroupId;
         address uniswapPool;
         bool isIsolatedMode;
+        uint8 fee;
         DataType.AssetRiskParams assetRiskParams;
         InterestRateModel.IRMParams stableIrmParams;
         InterestRateModel.IRMParams underlyingIrmParams;
@@ -53,6 +54,7 @@ library DataType {
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
         bool isIsolatedMode;
+        uint8 fee;
         uint256 lastUpdateTimestamp;
     }
 

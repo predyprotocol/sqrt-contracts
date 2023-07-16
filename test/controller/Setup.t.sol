@@ -132,6 +132,7 @@ contract TestController is Test {
                 PAIR_GROUP_ID,
                 address(uniswapPool),
                 false,
+                0,
                 DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
                 irmParams,
                 irmParams
@@ -143,6 +144,7 @@ contract TestController is Test {
                 PAIR_GROUP_ID,
                 address(wbtcUniswapPool),
                 false,
+                0,
                 DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
                 irmParams,
                 irmParams
@@ -154,6 +156,7 @@ contract TestController is Test {
                 PAIR_GROUP_ID + 1,
                 address(uniswapPool),
                 false,
+                0,
                 DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
                 irmParams,
                 irmParams

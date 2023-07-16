@@ -31,10 +31,11 @@ library ApplyInterestLib {
 
         Perp.updateFeeAndPremiumGrowth(_pairId, pairStatus.sqrtAssetStatus);
 
-        uint256 interestRateStable = applyInterestForPoolStatus(pairStatus.stablePool, pairStatus.lastUpdateTimestamp);
+        uint256 interestRateStable =
+            applyInterestForPoolStatus(pairStatus.stablePool, pairStatus.lastUpdateTimestamp, pairStatus.fee);
 
         uint256 interestRateUnderlying =
-            applyInterestForPoolStatus(pairStatus.underlyingPool, pairStatus.lastUpdateTimestamp);
+            applyInterestForPoolStatus(pairStatus.underlyingPool, pairStatus.lastUpdateTimestamp, pairStatus.fee);
 
         // Update last update timestamp
         pairStatus.lastUpdateTimestamp = block.timestamp;
@@ -44,10 +45,11 @@ library ApplyInterestLib {
         }
     }
 
-    function applyInterestForPoolStatus(DataType.AssetPoolStatus storage _poolStatus, uint256 _lastUpdateTimestamp)
-        internal
-        returns (uint256 interestRate)
-    {
+    function applyInterestForPoolStatus(
+        DataType.AssetPoolStatus storage _poolStatus,
+        uint256 _lastUpdateTimestamp,
+        uint8 _fee
+    ) internal returns (uint256 interestRate) {
         if (block.timestamp <= _lastUpdateTimestamp) {
             return 0;
         }
@@ -64,8 +66,7 @@ library ApplyInterestLib {
             * (block.timestamp - _lastUpdateTimestamp) / 365 days;
 
         // Update scaler
-        _poolStatus.accumulatedProtocolRevenue +=
-            _poolStatus.tokenStatus.updateScaler(interestRate, Constants.RESERVE_FACTOR);
+        _poolStatus.accumulatedProtocolRevenue += _poolStatus.tokenStatus.updateScaler(interestRate, _fee);
     }
 
     function emitInterestGrowthEvent(

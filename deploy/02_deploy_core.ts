@@ -125,6 +125,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 1,
         uniswapPool: '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443',
         isIsolatedMode: false,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -138,6 +139,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 1,
         uniswapPool: '0x81c48d31365e6b526f6bbadc5c9aafd822134863',
         isIsolatedMode: false,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -151,6 +153,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 1,
         uniswapPool: '0xa62ad78825e3a55a77823f00fe0050f567c1e4ee',
         isIsolatedMode: true,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_870,
@@ -164,6 +167,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 1,
         uniswapPool: '0x54b7fe035ac57892d68cba53dbb5156ce79058d6',
         isIsolatedMode: true,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 120,
@@ -177,6 +181,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 1,
         uniswapPool: '0x1557fdfda61f135baf1a1682eebaa086a0fcab6e',
         isIsolatedMode: true,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 60,
@@ -190,6 +195,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 1,
         uniswapPool: '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443',
         isIsolatedMode: true,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 190,
@@ -207,6 +213,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 2,
         uniswapPool: '0xc6962004f452be9203591991d15f6b388e09e8d0',
         isIsolatedMode: false,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -220,6 +227,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 2,
         uniswapPool: '0xb0f6ca40411360c03d41c5ffc5f179b8403cdcf8',
         isIsolatedMode: false,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -233,6 +241,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 2,
         uniswapPool: '0x3d18c836be1674e8ecc6906224c3e871a1b3a13f',
         isIsolatedMode: true,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_1000,
           rangeSize: 60,
@@ -250,6 +259,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 3,
         uniswapPool: '0x2f5e87c9312fa29aed5c179e456625d79015299c',
         isIsolatedMode: false,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -264,6 +274,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 3,
         uniswapPool: '0xc6f780497a95e246eb9449f5e4770916dcd6396a',
         isIsolatedMode: false,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -278,6 +289,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 3,
         uniswapPool: '0x641c00a822e8b671738d32a431a4fb6074e5c79d',
         isIsolatedMode: false,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_740,
@@ -292,6 +304,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         pairGroupId: 3,
         uniswapPool: '0x468b88941e7cc0b88c1869d68ab6b570bcef62ff',
         isIsolatedMode: true,
+        0,
         assetRiskParams: {
           riskRatio: RISK_RATIO_2000,
           rangeSize: RANGE_SIZE_870,

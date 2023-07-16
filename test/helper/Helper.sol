@@ -40,6 +40,7 @@ contract Helper {
             Perp.createAssetStatus(_uniswapPool, -100, 100),
             false,
             _isIsolatedMode,
+            0,
             block.timestamp
         );
     }

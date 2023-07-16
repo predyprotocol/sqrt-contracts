@@ -126,6 +126,7 @@ library AddPairLogic {
         DataType.AddPairParams memory _addPairParam
     ) internal {
         validateRiskParams(_addPairParam.assetRiskParams);
+        validateFee(_addPairParam.fee);
 
         require(_pairs[_pairId].id == 0);
 
@@ -154,6 +155,7 @@ library AddPairLogic {
             ),
             _isMarginZero,
             _addPairParam.isIsolatedMode,
+            _addPairParam.fee,
             block.timestamp
         );
 
@@ -172,6 +174,10 @@ library AddPairLogic {
             erc20.decimals()
             )
         );
+    }
+
+    function validateFee(uint8 _fee) internal pure {
+        require(0 <= _fee && _fee <= 20, "FEE");
     }
 
     function validateRiskParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {
