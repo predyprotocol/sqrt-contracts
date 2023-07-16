@@ -22,6 +22,7 @@ contract TestControllerUpdateParams is TestController {
     function testAddPair() public {
         DataType.AddPairParams memory addPairParams = DataType.AddPairParams(
             PAIR_GROUP_ID,
+            address(0),
             address(uniswapPool),
             false,
             0,

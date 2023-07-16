@@ -14,6 +14,7 @@ library AddPairLogic {
     event IRMParamsUpdated(
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
     );
+    event FeeRatioUpdated(uint256 pairId, uint8 feeRatio);
 
     /**
      * @notice Initialized global data counts
@@ -86,6 +87,14 @@ library AddPairLogic {
         emit PairAdded(pairId, _addPairParam.pairGroupId, _addPairParam.uniswapPool);
     }
 
+    function updateFeeRatio(DataType.PairStatus storage _pairStatus, uint8 _feeRatio) external {
+        validateFeeRatio(_feeRatio);
+
+        _pairStatus.feeRatio = _feeRatio;
+
+        emit FeeRatioUpdated(_pairStatus.id, _feeRatio);
+    }
+
     function updateAssetRiskParams(
         DataType.PairStatus storage _pairStatus,
         DataType.AssetRiskParams memory _riskParams,
@@ -126,18 +135,20 @@ library AddPairLogic {
         DataType.AddPairParams memory _addPairParam
     ) internal {
         validateRiskParams(_addPairParam.assetRiskParams);
-        validateFee(_addPairParam.fee);
+        validateFeeRatio(_addPairParam.fee);
 
         require(_pairs[_pairId].id == 0);
 
         _pairs[_pairId] = DataType.PairStatus(
             _pairId,
             _pairGroup.id,
+            _addPairParam.feeRecipient,
             DataType.AssetPoolStatus(
                 _pairGroup.stableTokenAddress,
                 deploySupplyToken(_pairGroup.stableTokenAddress),
                 ScaledAsset.createTokenStatus(),
                 _addPairParam.stableIrmParams,
+                0,
                 0
             ),
             DataType.AssetPoolStatus(
@@ -145,6 +156,7 @@ library AddPairLogic {
                 deploySupplyToken(_tokenAddress),
                 ScaledAsset.createTokenStatus(),
                 _addPairParam.underlyingIrmParams,
+                0,
                 0
             ),
             _addPairParam.assetRiskParams,
@@ -176,7 +188,7 @@ library AddPairLogic {
         );
     }
 
-    function validateFee(uint8 _fee) internal pure {
+    function validateFeeRatio(uint8 _fee) internal pure {
         require(0 <= _fee && _fee <= 20, "FEE");
     }
 

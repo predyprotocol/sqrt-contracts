@@ -130,6 +130,7 @@ contract TestController is Test {
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
+                address(0),
                 address(uniswapPool),
                 false,
                 0,
@@ -142,6 +143,7 @@ contract TestController is Test {
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
+                address(0),
                 address(wbtcUniswapPool),
                 false,
                 0,
@@ -154,6 +156,7 @@ contract TestController is Test {
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID + 1,
+                address(0),
                 address(uniswapPool),
                 false,
                 0,

@@ -32,10 +32,10 @@ library ApplyInterestLib {
         Perp.updateFeeAndPremiumGrowth(_pairId, pairStatus.sqrtAssetStatus);
 
         uint256 interestRateStable =
-            applyInterestForPoolStatus(pairStatus.stablePool, pairStatus.lastUpdateTimestamp, pairStatus.fee);
+            applyInterestForPoolStatus(pairStatus.stablePool, pairStatus.lastUpdateTimestamp, pairStatus.feeRatio);
 
         uint256 interestRateUnderlying =
-            applyInterestForPoolStatus(pairStatus.underlyingPool, pairStatus.lastUpdateTimestamp, pairStatus.fee);
+            applyInterestForPoolStatus(pairStatus.underlyingPool, pairStatus.lastUpdateTimestamp, pairStatus.feeRatio);
 
         // Update last update timestamp
         pairStatus.lastUpdateTimestamp = block.timestamp;
@@ -66,7 +66,10 @@ library ApplyInterestLib {
             * (block.timestamp - _lastUpdateTimestamp) / 365 days;
 
         // Update scaler
-        _poolStatus.accumulatedProtocolRevenue += _poolStatus.tokenStatus.updateScaler(interestRate, _fee);
+        uint256 totalProtocolFee = _poolStatus.tokenStatus.updateScaler(interestRate, _fee);
+
+        _poolStatus.accumulatedProtocolRevenue += totalProtocolFee / 2;
+        _poolStatus.accumulatedCreatorRevenue += totalProtocolFee / 2;
     }
 
     function emitInterestGrowthEvent(

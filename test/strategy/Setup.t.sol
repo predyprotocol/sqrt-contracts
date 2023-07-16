@@ -106,6 +106,7 @@ contract TestBaseStrategy is Test {
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
+                address(0),
                 address(uniswapPool),
                 false,
                 0,

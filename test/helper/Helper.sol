@@ -22,11 +22,13 @@ contract Helper {
         assetStatus = DataType.PairStatus(
             _pairId,
             1,
+            address(0),
             DataType.AssetPoolStatus(
                 address(0),
                 address(0),
                 ScaledAsset.createTokenStatus(),
                 InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
+                0,
                 0
             ),
             DataType.AssetPoolStatus(
@@ -34,6 +36,7 @@ contract Helper {
                 address(0),
                 ScaledAsset.createTokenStatus(),
                 InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
+                0,
                 0
             ),
             DataType.AssetRiskParams(RISK_RATIO, 1000, 500),

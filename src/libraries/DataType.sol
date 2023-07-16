@@ -31,6 +31,7 @@ library DataType {
 
     struct AddPairParams {
         uint256 pairGroupId;
+        address feeRecipient;
         address uniswapPool;
         bool isIsolatedMode;
         uint8 fee;
@@ -48,13 +49,14 @@ library DataType {
     struct PairStatus {
         uint256 id;
         uint256 pairGroupId;
+        address feeRecipient;
         AssetPoolStatus stablePool;
         AssetPoolStatus underlyingPool;
         AssetRiskParams riskParams;
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
         bool isIsolatedMode;
-        uint8 fee;
+        uint8 feeRatio;
         uint256 lastUpdateTimestamp;
     }
 
@@ -64,6 +66,7 @@ library DataType {
         ScaledAsset.TokenStatus tokenStatus;
         InterestRateModel.IRMParams irmParams;
         uint256 accumulatedProtocolRevenue;
+        uint256 accumulatedCreatorRevenue;
     }
 
     struct Vault {

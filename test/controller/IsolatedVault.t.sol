@@ -46,6 +46,7 @@ contract TestControllerIsolatedVault is TestController {
         isolatedPairId = controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
+                address(0),
                 address(uniswapPool),
                 true,
                 0,

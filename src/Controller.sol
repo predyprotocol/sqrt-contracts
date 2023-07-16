@@ -33,6 +33,7 @@ import "./interfaces/IController.sol";
  * C3: token0 or token1 must be registered stable token
  * C4: invalid interest rate model parameters
  * C5: invalid vault creation
+ * C6: caller must be fee recipient
  */
 contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback, IController {
     DataType.GlobalData public globalData;
@@ -46,6 +47,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     event OperatorUpdated(address operator);
     event LiquidatorUpdated(address liquidator);
     event ProtocolRevenueWithdrawn(uint256 pairId, bool isStable, uint256 amount);
+    event CreatorRevenueWithdrawn(uint256 pairId, bool isStable, uint256 amount);
 
     modifier onlyOperator() {
         require(operator == msg.sender, "C1");
@@ -166,6 +168,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         AddPairLogic.updateIRMParams(globalData.pairs[_pairId], _stableIrmParams, _underlyingIrmParams);
     }
 
+    function updateFeeRatio(uint256 _pairId, uint8 _feeRatio) external onlyOperator {
+        AddPairLogic.updateFeeRatio(globalData.pairs[_pairId], _feeRatio);
+    }
+
     /**
      * @notice Withdraws accumulated protocol revenue.
      * @dev Only operator can call this function.
@@ -176,13 +182,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     function withdrawProtocolRevenue(uint256 _pairId, bool _isStable, uint256 _amount) external onlyOperator {
         require(_amount > 0, "AZ");
 
-        DataType.AssetPoolStatus storage pool;
-
-        if (_isStable) {
-            pool = globalData.pairs[_pairId].stablePool;
-        } else {
-            pool = globalData.pairs[_pairId].underlyingPool;
-        }
+        DataType.AssetPoolStatus storage pool = getAssetStatusPool(_pairId, _isStable);
 
         pool.accumulatedProtocolRevenue -= _amount;
 
@@ -191,6 +191,21 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
 
         emit ProtocolRevenueWithdrawn(_pairId, _isStable, _amount);
+    }
+
+    function withdrawCreatorRevenue(uint256 _pairId, bool _isStable, uint256 _amount) external {
+        require(_amount > 0, "AZ");
+        require(globalData.pairs[_pairId].feeRecipient == msg.sender, "C6");
+
+        DataType.AssetPoolStatus storage pool = getAssetStatusPool(_pairId, _isStable);
+
+        pool.accumulatedCreatorRevenue -= _amount;
+
+        if (_amount > 0) {
+            TransferHelper.safeTransfer(pool.token, msg.sender, _amount);
+        }
+
+        emit CreatorRevenueWithdrawn(_pairId, _isStable, _amount);
     }
 
     /**
@@ -414,5 +429,15 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
 
         return (getVaultStatus(ownVaults.mainVaultId), vaultStatusResults);
+    }
+
+    // Private Functions
+
+    function getAssetStatusPool(uint256 _pairId, bool _isStable) internal returns (DataType.AssetPoolStatus storage) {
+        if (_isStable) {
+            return globalData.pairs[_pairId].stablePool;
+        } else {
+            return globalData.pairs[_pairId].underlyingPool;
+        }
     }
 }
