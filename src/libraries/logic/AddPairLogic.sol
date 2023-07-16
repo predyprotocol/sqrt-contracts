@@ -14,7 +14,7 @@ library AddPairLogic {
     event IRMParamsUpdated(
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
     );
-    event FeeRatioUpdated(uint256 pairId, uint8 feeRatio);
+    event FeeRatioUpdated(uint256 pairId, address feeRecipient, uint8 feeRatio);
 
     /**
      * @notice Initialized global data counts
@@ -87,12 +87,13 @@ library AddPairLogic {
         emit PairAdded(pairId, _addPairParam.pairGroupId, _addPairParam.uniswapPool);
     }
 
-    function updateFeeRatio(DataType.PairStatus storage _pairStatus, uint8 _feeRatio) external {
+    function updateFeeRatio(DataType.PairStatus storage _pairStatus, address _feeRecipient, uint8 _feeRatio) external {
         validateFeeRatio(_feeRatio);
 
+        _pairStatus.feeRecipient = _feeRecipient;
         _pairStatus.feeRatio = _feeRatio;
 
-        emit FeeRatioUpdated(_pairStatus.id, _feeRatio);
+        emit FeeRatioUpdated(_pairStatus.id, _feeRecipient, _feeRatio);
     }
 
     function updateAssetRiskParams(

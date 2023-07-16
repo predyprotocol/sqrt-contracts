@@ -86,4 +86,17 @@ contract TestControllerUpdateParams is TestController {
         assertEq(asset.underlyingPool.irmParams.slope1, 10 * 1e17);
         assertEq(asset.underlyingPool.irmParams.slope2, 2 * 1e18);
     }
+
+    function testCannotUpdateFeeRatio_IfAmountIsTooLarge() public {
+        vm.expectRevert(bytes("FEE"));
+        controller.updateFeeRatio(WETH_ASSET_ID, address(0), 21);
+    }
+
+    function testUpdateFeeRatio() public {
+        controller.updateFeeRatio(WETH_ASSET_ID, address(0), 12);
+
+        DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
+
+        assertEq(asset.feeRatio, 12);
+    }
 }

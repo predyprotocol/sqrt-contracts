@@ -168,8 +168,15 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         AddPairLogic.updateIRMParams(globalData.pairs[_pairId], _stableIrmParams, _underlyingIrmParams);
     }
 
-    function updateFeeRatio(uint256 _pairId, uint8 _feeRatio) external onlyOperator {
-        AddPairLogic.updateFeeRatio(globalData.pairs[_pairId], _feeRatio);
+    /**
+     * @notice Updates fee recipient and fee ratio
+     * @dev The function can be called by operator.
+     * @param _pairId The id of pair to update params.
+     * @param _feeRecipient The address of fee recipient
+     * @param _feeRatio The ratio of fee
+     */
+    function updateFeeRatio(uint256 _pairId, address _feeRecipient, uint8 _feeRatio) external onlyOperator {
+        AddPairLogic.updateFeeRatio(globalData.pairs[_pairId], _feeRecipient, _feeRatio);
     }
 
     /**
@@ -433,7 +440,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     // Private Functions
 
-    function getAssetStatusPool(uint256 _pairId, bool _isStable) internal returns (DataType.AssetPoolStatus storage) {
+    function getAssetStatusPool(uint256 _pairId, bool _isStable)
+        internal
+        view
+        returns (DataType.AssetPoolStatus storage)
+    {
         if (_isStable) {
             return globalData.pairs[_pairId].stablePool;
         } else {

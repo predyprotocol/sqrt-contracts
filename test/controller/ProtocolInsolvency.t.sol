@@ -99,38 +99,30 @@ contract TestControllerTradePerp is TestController {
         console.log(usdc.balanceOf(address(controller)));
         console.log(weth.balanceOf(address(controller)));
 
-        {
-            DataType.PairStatus memory pairAfter = controller.getAsset(WETH_ASSET_ID);
-
-            if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(WETH_ASSET_ID, true, pairAfter.stablePool.accumulatedProtocolRevenue);
-            }
-            if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(
-                    WETH_ASSET_ID, false, pairAfter.underlyingPool.accumulatedProtocolRevenue
-                );
-            }
-
-            assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
-        }
-
-        {
-            DataType.PairStatus memory pairAfter = controller.getAsset(WBTC_ASSET_ID);
-
-            if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(WBTC_ASSET_ID, true, pairAfter.stablePool.accumulatedProtocolRevenue);
-            }
-            if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(
-                    WBTC_ASSET_ID, false, pairAfter.underlyingPool.accumulatedProtocolRevenue
-                );
-            }
-
-            assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
-        }
+        withdrawProtocolRevenue(WETH_ASSET_ID);
+        withdrawProtocolRevenue(WBTC_ASSET_ID);
 
         assertLt(usdc.balanceOf(address(controller)), 100);
         assertLt(weth.balanceOf(address(controller)), 100);
+    }
+
+    function withdrawProtocolRevenue(uint256 _pairId) internal {
+        DataType.PairStatus memory pairAfter = controller.getAsset(_pairId);
+
+        if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
+            controller.withdrawProtocolRevenue(_pairId, true, pairAfter.stablePool.accumulatedProtocolRevenue);
+        }
+        if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
+            controller.withdrawProtocolRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedProtocolRevenue);
+        }
+        if (pairAfter.stablePool.accumulatedCreatorRevenue > 0) {
+            controller.withdrawCreatorRevenue(_pairId, true, pairAfter.stablePool.accumulatedCreatorRevenue);
+        }
+        if (pairAfter.underlyingPool.accumulatedCreatorRevenue > 0) {
+            controller.withdrawCreatorRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedCreatorRevenue);
+        }
+
+        assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
     }
 
     function getTradeParams(int256 _tradeAmount, int256 _tradeSqrtAmount)
@@ -774,6 +766,20 @@ contract TestControllerTradePerp is TestController {
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-4 * 1e6, 21 * 1e6));
 
         controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(2 * 1e6, -11 * 1e6));
+
+        withdrawAll();
+    }
+
+    function testProtocolFee() public {
+        controller.updateFeeRatio(WETH_ASSET_ID, address(this), 10);
+
+        vm.startPrank(user2);
+        controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(-500 * 1e6, 500 * 1e6));
+        vm.stopPrank();
+
+        uniswapPool.swap(address(this), false, 2 * 1e16, TickMath.MAX_SQRT_RATIO - 1, "");
+
+        vm.warp(block.timestamp + 1 days);
 
         withdrawAll();
     }
