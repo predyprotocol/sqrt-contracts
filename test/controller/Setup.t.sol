@@ -88,7 +88,7 @@ contract TestController is Test {
 
         // Set up Controller
         controller = new Controller();
-        initializeController();
+        initializeController(factory);
 
         usdc.approve(address(controller), type(uint256).max);
         weth.approve(address(controller), type(uint256).max);
@@ -121,8 +121,8 @@ contract TestController is Test {
         }
     }
 
-    function initializeController() internal {
-        controller.initialize();
+    function initializeController(address _factory) internal {
+        controller.initialize(_factory);
 
         controller.addPairGroup(address(usdc), 4);
         controller.addPairGroup(address(usdc), 4);
@@ -252,5 +252,22 @@ contract TestController is Test {
         (, int24 currentTick,,,,,) = uniswapPool.slot0();
 
         assertEq(currentTick, _tick);
+    }
+
+    function withdrawProtocolRevenue(uint256 _pairId) internal {
+        DataType.PairStatus memory pairAfter = controller.getAsset(_pairId);
+
+        if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
+            controller.withdrawProtocolRevenue(_pairId, true, pairAfter.stablePool.accumulatedProtocolRevenue);
+        }
+        if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
+            controller.withdrawProtocolRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedProtocolRevenue);
+        }
+        if (pairAfter.stablePool.accumulatedCreatorRevenue > 0) {
+            controller.withdrawCreatorRevenue(_pairId, true, pairAfter.stablePool.accumulatedCreatorRevenue);
+        }
+        if (pairAfter.underlyingPool.accumulatedCreatorRevenue > 0) {
+            controller.withdrawCreatorRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedCreatorRevenue);
+        }
     }
 }

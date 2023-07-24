@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "../DataType.sol";
 import "../PairGroupLib.sol";
 import "../../tokenization/SupplyToken.sol";
@@ -14,16 +15,17 @@ library AddPairLogic {
     event IRMParamsUpdated(
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
     );
-    event FeeRatioUpdated(uint256 pairId, address feeRecipient, uint8 feeRatio);
+    event FeeRatioUpdated(uint256 pairId, uint8 feeRatio);
 
     /**
      * @notice Initialized global data counts
      * @param _global Global data
      */
-    function initializeGlobalData(DataType.GlobalData storage _global) external {
+    function initializeGlobalData(DataType.GlobalData storage _global, address _uniswapFactory) external {
         _global.pairGroupsCount = 1;
         _global.pairsCount = 1;
         _global.vaultCount = 1;
+        _global.uniswapFactory = _uniswapFactory;
     }
 
     /**
@@ -67,6 +69,15 @@ library AddPairLogic {
 
         address stableTokenAddress = pairGroup.stableTokenAddress;
 
+        IUniswapV3Factory uniswapV3Factory = IUniswapV3Factory(_global.uniswapFactory);
+
+        // check the uniswap pool is registered in UniswapV3Factory
+        require(
+            uniswapV3Factory.getPool(uniswapPool.token0(), uniswapPool.token1(), uniswapPool.fee())
+                == _addPairParam.uniswapPool,
+            "RIF"
+        );
+
         require(uniswapPool.token0() == stableTokenAddress || uniswapPool.token1() == stableTokenAddress, "C3");
 
         bool isMarginZero = uniswapPool.token0() == stableTokenAddress;
@@ -87,13 +98,12 @@ library AddPairLogic {
         emit PairAdded(pairId, _addPairParam.pairGroupId, _addPairParam.uniswapPool);
     }
 
-    function updateFeeRatio(DataType.PairStatus storage _pairStatus, address _feeRecipient, uint8 _feeRatio) external {
+    function updateFeeRatio(DataType.PairStatus storage _pairStatus, uint8 _feeRatio) external {
         validateFeeRatio(_feeRatio);
 
-        _pairStatus.feeRecipient = _feeRecipient;
         _pairStatus.feeRatio = _feeRatio;
 
-        emit FeeRatioUpdated(_pairStatus.id, _feeRecipient, _feeRatio);
+        emit FeeRatioUpdated(_pairStatus.id, _feeRatio);
     }
 
     function updateAssetRiskParams(

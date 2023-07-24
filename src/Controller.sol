@@ -54,6 +54,11 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         _;
     }
 
+    modifier onlyPoolOwner(uint256 _pairId) {
+        require(globalData.pairs[_pairId].feeRecipient == msg.sender, "C6");
+        _;
+    }
+
     constructor() {}
 
     /**
@@ -84,10 +89,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
     }
 
-    function initialize() public initializer {
+    function initialize(address _uniswapFactory) public initializer {
         operator = msg.sender;
 
-        AddPairLogic.initializeGlobalData(globalData);
+        AddPairLogic.initializeGlobalData(globalData, _uniswapFactory);
     }
 
     function vaultCount() external view returns (uint256) {
@@ -120,6 +125,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Adds an pair group
+     * @dev Only operator can call this function.
      * @param _stableAssetAddress The address of stable asset
      * @param _marginRounder Margin rounder
      * @return pairGroupId Pair group id
@@ -135,12 +141,13 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @return pairId The id of pair
      */
     function addPair(DataType.AddPairParams memory _addPairParam) external onlyOperator returns (uint256) {
+        require(msg.sender == operator || _addPairParam.isIsolatedMode);
         return AddPairLogic.addPair(globalData, allowedUniswapPools, _addPairParam);
     }
 
     /**
      * @notice Updates asset risk parameters.
-     * @dev The function can be called by operator.
+     * @dev The function can be called by pool owner.
      * @param _pairId The id of asset to update params.
      * @param _riskParams Asset risk parameters.
      * @param _changeToIsolatedMode If true change the pair to isolated mode.
@@ -149,13 +156,13 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         uint256 _pairId,
         DataType.AssetRiskParams memory _riskParams,
         bool _changeToIsolatedMode
-    ) external onlyOperator {
+    ) external onlyPoolOwner(_pairId) {
         AddPairLogic.updateAssetRiskParams(globalData.pairs[_pairId], _riskParams, _changeToIsolatedMode);
     }
 
     /**
      * @notice Updates interest rate model parameters.
-     * @dev The function can be called by operator.
+     * @dev The function can be called by pool owner.
      * @param _pairId The id of pair to update params.
      * @param _stableIrmParams Asset interest-rate parameters for stable.
      * @param _underlyingIrmParams Asset interest-rate parameters for underlying.
@@ -164,19 +171,18 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         uint256 _pairId,
         InterestRateModel.IRMParams memory _stableIrmParams,
         InterestRateModel.IRMParams memory _underlyingIrmParams
-    ) external onlyOperator {
+    ) external onlyPoolOwner(_pairId) {
         AddPairLogic.updateIRMParams(globalData.pairs[_pairId], _stableIrmParams, _underlyingIrmParams);
     }
 
     /**
-     * @notice Updates fee recipient and fee ratio
-     * @dev The function can be called by operator.
+     * @notice Updates fee ratio
+     * @dev The function can be called by pool owner.
      * @param _pairId The id of pair to update params.
-     * @param _feeRecipient The address of fee recipient
      * @param _feeRatio The ratio of fee
      */
-    function updateFeeRatio(uint256 _pairId, address _feeRecipient, uint8 _feeRatio) external onlyOperator {
-        AddPairLogic.updateFeeRatio(globalData.pairs[_pairId], _feeRecipient, _feeRatio);
+    function updateFeeRatio(uint256 _pairId, uint8 _feeRatio) external onlyPoolOwner(_pairId) {
+        AddPairLogic.updateFeeRatio(globalData.pairs[_pairId], _feeRatio);
     }
 
     /**
@@ -200,9 +206,15 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         emit ProtocolRevenueWithdrawn(_pairId, _isStable, _amount);
     }
 
-    function withdrawCreatorRevenue(uint256 _pairId, bool _isStable, uint256 _amount) external {
+    /**
+     * @notice Withdraws accumulated creator revenue.
+     * @dev Only pool owner can call this function.
+     * @param _pairId The id of pair
+     * @param _isStable Is stable or underlying
+     * @param _amount amount of stable token to withdraw
+     */
+    function withdrawCreatorRevenue(uint256 _pairId, bool _isStable, uint256 _amount) external onlyPoolOwner(_pairId) {
         require(_amount > 0, "AZ");
-        require(globalData.pairs[_pairId].feeRecipient == msg.sender, "C6");
 
         DataType.AssetPoolStatus storage pool = getAssetStatusPool(_pairId, _isStable);
 

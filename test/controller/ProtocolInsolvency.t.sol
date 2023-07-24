@@ -102,25 +102,15 @@ contract TestControllerTradePerp is TestController {
         withdrawProtocolRevenue(WETH_ASSET_ID);
         withdrawProtocolRevenue(WBTC_ASSET_ID);
 
+        checkRebalanceVariables(WETH_ASSET_ID);
+        checkRebalanceVariables(WBTC_ASSET_ID);
+
         assertLt(usdc.balanceOf(address(controller)), 100);
         assertLt(weth.balanceOf(address(controller)), 100);
     }
 
-    function withdrawProtocolRevenue(uint256 _pairId) internal {
+    function checkRebalanceVariables(uint256 _pairId) internal {
         DataType.PairStatus memory pairAfter = controller.getAsset(_pairId);
-
-        if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
-            controller.withdrawProtocolRevenue(_pairId, true, pairAfter.stablePool.accumulatedProtocolRevenue);
-        }
-        if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
-            controller.withdrawProtocolRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedProtocolRevenue);
-        }
-        if (pairAfter.stablePool.accumulatedCreatorRevenue > 0) {
-            controller.withdrawCreatorRevenue(_pairId, true, pairAfter.stablePool.accumulatedCreatorRevenue);
-        }
-        if (pairAfter.underlyingPool.accumulatedCreatorRevenue > 0) {
-            controller.withdrawCreatorRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedCreatorRevenue);
-        }
 
         assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
     }
@@ -771,7 +761,7 @@ contract TestControllerTradePerp is TestController {
     }
 
     function testProtocolFee() public {
-        controller.updateFeeRatio(WETH_ASSET_ID, address(this), 10);
+        controller.updateFeeRatio(WETH_ASSET_ID, 10);
 
         vm.startPrank(user2);
         controller.tradePerp(vaultId2, WETH_ASSET_ID, getTradeParams(-500 * 1e6, 500 * 1e6));

@@ -16,7 +16,7 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotInitializeTwice() public {
         vm.expectRevert(bytes("Initializable: contract is already initialized"));
-        controller.initialize();
+        controller.initialize(0x1F98431c8aD98523631AE4a59f267346ea31F984);
     }
 
     function testAddPair() public {
@@ -45,7 +45,7 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotUpdateAssetRiskParams_IfCallerIsNotOperator() public {
         vm.prank(user);
-        vm.expectRevert(bytes("C1"));
+        vm.expectRevert(bytes("C6"));
         controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(RISK_RATIO, 10, 5), false);
     }
 
@@ -61,7 +61,7 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotUpdateIRMParams_IfCallerIsNotOperator() public {
         vm.prank(user);
-        vm.expectRevert(bytes("C1"));
+        vm.expectRevert(bytes("C6"));
         controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams);
     }
 
@@ -89,11 +89,11 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotUpdateFeeRatio_IfAmountIsTooLarge() public {
         vm.expectRevert(bytes("FEE"));
-        controller.updateFeeRatio(WETH_ASSET_ID, address(0), 21);
+        controller.updateFeeRatio(WETH_ASSET_ID, 21);
     }
 
     function testUpdateFeeRatio() public {
-        controller.updateFeeRatio(WETH_ASSET_ID, address(0), 12);
+        controller.updateFeeRatio(WETH_ASSET_ID, 12);
 
         DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
 

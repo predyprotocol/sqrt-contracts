@@ -10,6 +10,7 @@ library DataType {
         uint256 pairGroupsCount;
         uint256 pairsCount;
         uint256 vaultCount;
+        address uniswapFactory;
         mapping(uint256 => DataType.PairGroup) pairGroups;
         mapping(uint256 => DataType.PairStatus) pairs;
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) rebalanceFeeGrowthCache;
