@@ -55,7 +55,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
     }
 
     modifier onlyPoolOwner(uint256 _pairId) {
-        require(globalData.pairs[_pairId].feeRecipient == msg.sender, "C6");
+        require(globalData.pairs[_pairId].poolOwner == msg.sender, "C6");
         _;
     }
 
@@ -183,6 +183,16 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      */
     function updateFeeRatio(uint256 _pairId, uint8 _feeRatio) external onlyPoolOwner(_pairId) {
         AddPairLogic.updateFeeRatio(globalData.pairs[_pairId], _feeRatio);
+    }
+
+    /**
+     * @notice Updates pool owner
+     * @dev The function can be called by pool owner.
+     * @param _pairId The id of pair to update params.
+     * @param _poolOwner The address of pool owner
+     */
+    function updatePoolOwner(uint256 _pairId, address _poolOwner) external onlyPoolOwner(_pairId) {
+        AddPairLogic.updatePoolOwner(globalData.pairs[_pairId], _poolOwner);
     }
 
     /**

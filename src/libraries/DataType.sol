@@ -32,7 +32,7 @@ library DataType {
 
     struct AddPairParams {
         uint256 pairGroupId;
-        address feeRecipient;
+        address poolOwner;
         address uniswapPool;
         bool isIsolatedMode;
         uint8 fee;
@@ -50,7 +50,7 @@ library DataType {
     struct PairStatus {
         uint256 id;
         uint256 pairGroupId;
-        address feeRecipient;
+        address poolOwner;
         AssetPoolStatus stablePool;
         AssetPoolStatus underlyingPool;
         AssetRiskParams riskParams;

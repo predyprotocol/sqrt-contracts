@@ -16,6 +16,7 @@ library AddPairLogic {
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
     );
     event FeeRatioUpdated(uint256 pairId, uint8 feeRatio);
+    event PoolOwnerUpdated(uint256 pairId, address poolOwner);
 
     /**
      * @notice Initialized global data counts
@@ -106,6 +107,14 @@ library AddPairLogic {
         emit FeeRatioUpdated(_pairStatus.id, _feeRatio);
     }
 
+    function updatePoolOwner(DataType.PairStatus storage _pairStatus, address _poolOwner) external {
+        validatePoolOwner(_poolOwner);
+
+        _pairStatus.poolOwner = _poolOwner;
+
+        emit PoolOwnerUpdated(_pairStatus.id, _poolOwner);
+    }
+
     function updateAssetRiskParams(
         DataType.PairStatus storage _pairStatus,
         DataType.AssetRiskParams memory _riskParams,
@@ -153,7 +162,7 @@ library AddPairLogic {
         _pairs[_pairId] = DataType.PairStatus(
             _pairId,
             _pairGroup.id,
-            _addPairParam.feeRecipient,
+            _addPairParam.poolOwner,
             DataType.AssetPoolStatus(
                 _pairGroup.stableTokenAddress,
                 deploySupplyToken(_pairGroup.stableTokenAddress),
@@ -201,6 +210,10 @@ library AddPairLogic {
 
     function validateFeeRatio(uint8 _fee) internal pure {
         require(0 <= _fee && _fee <= 20, "FEE");
+    }
+
+    function validatePoolOwner(address _poolOwner) internal pure {
+        require(_poolOwner != address(0), "ADDZ");
     }
 
     function validateRiskParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {
