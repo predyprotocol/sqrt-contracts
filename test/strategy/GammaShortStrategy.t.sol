@@ -128,7 +128,7 @@ contract TestGammaShortStrategy is TestBaseStrategy {
 
         vm.startPrank(user);
 
-        strategy.deposit(strategyId, amount, user, 1e12, false, getStrategyTradeParams());
+        strategy.deposit(strategyId, amount, user, 1e12 + 1e10, false, getStrategyTradeParams());
 
         strategy.withdraw(strategyId, amount, user, 0, getStrategyTradeParams());
 
