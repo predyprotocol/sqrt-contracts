@@ -362,6 +362,12 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         emit WithdrawnFromStrategy(_strategyId, _recepient, _withdrawStrategyAmount, finalWithdrawAmount);
     }
 
+    function burnStrategyToken(uint256 _strategyId, uint256 _amount) external onlyOperator {
+        Strategy memory strategy = strategies[_strategyId];
+
+        return SupplyToken(strategy.strategyToken).burn(msg.sender, _amount);
+    }
+
     /**
      * @notice Gets price of strategy token by USDC.
      * @dev The function should not be called on chain.
@@ -500,10 +506,9 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         Perp.UserStatus memory userStatus = vault.openPositions[0];
 
-        entryUpdate = payoff.perpEntryUpdate + payoff.sqrtEntryUpdate + payoff.sqrtRebalanceEntryUpdateStable;
+        entryUpdate = payoff.perpEntryUpdate + payoff.sqrtEntryUpdate;
 
-        entryValue =
-            userStatus.perp.entryValue + userStatus.sqrtPerp.entryValue + userStatus.sqrtPerp.stableRebalanceEntryValue;
+        entryValue = userStatus.perp.entryValue + userStatus.sqrtPerp.entryValue;
 
         totalMargin = uint256(vault.margin);
     }
