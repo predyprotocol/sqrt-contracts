@@ -200,20 +200,21 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @dev Only operator can call this function.
      * @param _pairId The id of pair
      * @param _isStable Is stable or underlying
-     * @param _amount amount of stable token to withdraw
      */
-    function withdrawProtocolRevenue(uint256 _pairId, bool _isStable, uint256 _amount) external onlyOperator {
-        require(_amount > 0, "AZ");
-
+    function withdrawProtocolRevenue(uint256 _pairId, bool _isStable) external onlyOperator {
         DataType.AssetPoolStatus storage pool = getAssetStatusPool(_pairId, _isStable);
 
-        pool.accumulatedProtocolRevenue -= _amount;
+        uint256 amount = pool.accumulatedProtocolRevenue;
 
-        if (_amount > 0) {
-            TransferHelper.safeTransfer(pool.token, msg.sender, _amount);
+        require(amount > 0, "AZ");
+
+        pool.accumulatedProtocolRevenue = 0;
+
+        if (amount > 0) {
+            TransferHelper.safeTransfer(pool.token, msg.sender, amount);
         }
 
-        emit ProtocolRevenueWithdrawn(_pairId, _isStable, _amount);
+        emit ProtocolRevenueWithdrawn(_pairId, _isStable, amount);
     }
 
     /**
@@ -221,20 +222,21 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @dev Only pool owner can call this function.
      * @param _pairId The id of pair
      * @param _isStable Is stable or underlying
-     * @param _amount amount of stable token to withdraw
      */
-    function withdrawCreatorRevenue(uint256 _pairId, bool _isStable, uint256 _amount) external onlyPoolOwner(_pairId) {
-        require(_amount > 0, "AZ");
-
+    function withdrawCreatorRevenue(uint256 _pairId, bool _isStable) external onlyPoolOwner(_pairId) {
         DataType.AssetPoolStatus storage pool = getAssetStatusPool(_pairId, _isStable);
 
-        pool.accumulatedCreatorRevenue -= _amount;
+        uint256 amount = pool.accumulatedCreatorRevenue;
 
-        if (_amount > 0) {
-            TransferHelper.safeTransfer(pool.token, msg.sender, _amount);
+        require(amount > 0, "AZ");
+
+        pool.accumulatedCreatorRevenue = 0;
+
+        if (amount > 0) {
+            TransferHelper.safeTransfer(pool.token, msg.sender, amount);
         }
 
-        emit CreatorRevenueWithdrawn(_pairId, _isStable, _amount);
+        emit CreatorRevenueWithdrawn(_pairId, _isStable, amount);
     }
 
     /**

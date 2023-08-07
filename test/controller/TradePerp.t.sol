@@ -87,12 +87,10 @@ contract TestControllerTradePerp is TestController {
             DataType.PairStatus memory pairAfter = controller.getAsset(WETH_ASSET_ID);
 
             if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(WETH_ASSET_ID, true, pairAfter.stablePool.accumulatedProtocolRevenue);
+                controller.withdrawProtocolRevenue(WETH_ASSET_ID, true);
             }
             if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
-                controller.withdrawProtocolRevenue(
-                    WETH_ASSET_ID, false, pairAfter.underlyingPool.accumulatedProtocolRevenue
-                );
+                controller.withdrawProtocolRevenue(WETH_ASSET_ID, false);
             }
 
             assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
@@ -749,5 +747,37 @@ contract TestControllerTradePerp is TestController {
         DataType.Vault memory vault = controller.getVault(vaultId);
 
         assertEq(vault.margin, 9999980000);
+    }
+
+    // Trades with creator fee
+    function testTradeWithCreatorFee() public {
+        // Updates creator fee
+        controller.updateFeeRatio(WETH_ASSET_ID, 10);
+
+        // Trades
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1e10, 1e10));
+
+        vm.warp(block.timestamp + 2 weeks);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e10, -1e10));
+
+        // Withdraw creator fee and protocol fee
+        DataType.PairStatus memory pair = controller.getAsset(WETH_ASSET_ID);
+
+        uint256 usdcBalanceBefore = usdc.balanceOf(address(this));
+        uint256 wethBalanceBefore = weth.balanceOf(address(this));
+
+        controller.withdrawCreatorRevenue(WETH_ASSET_ID, true);
+        controller.withdrawCreatorRevenue(WETH_ASSET_ID, false);
+        controller.withdrawProtocolRevenue(WETH_ASSET_ID, true);
+        controller.withdrawProtocolRevenue(WETH_ASSET_ID, false);
+
+        uint256 usdcBalanceAfter = usdc.balanceOf(address(this));
+        uint256 wethBalanceAfter = weth.balanceOf(address(this));
+
+        assertEq(usdcBalanceAfter - usdcBalanceBefore, 77639);
+        assertEq(wethBalanceAfter - wethBalanceBefore, 64316);
+
+        withdrawAll();
     }
 }

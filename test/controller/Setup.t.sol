@@ -258,16 +258,16 @@ contract TestController is Test {
         DataType.PairStatus memory pairAfter = controller.getAsset(_pairId);
 
         if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
-            controller.withdrawProtocolRevenue(_pairId, true, pairAfter.stablePool.accumulatedProtocolRevenue);
+            controller.withdrawProtocolRevenue(_pairId, true);
         }
         if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
-            controller.withdrawProtocolRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedProtocolRevenue);
+            controller.withdrawProtocolRevenue(_pairId, false);
         }
         if (pairAfter.stablePool.accumulatedCreatorRevenue > 0) {
-            controller.withdrawCreatorRevenue(_pairId, true, pairAfter.stablePool.accumulatedCreatorRevenue);
+            controller.withdrawCreatorRevenue(_pairId, true);
         }
         if (pairAfter.underlyingPool.accumulatedCreatorRevenue > 0) {
-            controller.withdrawCreatorRevenue(_pairId, false, pairAfter.underlyingPool.accumulatedCreatorRevenue);
+            controller.withdrawCreatorRevenue(_pairId, false);
         }
     }
 }
