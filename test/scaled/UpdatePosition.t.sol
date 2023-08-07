@@ -146,4 +146,21 @@ contract ScaledAssetUpdatePositionTest is TestScaledAsset {
         assertEq(interestFee, 10000000000000);
         assertEq(userStatus2.lastFeeGrowth, 1000000000000000);
     }
+
+    // update scaler with reserve factor
+    function testUpdateScalerWithReserveFactor() public {
+        ScaledAsset.updatePosition(assetStatus, userStatus2, 1e16, PAIR_ID, IS_STABLE_FLAG);
+        ScaledAsset.updatePosition(assetStatus, userStatus1, -1e15, PAIR_ID, IS_STABLE_FLAG);
+
+        uint256 reserve = ScaledAsset.updateScaler(assetStatus, 1e16, 10);
+
+        assertEq(reserve, 1000000000000);
+
+        assertEq(userStatus2.lastFeeGrowth, 0);
+
+        int256 interestFee = ScaledAsset.settleUserFee(assetStatus, userStatus2);
+
+        assertEq(interestFee, 9000000000000);
+        assertEq(userStatus2.lastFeeGrowth, 900000000000000);
+    }
 }
