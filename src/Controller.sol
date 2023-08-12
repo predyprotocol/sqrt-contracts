@@ -141,7 +141,6 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
      * @return pairId The id of pair
      */
     function addPair(DataType.AddPairParams memory _addPairParam) external onlyOperator returns (uint256) {
-        require(msg.sender == operator || _addPairParam.isIsolatedMode);
         return AddPairLogic.addPair(globalData, allowedUniswapPools, _addPairParam);
     }
 
