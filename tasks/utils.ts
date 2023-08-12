@@ -64,6 +64,15 @@ export const networkNameToArbUniswapPool = (name: string) => {
   }
 }
 
+export const networkNameToUniswapFactory = (name: string) => {
+  switch (name) {
+    case 'base-mainnet':
+      return '0x33128a8fC17869897dcE68Ed026d694621f6FDfD'
+    default:
+      return '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+  }
+}
+
 export const getUSDC = async (ethers: any, deployer: string, networkName: string) => {
   const usdcAddress = networkNameToUSDC(networkName)
   if (usdcAddress === undefined) {
