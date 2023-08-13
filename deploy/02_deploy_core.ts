@@ -335,8 +335,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       */
     } else if (network.name === 'base-mainnet') {
       const feeRatio = 0
-      const bridgeUSDC = '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA'
-      const weth = '0x4200000000000000000000000000000000000006'
+      const usdBaseCoin = '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA'
 
       async function addPairGroup(address: string, rounderDecimals: number) {
         const tx = await controller.addPairGroup(
@@ -347,11 +346,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
 
       await addPairGroup(
-        bridgeUSDC,
+        usdBaseCoin,
         4
       )
 
-      // ETH-USDC 5bps
+      // ETH-USDbC 5bps
       await controller.addPair({
         pairGroupId: 1,
         feeRecipient: operatorAddress,
