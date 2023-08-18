@@ -249,7 +249,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         validateStrategyId(_strategyId);
         Strategy storage strategy = strategies[_strategyId];
 
-        uint256 sqrtPrice = controller.getSqrtPrice(strategy.pairId);
+        uint256 sqrtPrice = controller.getSqrtIndexPrice(strategy.pairId);
 
         require(isTimeHedge(strategy.hedgeStatus) || isPriceHedge(strategy.hedgeStatus, sqrtPrice), "TG");
 
@@ -399,7 +399,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         Strategy memory strategy = strategies[_strategyId];
 
-        return isPriceHedge(strategy.hedgeStatus, controller.getSqrtPrice(strategy.pairId));
+        return isPriceHedge(strategy.hedgeStatus, controller.getSqrtIndexPrice(strategy.pairId));
     }
 
     function checkTimeHedge(uint256 _strategyId) external view returns (bool) {
