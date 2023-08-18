@@ -249,7 +249,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
         validateStrategyId(_strategyId);
         Strategy storage strategy = strategies[_strategyId];
 
-        uint256 sqrtPrice = controller.getSqrtPrice(strategy.pairId);
+        uint256 sqrtPrice = controller.getSqrtIndexPrice(strategy.pairId);
 
         require(isTimeHedge(strategy.hedgeStatus) || isPriceHedge(strategy.hedgeStatus, sqrtPrice), "TG");
 
