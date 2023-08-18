@@ -22,6 +22,8 @@ interface IController {
 
     function getSqrtPrice(uint256 _pairId) external view returns (uint160);
 
+    function getSqrtIndexPrice(uint256 _pairId) external view returns (uint160);
+
     function getVault(uint256 _id) external view returns (DataType.Vault memory);
 
     function getPairGroup(uint256 _id) external view returns (DataType.PairGroup memory);

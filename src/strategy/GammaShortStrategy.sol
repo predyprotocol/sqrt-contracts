@@ -399,7 +399,7 @@ contract GammaShortStrategy is BaseStrategy, ReentrancyGuard, IStrategyVault, IP
 
         Strategy memory strategy = strategies[_strategyId];
 
-        return isPriceHedge(strategy.hedgeStatus, controller.getSqrtPrice(strategy.pairId));
+        return isPriceHedge(strategy.hedgeStatus, controller.getSqrtIndexPrice(strategy.pairId));
     }
 
     function checkTimeHedge(uint256 _strategyId) external view returns (bool) {
