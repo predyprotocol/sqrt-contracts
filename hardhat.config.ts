@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv'
 import fs from 'fs'
 
 import { HardhatUserConfig, task } from 'hardhat/config'
-import '@nomiclabs/hardhat-etherscan'
+import "@nomicfoundation/hardhat-verify"
 import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
@@ -125,7 +125,7 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.BASE_ETHERSCAN_KEY,
     customChains: [
       {
         network: "goerliArbitrum",
