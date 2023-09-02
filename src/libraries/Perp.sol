@@ -624,6 +624,9 @@ library Perp {
 
         if (_assetStatus.lastRebalanceTotalSquartAmount == 0) {
             // last user who settles rebalance position
+            _userStatus.rebalanceLastTickLower = _assetStatus.tickLower;
+            _userStatus.rebalanceLastTickUpper = _assetStatus.tickUpper;
+
             return (
                 _assetStatus.rebalancePositionUnderlying.positionAmount,
                 _assetStatus.rebalancePositionStable.positionAmount
