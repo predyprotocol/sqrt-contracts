@@ -62,7 +62,7 @@ contract TestReader is TestController {
         vm.stopPrank();
 
         assertEq(vaultStatus.vaultValue, 9999303495);
-        assertEq(vaultStatus.minDeposit, 7998021);
+        assertEq(vaultStatus.minDeposit, 3199461);
     }
 
     function testGetDelta1() public {
