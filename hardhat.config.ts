@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv'
 import fs from 'fs'
 
 import { HardhatUserConfig, task } from 'hardhat/config'
-import '@nomiclabs/hardhat-etherscan'
+import '@nomicfoundation/hardhat-verify'
 import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
