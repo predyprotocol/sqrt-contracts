@@ -134,7 +134,7 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         (int256 minDeposit, int256 vaultValue, bool hasPosition) =
             PositionCalculator.calculateMinDeposit(assets, rebalanceFeeGrowthCache, vault);
 
-        assertEq(minDeposit, 20089021);
+        assertEq(minDeposit, 19489021);
         assertEq(vaultValue, 0);
         assertTrue(hasPosition);
 
@@ -150,7 +150,7 @@ contract CalculateMinDepositTest is TestPositionCalculator {
         (int256 minDeposit, int256 vaultValue, bool hasPosition) =
             PositionCalculator.calculateMinDeposit(assets, rebalanceFeeGrowthCache, vault);
 
-        assertEq(minDeposit, 20089021);
+        assertEq(minDeposit, 19489021);
         assertEq(vaultValue, 22000000);
         assertTrue(hasPosition);
 
