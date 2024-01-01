@@ -128,14 +128,14 @@ contract SwapLibTest is Test {
         uint160 sqrtPrice = 4 * 2 ** 96;
         uint256 stableAmount = SwapLib.calculateStableAmount(sqrtPrice, 1e18, true);
 
-        assertEq(stableAmount, 16000000000000000000);
+        assertEq(stableAmount, 62500000000000000);
     }
 
     function testCalculateStableAmountMarginOne() public {
         uint160 sqrtPrice = 4 * 2 ** 96;
         uint256 stableAmount = SwapLib.calculateStableAmount(sqrtPrice, 1e18, false);
 
-        assertEq(stableAmount, 62500000000000000);
+        assertEq(stableAmount, 16000000000000000000);
     }
 
     function testCalculateStableAmountMarginZeroFuzz(uint256 _underlyingAmount) public {

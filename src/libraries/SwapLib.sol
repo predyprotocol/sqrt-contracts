@@ -78,13 +78,13 @@ library SwapLib {
         returns (uint256)
     {
         if (_isMarginZero) {
-            uint256 stableAmount = (_currentSqrtPrice * _underlyingAmount) >> Constants.RESOLUTION;
-
-            return (stableAmount * _currentSqrtPrice) >> Constants.RESOLUTION;
-        } else {
             uint256 stableAmount = (_underlyingAmount * Constants.Q96) / _currentSqrtPrice;
 
             return stableAmount * Constants.Q96 / _currentSqrtPrice;
+        } else {
+            uint256 stableAmount = (_currentSqrtPrice * _underlyingAmount) >> Constants.RESOLUTION;
+
+            return (stableAmount * _currentSqrtPrice) >> Constants.RESOLUTION;
         }
     }
 
