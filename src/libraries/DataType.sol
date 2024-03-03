@@ -10,6 +10,7 @@ library DataType {
         uint256 pairGroupsCount;
         uint256 pairsCount;
         uint256 vaultCount;
+        address uniswapFactory;
         mapping(uint256 => DataType.PairGroup) pairGroups;
         mapping(uint256 => DataType.PairStatus) pairs;
         mapping(uint256 => DataType.RebalanceFeeGrowthCache) rebalanceFeeGrowthCache;
@@ -31,8 +32,10 @@ library DataType {
 
     struct AddPairParams {
         uint256 pairGroupId;
+        address poolOwner;
         address uniswapPool;
         bool isIsolatedMode;
+        uint8 fee;
         DataType.AssetRiskParams assetRiskParams;
         InterestRateModel.IRMParams stableIrmParams;
         InterestRateModel.IRMParams underlyingIrmParams;
@@ -47,12 +50,14 @@ library DataType {
     struct PairStatus {
         uint256 id;
         uint256 pairGroupId;
+        address poolOwner;
         AssetPoolStatus stablePool;
         AssetPoolStatus underlyingPool;
         AssetRiskParams riskParams;
         Perp.SqrtPerpAssetStatus sqrtAssetStatus;
         bool isMarginZero;
         bool isIsolatedMode;
+        uint8 feeRatio;
         uint256 lastUpdateTimestamp;
     }
 
@@ -61,6 +66,8 @@ library DataType {
         address supplyTokenAddress;
         ScaledAsset.TokenStatus tokenStatus;
         InterestRateModel.IRMParams irmParams;
+        uint256 accumulatedProtocolRevenue;
+        uint256 accumulatedCreatorRevenue;
     }
 
     struct Vault {

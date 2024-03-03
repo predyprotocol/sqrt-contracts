@@ -3,17 +3,16 @@ const path = require('path')
 
 const files = [
     'Controller_Implementation.json',
-    'AddAssetLogic.json',
-    'ApplyInterestLogic.json',
+    'AddPairLogic.json',
+    'ReallocationLogic.json',
     'LiquidationLogic.json',
     'SupplyLogic.json',
     'TradePerpLogic.json',
     'TradeLogic.json',
-    'UpdateMarginLogic.json',
-    'IsolatedVaultLogic.json'
+    'UpdateMarginLogic.json'
 ]
 
-const deployments = files.map(filename => fs.readFileSync(path.join(__dirname, '../deployments/goerliArbitrum', filename)).toString()).map(str => JSON.parse(str))
+const deployments = files.map(filename => fs.readFileSync(path.join(__dirname, '../deployments/arbitrum', filename)).toString()).map(str => JSON.parse(str))
 
 const abis = deployments.map(deployment => deployment.abi).reduce((abis, abi) => abis.concat(abi), [])
 

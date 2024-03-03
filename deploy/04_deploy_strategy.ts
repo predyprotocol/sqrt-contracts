@@ -42,6 +42,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     if (network.name === 'arbitrum') {
       await GammaShortStrategy.setHedger(botAddress)
+    } else if (network.name === 'base-mainnet') {
+      await GammaShortStrategy.setHedger(botAddress)
     }
   }
 

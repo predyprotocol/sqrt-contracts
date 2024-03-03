@@ -33,6 +33,7 @@ import "./interfaces/IController.sol";
  * C3: token0 or token1 must be registered stable token
  * C4: invalid interest rate model parameters
  * C5: invalid vault creation
+ * C6: caller must be fee recipient
  */
 contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback, IController {
     DataType.GlobalData public globalData;
@@ -45,9 +46,16 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     event OperatorUpdated(address operator);
     event LiquidatorUpdated(address liquidator);
+    event ProtocolRevenueWithdrawn(uint256 pairId, bool isStable, uint256 amount);
+    event CreatorRevenueWithdrawn(uint256 pairId, bool isStable, uint256 amount);
 
     modifier onlyOperator() {
         require(operator == msg.sender, "C1");
+        _;
+    }
+
+    modifier onlyPoolOwner(uint256 _pairId) {
+        require(globalData.pairs[_pairId].poolOwner == msg.sender, "C6");
         _;
     }
 
@@ -81,10 +89,10 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
     }
 
-    function initialize() public initializer {
+    function initialize(address _uniswapFactory) public initializer {
         operator = msg.sender;
 
-        AddPairLogic.initializeGlobalData(globalData);
+        AddPairLogic.initializeGlobalData(globalData, _uniswapFactory);
     }
 
     function vaultCount() external view returns (uint256) {
@@ -117,6 +125,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Adds an pair group
+     * @dev Only operator can call this function.
      * @param _stableAssetAddress The address of stable asset
      * @param _marginRounder Margin rounder
      * @return pairGroupId Pair group id
@@ -137,7 +146,7 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
 
     /**
      * @notice Updates asset risk parameters.
-     * @dev The function can be called by operator.
+     * @dev The function can be called by pool owner.
      * @param _pairId The id of asset to update params.
      * @param _riskParams Asset risk parameters.
      * @param _changeToIsolatedMode If true change the pair to isolated mode.
@@ -146,13 +155,13 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         uint256 _pairId,
         DataType.AssetRiskParams memory _riskParams,
         bool _changeToIsolatedMode
-    ) external onlyOperator {
+    ) external onlyPoolOwner(_pairId) {
         AddPairLogic.updateAssetRiskParams(globalData.pairs[_pairId], _riskParams, _changeToIsolatedMode);
     }
 
     /**
      * @notice Updates interest rate model parameters.
-     * @dev The function can be called by operator.
+     * @dev The function can be called by pool owner.
      * @param _pairId The id of pair to update params.
      * @param _stableIrmParams Asset interest-rate parameters for stable.
      * @param _underlyingIrmParams Asset interest-rate parameters for underlying.
@@ -161,8 +170,72 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         uint256 _pairId,
         InterestRateModel.IRMParams memory _stableIrmParams,
         InterestRateModel.IRMParams memory _underlyingIrmParams
-    ) external onlyOperator {
+    ) external onlyPoolOwner(_pairId) {
         AddPairLogic.updateIRMParams(globalData.pairs[_pairId], _stableIrmParams, _underlyingIrmParams);
+    }
+
+    /**
+     * @notice Updates fee ratio
+     * @dev The function can be called by pool owner.
+     * @param _pairId The id of pair to update params.
+     * @param _feeRatio The ratio of fee
+     */
+    function updateFeeRatio(uint256 _pairId, uint8 _feeRatio) external onlyPoolOwner(_pairId) {
+        AddPairLogic.updateFeeRatio(globalData.pairs[_pairId], _feeRatio);
+    }
+
+    /**
+     * @notice Updates pool owner
+     * @dev The function can be called by pool owner.
+     * @param _pairId The id of pair to update params.
+     * @param _poolOwner The address of pool owner
+     */
+    function updatePoolOwner(uint256 _pairId, address _poolOwner) external onlyPoolOwner(_pairId) {
+        AddPairLogic.updatePoolOwner(globalData.pairs[_pairId], _poolOwner);
+    }
+
+    /**
+     * @notice Withdraws accumulated protocol revenue.
+     * @dev Only operator can call this function.
+     * @param _pairId The id of pair
+     * @param _isStable Is stable or underlying
+     */
+    function withdrawProtocolRevenue(uint256 _pairId, bool _isStable) external onlyOperator {
+        DataType.AssetPoolStatus storage pool = getAssetStatusPool(_pairId, _isStable);
+
+        uint256 amount = pool.accumulatedProtocolRevenue;
+
+        require(amount > 0, "AZ");
+
+        pool.accumulatedProtocolRevenue = 0;
+
+        if (amount > 0) {
+            TransferHelper.safeTransfer(pool.token, msg.sender, amount);
+        }
+
+        emit ProtocolRevenueWithdrawn(_pairId, _isStable, amount);
+    }
+
+    /**
+     * @notice Withdraws accumulated creator revenue.
+     * @dev Only pool owner can call this function.
+     * @param _pairId The id of pair
+     * @param _isStable Is stable or underlying
+     */
+    function withdrawCreatorRevenue(uint256 _pairId, bool _isStable) external onlyPoolOwner(_pairId) {
+        DataType.AssetPoolStatus storage pool = getAssetStatusPool(_pairId, _isStable);
+
+        uint256 amount = pool.accumulatedCreatorRevenue;
+
+        require(amount > 0, "AZ");
+
+        pool.accumulatedCreatorRevenue = 0;
+
+        if (amount > 0) {
+            TransferHelper.safeTransfer(pool.token, msg.sender, amount);
+        }
+
+        emit CreatorRevenueWithdrawn(_pairId, _isStable, amount);
     }
 
     /**
@@ -386,5 +459,19 @@ contract Controller is Initializable, ReentrancyGuard, IUniswapV3MintCallback, I
         }
 
         return (getVaultStatus(ownVaults.mainVaultId), vaultStatusResults);
+    }
+
+    // Private Functions
+
+    function getAssetStatusPool(uint256 _pairId, bool _isStable)
+        internal
+        view
+        returns (DataType.AssetPoolStatus storage)
+    {
+        if (_isStable) {
+            return globalData.pairs[_pairId].stablePool;
+        } else {
+            return globalData.pairs[_pairId].underlyingPool;
+        }
     }
 }

@@ -66,7 +66,7 @@ contract TestBaseStrategy is Test {
 
         // Set up Controller
         controller = new Controller();
-        initializeController();
+        initializeController(factory);
 
         usdc.approve(address(controller), type(uint256).max);
         weth.approve(address(controller), type(uint256).max);
@@ -98,16 +98,18 @@ contract TestBaseStrategy is Test {
         }
     }
 
-    function initializeController() internal {
-        controller.initialize();
+    function initializeController(address _factory) internal {
+        controller.initialize(_factory);
 
         controller.addPairGroup(address(usdc), 4);
 
         controller.addPair(
             DataType.AddPairParams(
                 PAIR_GROUP_ID,
+                address(0),
                 address(uniswapPool),
                 false,
+                0,
                 DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
                 irmParams,
                 irmParams

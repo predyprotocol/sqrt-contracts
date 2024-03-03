@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "../DataType.sol";
 import "../PairGroupLib.sol";
 import "../../tokenization/SupplyToken.sol";
@@ -14,15 +15,18 @@ library AddPairLogic {
     event IRMParamsUpdated(
         uint256 pairId, InterestRateModel.IRMParams stableIrmParams, InterestRateModel.IRMParams underlyingIrmParams
     );
+    event FeeRatioUpdated(uint256 pairId, uint8 feeRatio);
+    event PoolOwnerUpdated(uint256 pairId, address poolOwner);
 
     /**
      * @notice Initialized global data counts
      * @param _global Global data
      */
-    function initializeGlobalData(DataType.GlobalData storage _global) external {
+    function initializeGlobalData(DataType.GlobalData storage _global, address _uniswapFactory) external {
         _global.pairGroupsCount = 1;
         _global.pairsCount = 1;
         _global.vaultCount = 1;
+        _global.uniswapFactory = _uniswapFactory;
     }
 
     /**
@@ -66,6 +70,15 @@ library AddPairLogic {
 
         address stableTokenAddress = pairGroup.stableTokenAddress;
 
+        IUniswapV3Factory uniswapV3Factory = IUniswapV3Factory(_global.uniswapFactory);
+
+        // check the uniswap pool is registered in UniswapV3Factory
+        require(
+            uniswapV3Factory.getPool(uniswapPool.token0(), uniswapPool.token1(), uniswapPool.fee())
+                == _addPairParam.uniswapPool,
+            "RIF"
+        );
+
         require(uniswapPool.token0() == stableTokenAddress || uniswapPool.token1() == stableTokenAddress, "C3");
 
         bool isMarginZero = uniswapPool.token0() == stableTokenAddress;
@@ -84,6 +97,22 @@ library AddPairLogic {
         _global.pairsCount++;
 
         emit PairAdded(pairId, _addPairParam.pairGroupId, _addPairParam.uniswapPool);
+    }
+
+    function updateFeeRatio(DataType.PairStatus storage _pairStatus, uint8 _feeRatio) external {
+        validateFeeRatio(_feeRatio);
+
+        _pairStatus.feeRatio = _feeRatio;
+
+        emit FeeRatioUpdated(_pairStatus.id, _feeRatio);
+    }
+
+    function updatePoolOwner(DataType.PairStatus storage _pairStatus, address _poolOwner) external {
+        validatePoolOwner(_poolOwner);
+
+        _pairStatus.poolOwner = _poolOwner;
+
+        emit PoolOwnerUpdated(_pairStatus.id, _poolOwner);
     }
 
     function updateAssetRiskParams(
@@ -126,23 +155,29 @@ library AddPairLogic {
         DataType.AddPairParams memory _addPairParam
     ) internal {
         validateRiskParams(_addPairParam.assetRiskParams);
+        validateFeeRatio(_addPairParam.fee);
 
         require(_pairs[_pairId].id == 0);
 
         _pairs[_pairId] = DataType.PairStatus(
             _pairId,
             _pairGroup.id,
+            _addPairParam.poolOwner,
             DataType.AssetPoolStatus(
                 _pairGroup.stableTokenAddress,
                 deploySupplyToken(_pairGroup.stableTokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _addPairParam.stableIrmParams
+                _addPairParam.stableIrmParams,
+                0,
+                0
             ),
             DataType.AssetPoolStatus(
                 _tokenAddress,
                 deploySupplyToken(_tokenAddress),
                 ScaledAsset.createTokenStatus(),
-                _addPairParam.underlyingIrmParams
+                _addPairParam.underlyingIrmParams,
+                0,
+                0
             ),
             _addPairParam.assetRiskParams,
             Perp.createAssetStatus(
@@ -152,6 +187,7 @@ library AddPairLogic {
             ),
             _isMarginZero,
             _addPairParam.isIsolatedMode,
+            _addPairParam.fee,
             block.timestamp
         );
 
@@ -170,6 +206,14 @@ library AddPairLogic {
             erc20.decimals()
             )
         );
+    }
+
+    function validateFeeRatio(uint8 _fee) internal pure {
+        require(0 <= _fee && _fee <= 20, "FEE");
+    }
+
+    function validatePoolOwner(address _poolOwner) internal pure {
+        require(_poolOwner != address(0), "ADDZ");
     }
 
     function validateRiskParams(DataType.AssetRiskParams memory _assetRiskParams) internal pure {

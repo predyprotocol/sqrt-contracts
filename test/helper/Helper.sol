@@ -22,19 +22,28 @@ contract Helper {
         assetStatus = DataType.PairStatus(
             _pairId,
             1,
+            address(0),
             DataType.AssetPoolStatus(
                 address(0),
                 address(0),
                 ScaledAsset.createTokenStatus(),
-                InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18)
+                InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
+                0,
+                0
             ),
             DataType.AssetPoolStatus(
-                _weth, address(0), ScaledAsset.createTokenStatus(), InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18)
+                _weth,
+                address(0),
+                ScaledAsset.createTokenStatus(),
+                InterestRateModel.IRMParams(0, 9 * 1e17, 1e17, 1e18),
+                0,
+                0
             ),
             DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
             Perp.createAssetStatus(_uniswapPool, -100, 100),
             false,
             _isIsolatedMode,
+            0,
             block.timestamp
         );
     }

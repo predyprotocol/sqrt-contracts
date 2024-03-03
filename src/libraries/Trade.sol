@@ -45,12 +45,12 @@ library Trade {
         );
 
         tradeResult.payoff.perpPayoff =
-            roundAndAddToFeeGrowth(_pairStatus, tradeResult.payoff.perpPayoff, _pairGroup.marginRoundedDecimal);
+            roundAndAddToProtocolFee(_pairStatus, tradeResult.payoff.perpPayoff, _pairGroup.marginRoundedDecimal);
         tradeResult.payoff.sqrtPayoff =
-            roundAndAddToFeeGrowth(_pairStatus, tradeResult.payoff.sqrtPayoff, _pairGroup.marginRoundedDecimal);
+            roundAndAddToProtocolFee(_pairStatus, tradeResult.payoff.sqrtPayoff, _pairGroup.marginRoundedDecimal);
 
         tradeResult.fee =
-            roundAndAddToFeeGrowth(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
+            roundAndAddToProtocolFee(_pairStatus, stableFee + swapResult.fee, _pairGroup.marginRoundedDecimal);
     }
 
     function settleUserBalanceAndFee(
@@ -63,25 +63,17 @@ library Trade {
         Perp.settleUserBalance(_pairStatus, _userStatus);
     }
 
-    function roundAndAddToFeeGrowth(
+    function roundAndAddToProtocolFee(
         DataType.PairStatus storage _pairStatus,
         int256 _amount,
         uint8 _marginRoundedDecimal
     ) internal returns (int256) {
         int256 rounded = roundMargin(_amount, 10 ** _marginRoundedDecimal);
-        if (_amount > rounded) {
-            if (_pairStatus.sqrtAssetStatus.totalAmount > 0) {
-                uint256 deltaFee = uint256(_amount - rounded) * Constants.Q128 / _pairStatus.sqrtAssetStatus.totalAmount;
 
-                if (_pairStatus.isMarginZero) {
-                    _pairStatus.sqrtAssetStatus.fee0Growth += deltaFee;
-                } else {
-                    _pairStatus.sqrtAssetStatus.fee1Growth += deltaFee;
-                }
-            } else {
-                return _amount;
-            }
+        if (_amount > rounded) {
+            _pairStatus.stablePool.accumulatedProtocolRevenue += uint256(_amount - rounded);
         }
+
         return rounded;
     }
 

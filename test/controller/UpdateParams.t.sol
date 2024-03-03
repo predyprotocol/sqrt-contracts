@@ -16,14 +16,16 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotInitializeTwice() public {
         vm.expectRevert(bytes("Initializable: contract is already initialized"));
-        controller.initialize();
+        controller.initialize(0x1F98431c8aD98523631AE4a59f267346ea31F984);
     }
 
     function testAddPair() public {
         DataType.AddPairParams memory addPairParams = DataType.AddPairParams(
             PAIR_GROUP_ID,
+            address(0),
             address(uniswapPool),
             false,
+            0,
             DataType.AssetRiskParams(RISK_RATIO, 1000, 500),
             irmParams,
             irmParams
@@ -43,7 +45,7 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotUpdateAssetRiskParams_IfCallerIsNotOperator() public {
         vm.prank(user);
-        vm.expectRevert(bytes("C1"));
+        vm.expectRevert(bytes("C6"));
         controller.updateAssetRiskParams(WETH_ASSET_ID, DataType.AssetRiskParams(RISK_RATIO, 10, 5), false);
     }
 
@@ -59,7 +61,7 @@ contract TestControllerUpdateParams is TestController {
 
     function testCannotUpdateIRMParams_IfCallerIsNotOperator() public {
         vm.prank(user);
-        vm.expectRevert(bytes("C1"));
+        vm.expectRevert(bytes("C6"));
         controller.updateIRMParams(WETH_ASSET_ID, newIrmParams, newIrmParams);
     }
 
@@ -83,5 +85,49 @@ contract TestControllerUpdateParams is TestController {
         assertEq(asset.underlyingPool.irmParams.kinkRate, 10 * 1e17);
         assertEq(asset.underlyingPool.irmParams.slope1, 10 * 1e17);
         assertEq(asset.underlyingPool.irmParams.slope2, 2 * 1e18);
+    }
+
+    function testCannotUpdateFeeRatio_IfCallerIsNotOwner() public {
+        vm.startPrank(user);
+
+        vm.expectRevert(bytes("C6"));
+        controller.updateFeeRatio(WETH_ASSET_ID, 10);
+
+        vm.stopPrank();
+    }
+
+    function testCannotUpdateFeeRatio_IfAmountIsTooLarge() public {
+        vm.expectRevert(bytes("FEE"));
+        controller.updateFeeRatio(WETH_ASSET_ID, 21);
+    }
+
+    function testUpdateFeeRatio() public {
+        controller.updateFeeRatio(WETH_ASSET_ID, 12);
+
+        DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
+
+        assertEq(asset.feeRatio, 12);
+    }
+
+    function testCannotUpdatePoolOwner_IfCallerIsNotOwner() public {
+        vm.startPrank(user);
+
+        vm.expectRevert(bytes("C6"));
+        controller.updatePoolOwner(WETH_ASSET_ID, address(0));
+
+        vm.stopPrank();
+    }
+
+    function testCannotUpdatePoolOwner() public {
+        vm.expectRevert(bytes("ADDZ"));
+        controller.updatePoolOwner(WETH_ASSET_ID, address(0));
+    }
+
+    function testUpdatePoolOwner() public {
+        controller.updatePoolOwner(WETH_ASSET_ID, address(1));
+
+        DataType.PairStatus memory asset = controller.getAsset(WETH_ASSET_ID);
+
+        assertEq(asset.poolOwner, address(1));
     }
 }

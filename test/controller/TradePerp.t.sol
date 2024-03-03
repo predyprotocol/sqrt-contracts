@@ -83,6 +83,19 @@ contract TestControllerTradePerp is TestController {
         vm.prank(user2);
         controller.withdrawToken(1, 1e18, false);
 
+        {
+            DataType.PairStatus memory pairAfter = controller.getAsset(WETH_ASSET_ID);
+
+            if (pairAfter.stablePool.accumulatedProtocolRevenue > 0) {
+                controller.withdrawProtocolRevenue(WETH_ASSET_ID, true);
+            }
+            if (pairAfter.underlyingPool.accumulatedProtocolRevenue > 0) {
+                controller.withdrawProtocolRevenue(WETH_ASSET_ID, false);
+            }
+
+            assertEq(pairAfter.sqrtAssetStatus.lastRebalanceTotalSquartAmount, 0);
+        }
+
         assertLt(usdc.balanceOf(address(controller)), 100);
         assertLt(weth.balanceOf(address(controller)), 100);
     }
@@ -192,7 +205,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999998998);
+        assertEq(vault.margin, 9999990000);
 
         withdrawAll();
     }
@@ -234,7 +247,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999998996);
+        assertEq(vault.margin, 9999990000);
     }
 
     // open sqrt short
@@ -328,7 +341,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999999996);
+        assertEq(vault.margin, 9999990000);
     }
 
     // pay interest
@@ -341,7 +354,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999948272);
+        assertEq(vault.margin, 9999930000);
     }
 
     function testPayPremium() public {
@@ -394,7 +407,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10098052535);
+        assertEq(vault.margin, 10098040000);
 
         withdrawAll();
     }
@@ -413,7 +426,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10000190794);
+        assertEq(vault.margin, 10000190000);
     }
 
     function testShortDeltaAndPriceBecomesHigh() public {
@@ -429,7 +442,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999889746);
+        assertEq(vault.margin, 9999880000);
     }
 
     function testLongSqrtAndPriceBecomesHigh() public {
@@ -456,7 +469,7 @@ contract TestControllerTradePerp is TestController {
 
         assertEq(vault.openPositions.length, 1);
 
-        assertEq(vault.margin, 10000189893);
+        assertEq(vault.margin, 10000180000);
 
         withdrawAll();
     }
@@ -495,7 +508,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999999507);
+        assertEq(vault.margin, 9999990000);
     }
 
     // after rebalance
@@ -516,7 +529,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10007895971);
+        assertEq(vault.margin, 10007890000);
 
         withdrawAll();
     }
@@ -553,7 +566,7 @@ contract TestControllerTradePerp is TestController {
         //
         // 207995284 - 200050029
 
-        assertEq(tradeResult.payoff.sqrtPayoff, 7998013);
+        assertEq(tradeResult.payoff.sqrtPayoff, 7990000);
 
         withdrawAll();
     }
@@ -579,7 +592,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999840077);
+        assertEq(vault.margin, 9999830000);
 
         withdrawAll();
     }
@@ -614,7 +627,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 10013924333);
+        assertEq(vault.margin, 10013910000);
 
         withdrawAll();
     }
@@ -634,7 +647,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.Vault memory vault = controller.getVault(vaultId);
 
-        assertEq(vault.margin, 9999541603);
+        assertEq(vault.margin, 9999530000);
 
         withdrawAll();
     }
@@ -704,7 +717,7 @@ contract TestControllerTradePerp is TestController {
 
         DataType.VaultStatusResult memory vaultStatus = controller.getVaultStatus(vaultId);
 
-        assertEq(vaultStatus.vaultValue, 9999840124);
+        assertEq(vaultStatus.vaultValue, 9999838139);
 
         withdrawAll();
     }
@@ -734,5 +747,37 @@ contract TestControllerTradePerp is TestController {
         DataType.Vault memory vault = controller.getVault(vaultId);
 
         assertEq(vault.margin, 9999980000);
+    }
+
+    // Trades with creator fee
+    function testTradeWithCreatorFee() public {
+        // Updates creator fee
+        controller.updateFeeRatio(WETH_ASSET_ID, 10);
+
+        // Trades
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(-1e10, 1e10));
+
+        vm.warp(block.timestamp + 2 weeks);
+
+        controller.tradePerp(vaultId, WETH_ASSET_ID, getTradeParams(1e10, -1e10));
+
+        // Withdraw creator fee and protocol fee
+        DataType.PairStatus memory pair = controller.getAsset(WETH_ASSET_ID);
+
+        uint256 usdcBalanceBefore = usdc.balanceOf(address(this));
+        uint256 wethBalanceBefore = weth.balanceOf(address(this));
+
+        controller.withdrawCreatorRevenue(WETH_ASSET_ID, true);
+        controller.withdrawCreatorRevenue(WETH_ASSET_ID, false);
+        controller.withdrawProtocolRevenue(WETH_ASSET_ID, true);
+        controller.withdrawProtocolRevenue(WETH_ASSET_ID, false);
+
+        uint256 usdcBalanceAfter = usdc.balanceOf(address(this));
+        uint256 wethBalanceAfter = weth.balanceOf(address(this));
+
+        assertEq(usdcBalanceAfter - usdcBalanceBefore, 77639);
+        assertEq(wethBalanceAfter - wethBalanceBefore, 64316);
+
+        withdrawAll();
     }
 }
